@@ -33,10 +33,11 @@ import { BeadCardOverlay } from "./bead-card";
 import { Column } from "./column";
 import type { Bead } from "@/lib/schema";
 
-// Whatever is under the pointer wins (the smallest match, so a card beats its column),
-// which keeps empty space low in a short column a valid target. closestCorners alone can
-// prefer a card in a long neighboring column whose corners sit nearer the dragged card's.
-// It remains the fallback when the pointer is between columns.
+// Whatever is under the pointer wins. pointerWithin sorts its hits by the average distance
+// from the pointer to each rect's corners, so a card beats the much taller column that
+// contains it, and empty space low in a short column stays a valid target. closestCorners
+// alone can prefer a card in a long neighboring column whose corners sit nearer the
+// dragged card's. It remains the fallback when the pointer is between columns.
 const pointerFirstCollision: CollisionDetection = (args) => {
   const underPointer = pointerWithin(args);
   return underPointer.length > 0 ? underPointer : closestCorners(args);
