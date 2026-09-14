@@ -6,7 +6,12 @@ import {
   useSensor,
   useSensors,
   closestCorners,
+  pointerWithin,
+  DragOverlay,
+  type CollisionDetection,
   type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { Icon } from "@/components/icons";
@@ -24,8 +29,18 @@ import {
   sortBoardCards,
   type BoardSortMode,
 } from "@/lib/board-columns";
+import { BeadCardOverlay } from "./bead-card";
 import { Column } from "./column";
 import type { Bead } from "@/lib/schema";
+
+// Whatever is under the pointer wins (the smallest match, so a card beats its column),
+// which keeps empty space low in a short column a valid target. closestCorners alone can
+// prefer a card in a long neighboring column whose corners sit nearer the dragged card's.
+// It remains the fallback when the pointer is between columns.
+const pointerFirstCollision: CollisionDetection = (args) => {
+  const underPointer = pointerWithin(args);
+  return underPointer.length > 0 ? underPointer : closestCorners(args);
+};
 
 export function Board() {
   const { beads, index, humanAllowlist, openCreate, loading, projectId, readOnly } = useApp();
@@ -63,6 +78,12 @@ export function Board() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
+
+  // The card being dragged and the column under the pointer. The card renders in a
+  // DragOverlay so it can travel across columns; in place it is confined to (and
+  // clipped by) its own column's list.
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const [overColumnId, setOverColumnId] = React.useState<string | null>(null);
 
   const matchFilters = React.useCallback(
     (b: Bead) => {
@@ -113,7 +134,27 @@ export function Board() {
     return m;
   }, [columns]);
 
+  // `over` is a column id (pointer over empty column space) or a bead id (over a card).
+  function columnUnder(overId: string | null): string | undefined {
+    if (!overId) return undefined;
+    return COLUMNS.some((c) => c.id === overId) ? overId : colOfBead.get(overId);
+  }
+
+  function endDrag() {
+    setDraggingId(null);
+    setOverColumnId(null);
+  }
+
+  function onDragStart(e: DragStartEvent) {
+    setDraggingId(String(e.active.id));
+  }
+
+  function onDragOver(e: DragOverEvent) {
+    setOverColumnId(columnUnder(e.over?.id ? String(e.over.id) : null) ?? null);
+  }
+
   function onDragEnd(e: DragEndEvent) {
+    endDrag();
     if (readOnly) return;
     const activeId = String(e.active.id);
     const overRaw = e.over?.id ? String(e.over.id) : null;
@@ -122,8 +163,7 @@ export function Board() {
     const activeCol = colOfBead.get(activeId);
     if (!activeCol) return;
 
-    // `over` is a column id (dropped on empty area) or a bead id (over a card).
-    const overCol = COLUMNS.some((c) => c.id === overRaw) ? overRaw : colOfBead.get(overRaw);
+    const overCol = columnUnder(overRaw);
     if (!overCol) return;
 
     if (overCol !== activeCol) {
@@ -145,6 +185,13 @@ export function Board() {
     if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
     setOrder.mutate({ columnId: activeCol, ids: arrayMove(ids, oldIndex, newIndex) });
   }
+
+  const draggingBead = draggingId ? index.get(draggingId) : undefined;
+  // Advertise only a column that a drop would actually move the card into.
+  const sourceColumnId = draggingId ? colOfBead.get(draggingId) : undefined;
+  const dropColumn = COLUMNS.find(
+    (c) => c.id === overColumnId && c.id !== sourceColumnId && c.droppable && c.status,
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -208,7 +255,14 @@ export function Board() {
         {loading && beads.length === 0 ? (
           <div className="text-[13px] text-[var(--text-3)]">Loading beads…</div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={pointerFirstCollision}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDragEnd={onDragEnd}
+            onDragCancel={endDrag}
+          >
             <div className="flex h-full min-h-0 gap-4">
               {shownColumns.map(({ col, cards }) => (
                 <Column
@@ -217,6 +271,7 @@ export function Board() {
                   cards={cards}
                   childCounts={childCounts}
                   manualSort={boardPrefs.sortMode === "manual"}
+                  dropTarget={dropColumn?.id === col.id}
                   control={
                     col.id === "done" ? (
                       <select
@@ -238,6 +293,13 @@ export function Board() {
                 />
               ))}
             </div>
+            {/* No drop animation: a cross-column drop has already moved the card, so
+                animating the preview toward its old slot would read as a failed move. */}
+            <DragOverlay dropAnimation={null}>
+              {draggingBead ? (
+                <BeadCardOverlay bead={draggingBead} childCount={childCounts.get(draggingBead.id) ?? 0} />
+              ) : null}
+            </DragOverlay>
           </DndContext>
         )}
       </div>
