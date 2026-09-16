@@ -94,6 +94,7 @@ try {
   // and the column under it must advertise itself as the drop target.
   await pickUp("mover");
   const overBusy = await hoverCard("busy-a");
+  assert.equal(await page.locator('article[aria-hidden="true"] button').count(), 0, "the preview has no hidden focusable copy button");
   assert.ok(await previewUnderPointer(overBusy, "Feedback mover"), "a preview of the dragged card follows the pointer into another column");
   assert.equal(await zoneHighlighted("In Progress"), true, "the column under the pointer is highlighted while hovering one of its cards");
   assert.equal(await zoneHighlighted("Ready"), false, "the source column is not highlighted as a drop target");
@@ -130,6 +131,18 @@ try {
   await emptySpaceStatus;
   assert.deepEqual(writes.slice(emptySpaceWrites).map((write) => write.kind), ["status"], "dropping into another column's empty space writes status only");
   assert.equal(writes.at(-1).body.status, "in_progress");
+
+  // Dependency-blocked open beads cannot become Ready through a no-op status write.
+  beads.push({ ...bead("blocked-open", "open"), dependencies: [{ depends_on_id: "filler-1", type: "blocks" }] });
+  await page.reload();
+  await card("blocked-open").waitFor();
+  const blockedWrites = writes.length;
+  await pickUp("blocked-open");
+  await hoverCard("filler-1");
+  assert.equal(await zoneHighlighted("Ready"), false, "a no-op status destination must not advertise a move");
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+  assert.equal(writes.length, blockedWrites, "a dependency-blocked bead cannot be unblocked by setting open again");
 
   assert.deepEqual(errors, []);
   console.log("PASS: cross-column drag shows a travelling preview and target highlight, still writes status on drop, and cancels cleanly");

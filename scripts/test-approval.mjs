@@ -90,7 +90,7 @@ try {
   await page.goto(`${base}/p/demo`);
   await context.request.put(`${base}/api/viewer-mode`, { data: { readOnly: false } });
   await page.getByRole("button", { name: "Read Only Mode", exact: true }).waitFor({ state: "detached" });
-  await page.getByRole("button", { name: "Needs You", exact: true }).click();
+  await page.getByRole("button", { name: /^Needs You(?:\s+\d+)?$/ }).click();
   const inboxCard = page.locator('[data-keyboard-bead-id="inbox-gate"]');
   await inboxCard.waitFor();
 
@@ -135,11 +135,11 @@ try {
 
   // Viewer mode remains an absolute write guard on both surfaces.
   await context.request.put(`${base}/api/viewer-mode`, { data: { readOnly: true } });
-  await page.getByRole("button", { name: "Needs You", exact: true }).click();
+  await page.getByRole("button", { name: /^Needs You(?:\s+\d+)?$/ }).click();
   const readOnlyGate = bead("read-only-gate");
   beads.push(readOnlyGate);
   await page.reload();
-  await page.getByRole("button", { name: "Needs You", exact: true }).click();
+  await page.getByRole("button", { name: /^Needs You(?:\s+\d+)?$/ }).click();
   const readOnlyCard = page.locator('[data-keyboard-bead-id="read-only-gate"]');
   await readOnlyCard.getByRole("button", { name: "Approve", exact: true }).waitFor();
   assert.equal(await readOnlyCard.getByRole("button", { name: "Approve", exact: true }).isDisabled(), true);

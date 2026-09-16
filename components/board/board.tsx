@@ -191,7 +191,8 @@ export function Board() {
   // Advertise only a column that a drop would actually move the card into.
   const sourceColumnId = draggingId ? colOfBead.get(draggingId) : undefined;
   const dropColumn = COLUMNS.find(
-    (c) => c.id === overColumnId && c.id !== sourceColumnId && c.droppable && c.status,
+    (c) => c.id === overColumnId && c.id !== sourceColumnId && c.droppable && c.status &&
+      draggingBead?.status !== c.status,
   );
 
   return (
