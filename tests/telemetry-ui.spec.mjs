@@ -1,22 +1,22 @@
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated server with POSTHOG_KEY empty");
-const settings = await (await fetch(`${base}/api/telemetry`)).json();
-assert.equal(settings.configured, false, "UI test must not send production events");
-assert.equal(
-  (
-    await fetch(`${base}/api/telemetry`, {
-      method: "PUT",
-      headers: { origin: base, "content-type": "application/json" },
-      body: '{"enabled":true}',
-    })
-  ).status,
-  200,
-);
-const browser = await chromium.launch();
-try {
+test("telemetry ui", async ({ browser, baseURL }, testInfo) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
+  const settings = await (await fetch(`${base}/api/telemetry`)).json();
+  assert.equal(settings.configured, false, "UI test must not send production events");
+  assert.equal(
+    (
+      await fetch(`${base}/api/telemetry`, {
+        method: "PUT",
+        headers: { origin: base, "content-type": "application/json" },
+        body: '{"enabled":true}',
+      })
+    ).status,
+    200,
+  );
+
   const page = await browser.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -53,7 +53,7 @@ try {
   assert.equal(await toggle.getAttribute("aria-checked"), "false");
   await page.unroute("**/api/telemetry");
   await toggle.scrollIntoViewIfNeeded();
-  await page.screenshot({ path: "/tmp/scotty-usage-settings.png" });
+  await page.screenshot({ path: testInfo.outputPath("scotty-usage-settings.png") });
   assert.equal(
     (
       await fetch(`${base}/api/telemetry`, {
@@ -78,6 +78,4 @@ try {
   console.log(
     "PASS: Settings toggle in read-only mode, reload, shared browser preference, save failure, invalid input and foreign-origin rejection",
   );
-} finally {
-  await browser.close();
-}
+});

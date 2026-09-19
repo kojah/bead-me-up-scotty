@@ -1,45 +1,44 @@
-// Isolated demo server only; project data is intercepted and never written.
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated app server");
-const bead = (id, extra = {}) => ({
-  id,
-  title: id,
-  status: "open",
-  issue_type: "task",
-  priority: 1,
-  labels: [],
-  dependencies: [],
-  created_at: "2026-09-01T00:00:00Z",
-  updated_at: "2026-09-01T00:00:00Z",
-  ...extra,
-});
-const dep = (type, target) => ({ type, depends_on_id: target });
-const beads = [
-  bead("upstream", { priority: 3 }),
-  bead("waiting", { dependencies: [dep("waits-for", "upstream")], labels: ["ctx:alpha"] }),
-  bead("conditional", {
-    dependencies: [dep("conditional-blocks", "upstream")],
-    labels: ["ctx:beta"],
-  }),
-  bead("manual", { status: "blocked" }),
-  bead("flight", { status: "in_progress", labels: ["ctx:alpha"] }),
-  bead("ready", { labels: ["ctx:beta"] }),
-  bead("parent", { issue_type: "epic", priority: 3 }),
-  bead("child", { dependencies: [dep("parent-child", "parent")] }),
-  bead("done", { status: "closed" }),
-  bead("archived", { labels: ["archived"] }),
-  bead("gate", {
-    issue_type: "gate",
-    await_type: "human",
-    priority: 3,
-    dependencies: [dep("waits-for", "upstream")],
-  }),
-];
-const browser = await chromium.launch();
-try {
+test("focus", async ({ browser, baseURL }, testInfo) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
+  const bead = (id, extra = {}) => ({
+    id,
+    title: id,
+    status: "open",
+    issue_type: "task",
+    priority: 1,
+    labels: [],
+    dependencies: [],
+    created_at: "2026-09-01T00:00:00Z",
+    updated_at: "2026-09-01T00:00:00Z",
+    ...extra,
+  });
+  const dep = (type, target) => ({ type, depends_on_id: target });
+  const beads = [
+    bead("upstream", { priority: 3 }),
+    bead("waiting", { dependencies: [dep("waits-for", "upstream")], labels: ["ctx:alpha"] }),
+    bead("conditional", {
+      dependencies: [dep("conditional-blocks", "upstream")],
+      labels: ["ctx:beta"],
+    }),
+    bead("manual", { status: "blocked" }),
+    bead("flight", { status: "in_progress", labels: ["ctx:alpha"] }),
+    bead("ready", { labels: ["ctx:beta"] }),
+    bead("parent", { issue_type: "epic", priority: 3 }),
+    bead("child", { dependencies: [dep("parent-child", "parent")] }),
+    bead("done", { status: "closed" }),
+    bead("archived", { labels: ["archived"] }),
+    bead("gate", {
+      issue_type: "gate",
+      await_type: "human",
+      priority: 3,
+      dependencies: [dep("waits-for", "upstream")],
+    }),
+  ];
+
   const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
   let lanePrefix = "ctx:";
   const errors = [];
@@ -87,7 +86,7 @@ try {
     (await page.locator("section article").allTextContents()).join(" "),
     /archived|done/,
   );
-  await page.screenshot({ path: "/tmp/scotty-focus-final.png" });
+  await page.screenshot({ path: testInfo.outputPath("scotty-focus-final.png") });
   await page.getByRole("button", { name: "alpha", exact: true }).click();
   assert.match(await ids("Blocked"), /waiting/);
   assert.doesNotMatch(await ids("Blocked"), /conditional|manual/);
@@ -128,6 +127,4 @@ try {
   console.log(
     "PASS: Board default, optional Focus, blocking columns, hierarchy, lane filters, archived exclusion, and read-only detail navigation",
   );
-} finally {
-  await browser.close();
-}
+});

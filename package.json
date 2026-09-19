@@ -25,7 +25,11 @@
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check .",
-    "typecheck": "bun --bun tsc --noEmit"
+    "typecheck": "bun --bun tsc --noEmit",
+    "test": "bun run test:unit && bun run test:e2e",
+    "test:unit": "bun scripts/test-blocking.mjs && bun scripts/test-dep-candidates.mjs && bun scripts/test-graph-containers.mjs && bun scripts/test-telemetry.mjs && bun scripts/test-updates.mjs",
+    "test:e2e": "bun --bun playwright test",
+    "test:e2e:ui": "bun --bun playwright test --ui"
   },
   "dependencies": {
     "@11ty/eleventy": "^3.1.6",
@@ -55,11 +59,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
+    "@playwright/test": "1.61.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "playwright": "^1.61.0",
     "shadcn": "^4.11.0",
     "tailwindcss": "^4",
     "typescript": "^5"

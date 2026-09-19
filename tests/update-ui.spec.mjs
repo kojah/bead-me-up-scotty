@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated demo server");
-assert.equal((await (await fetch(base + "/api/telemetry")).json()).configured, false);
-const browser = await chromium.launch();
-try {
+test("update ui", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
+  assert.equal((await (await fetch(base + "/api/telemetry")).json()).configured, false);
+
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -96,6 +96,4 @@ try {
   console.log(
     "PASS: release notice for installed copies, manual instructions, channel changes, immediate persistent opt-out, exact target POST and restart guidance",
   );
-} finally {
-  await browser.close();
-}
+});

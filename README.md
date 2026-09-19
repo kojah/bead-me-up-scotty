@@ -311,7 +311,20 @@ bun run build         # typecheck + production build
 bun run check         # Biome lint, formatting and import checks
 bun run typecheck     # TypeScript
 bun run format        # apply formatting
+bun run test:unit     # isolated logic and updater tests
+bun --bun playwright install --with-deps chromium  # once per machine
+bun run test:e2e      # Playwright Test (build first)
+bun run test:e2e:ui   # interactive runner
 ```
+
+Playwright Test starts its own Bun-powered demo server on loopback port 43188
+with a temporary settings directory and telemetry disabled. It refuses to reuse
+an existing server, so browser tests cannot accidentally target your live board.
+The suite runs serially because some legacy scenarios exercise shared demo
+settings. Each test has fresh browser contexts, with screenshots and traces
+retained on failure in `test-results/` and an HTML report in `playwright-report/`.
+Run a subset with `bun run test:e2e tests/mobile.spec.mjs` or rerun failures with
+`bun run test:e2e --last-failed`. CI runs these same checks.
 
 ## License
 
@@ -362,13 +375,12 @@ active **installations**, not people: multiple machines count separately, shared
 servers count once, and offline or opted-out installations are absent. Deleting the preference file restores the default setting; deleting the ID file
 resets the installation identity.
 
-Verify the capture and privacy rules with `bun scripts/test-telemetry.mjs`
-(Node 22.18+ for native TypeScript support). The tests use temporary local storage
+Verify the capture and privacy rules with `bun scripts/test-telemetry.mjs`.
+The tests use temporary local storage
 and a fake network transport; they do not send production events.
 
-For the Settings browser checks, start an isolated server with
-`XDG_CONFIG_HOME=/tmp/scotty-usage-test POSTHOG_KEY='' BEADS_DEMO=1 SCOTTY_READ_ONLY=1 bun run start -- --port 3197`,
-then run `SCOTTY_TEST_URL=http://localhost:3197 bun scripts/test-telemetry-ui.mjs`.
+For the browser checks, run `bun run test:e2e tests/telemetry-ui.spec.mjs`;
+the runner supplies an isolated server automatically.
 The test refuses to run against an installation configured to send events.
 
 ## A small usage signal, and a thank you

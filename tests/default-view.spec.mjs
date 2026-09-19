@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated demo server");
-const browser = await chromium.launch();
-try {
+test("default view", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
+
   const context = await browser.newContext();
   const page = await context.newPage();
   page.setDefaultTimeout(10000);
@@ -53,6 +53,4 @@ try {
   console.log(
     "PASS: Board default, explicit Focus opt-in, explicit view URLs and reloads, ignored legacy view preference, browser isolation",
   );
-} finally {
-  await browser.close();
-}
+});

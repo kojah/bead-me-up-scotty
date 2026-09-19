@@ -1,36 +1,34 @@
-// Run against an isolated app server: SCOTTY_TEST_URL=http://127.0.0.1:3000 node scripts/test-graph.mjs
-// Project API requests are intercepted; this test never edits a real Beads store.
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated app server");
-const bead = (id, extra = {}) => ({
-  id,
-  title: id,
-  issue_type: "task",
-  status: "open",
-  priority: 2,
-  created_at: "2026-09-01T00:00:00Z",
-  updated_at: "2026-09-01T00:00:00Z",
-  labels: [],
-  dependencies: [],
-  ...extra,
-});
-const dep = (id, target, type = "blocks") => ({ issue_id: id, depends_on_id: target, type });
-const beads = [
-  bead("new-a"),
-  bead("new-b"),
-  bead("finished", { status: "closed" }),
-  bead("linked-a", { dependencies: [dep("linked-a", "linked-b")] }),
-  bead("linked-b"),
-  bead("epic", { issue_type: "epic" }),
-  bead("nested", { issue_type: "epic", dependencies: [dep("nested", "epic", "parent-child")] }),
-  bead("child", { dependencies: [dep("child", "nested", "parent-child")] }),
-  bead("archived", { labels: ["archived"] }),
-];
-const browser = await chromium.launch();
-try {
+test("graph", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
+  const bead = (id, extra = {}) => ({
+    id,
+    title: id,
+    issue_type: "task",
+    status: "open",
+    priority: 2,
+    created_at: "2026-09-01T00:00:00Z",
+    updated_at: "2026-09-01T00:00:00Z",
+    labels: [],
+    dependencies: [],
+    ...extra,
+  });
+  const dep = (id, target, type = "blocks") => ({ issue_id: id, depends_on_id: target, type });
+  const beads = [
+    bead("new-a"),
+    bead("new-b"),
+    bead("finished", { status: "closed" }),
+    bead("linked-a", { dependencies: [dep("linked-a", "linked-b")] }),
+    bead("linked-b"),
+    bead("epic", { issue_type: "epic" }),
+    bead("nested", { issue_type: "epic", dependencies: [dep("nested", "epic", "parent-child")] }),
+    bead("child", { dependencies: [dep("child", "nested", "parent-child")] }),
+    bead("archived", { labels: ["archived"] }),
+  ];
+
   const page = await browser.newPage({ viewport: { width: 1600, height: 1100 } });
   await page.request.put(`${base}/api/viewer-mode`, { data: { readOnly: false } });
   const errors = [];
@@ -41,7 +39,7 @@ try {
     const pathname = new URL(req.url()).pathname;
     if (pathname.endsWith("/deps") && req.method() === "POST") {
       connection = req.postDataJSON();
-      const source = beads.find((b) => b.id === "new-a");
+      const source = beads.find((b) => b.id === "new-b");
       source.dependencies.push(dep(source.id, connection.depends_on_id));
       return route.fulfill({ json: source });
     }
@@ -66,6 +64,8 @@ try {
   await page.goto(`${base}/p/demo`);
   await page.getByRole("button", { name: "Graph", exact: true }).click();
   await page.locator(".react-flow__node").first().waitFor();
+  await page.getByRole("checkbox", { name: "Hide completed", exact: true }).uncheck();
+  await page.locator('.react-flow__node[data-id="finished"]').waitFor();
   const ids = () =>
     page
       .locator(".react-flow__node")
@@ -76,7 +76,7 @@ try {
       .filter((b) => b.id !== "archived")
       .map((b) => b.id)
       .sort(),
-    "Default graph must include closed and unlinked beads exactly once",
+    "Unfiltered graph must include closed and unlinked beads exactly once",
   );
   const filter = page.getByRole("checkbox", { name: "Live dependencies only" });
   await filter.check();
@@ -93,10 +93,12 @@ try {
   await page.mouse.down();
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 20 });
   await page.mouse.up();
-  await page.waitForFunction(() => document.querySelectorAll(".react-flow__edge").length === 4);
+  await page
+    .locator('.react-flow__edge[data-id="new-b->new-a:blocks"]')
+    .waitFor({ state: "attached" });
   assert.deepEqual(
     connection,
-    { depends_on_id: "new-b", type: "blocks" },
+    { depends_on_id: "new-a", type: "blocks" },
     "Previously unlinked tasks must still support drag-to-link",
   );
   await page.locator('.react-flow__node[data-id="finished"]').click();
@@ -176,6 +178,4 @@ try {
   console.log(
     "PASS: full graph, optional pruning, unique nested epics, drag-to-link, closed-task details, empty-filter recovery, and wrapped layout",
   );
-} finally {
-  await browser.close();
-}
+});

@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to the validation server");
-const browser = await chromium.launch();
 const dep = (id) => ({ depends_on_id: id, type: "parent-child" });
 const bead = (id, extra = {}) => ({
   id,
@@ -28,8 +25,7 @@ const fixtures = [
   bead("done", { status: "closed", dependencies: [dep("epic")] }),
   ...Array.from({ length: 25 }, (_, i) => bead(`task-${i}`)),
 ];
-
-async function setup(width, readOnly = true) {
+async function setup(browser, width, readOnly = true) {
   const context = await browser.newContext({
     viewport: { width, height: 844 },
     isMobile: true,
@@ -86,7 +82,6 @@ async function setup(width, readOnly = true) {
   });
   return { context, page, errors, writes };
 }
-
 async function noOverflow(page) {
   const widths = await page.evaluate(() => ({
     body: document.body.scrollWidth,
@@ -127,10 +122,10 @@ async function swipe(page, from, to) {
   await cdp.detach();
   await page.waitForTimeout(200);
 }
-
-try {
-  for (const width of [360, 390, 430]) {
-    const { context, page, errors, writes } = await setup(width);
+for (const width of [360, 390, 430]) {
+  test(`mobile layout and gestures at ${width}px`, async ({ browser, baseURL }, testInfo) => {
+    const base = baseURL;
+    const { context, page, errors, writes } = await setup(browser, width);
     await page.goto(base + "/p/demo");
     await page.getByRole("heading", { name: "List", exact: true }).waitFor();
     await page.locator(".task-title").first().waitFor();
@@ -195,7 +190,7 @@ try {
       transform,
       "canvas pans by touch",
     );
-    if (width === 390) await page.screenshot({ path: "/tmp/scotty-mobile-graph.png" });
+    if (width === 390) await page.screenshot({ path: testInfo.outputPath("mobile-graph.png") });
     for (const view of [
       "Board",
       "Epics",
@@ -226,8 +221,11 @@ try {
     console.log(
       `PASS mobile ${width}px: default view, filters/reload, details, graph, navigation, project switch, resize`,
     );
-  }
-  const { context, page, errors, writes } = await setup(390, false);
+  });
+}
+test("mobile task creation and editing", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  const { context, page, errors, writes } = await setup(browser, 390, false);
   await page.goto(base + "/p/demo?view=list");
   await page.getByRole("button", { name: "New", exact: true }).click();
   await page.getByPlaceholder("What needs doing?").fill("Created from mobile");
@@ -245,6 +243,4 @@ try {
   assert.deepEqual(errors, []);
   await context.close();
   console.log("PASS mobile create flow (fixture writes only) and editable detail");
-} finally {
-  await browser.close();
-}
+});

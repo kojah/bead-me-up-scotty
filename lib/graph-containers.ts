@@ -77,15 +77,38 @@ export function containerLayout(
     children.set(owner, [...(children.get(owner) ?? []), b]);
   }
   const boxes = new Map<string, { x: number; y: number; width: number; height: number }>();
+  const linked = new Set<string>();
+  for (const bead of beads)
+    for (const dependency of bead.dependencies ?? []) {
+      if (dependency.type === "parent-child" || !visibleIds.has(dependency.depends_on_id)) continue;
+      linked.add(bead.id);
+      linked.add(dependency.depends_on_id);
+    }
   const order: Bead[] = [];
   function place(owner: string, startY: number): number {
     const members = (children.get(owner) ?? []).sort(
       (a, b) => a.priority - b.priority || a.id.localeCompare(b.id),
     );
     const colY = new Map<number, number>();
-    for (const b of members.filter((b) => b.issue_type !== "epic")) {
+    // Disconnected root tasks have no execution order. Wrap them into a
+    // measured grid, above the dependency layers, instead of a tall column.
+    const loose =
+      owner === "" ? members.filter((b) => b.issue_type !== "epic" && !linked.has(b.id)) : [];
+    const looseIds = new Set(loose.map((b) => b.id));
+    const rows = Math.max(6, Math.ceil(Math.sqrt(loose.length * 2)));
+    for (const [i, bead] of loose.entries()) {
+      const column = Math.floor(i / rows);
+      const y = colY.get(column) ?? startY;
+      const height = heights.get(bead.id) ?? 120;
+      boxes.set(bead.id, { x: column * 290, y, width: 170, height });
+      colY.set(column, y + height + 24);
+      order.push(bead);
+    }
+    const dependencyStart = Math.max(startY, ...colY.values());
+    colY.clear();
+    for (const b of members.filter((b) => b.issue_type !== "epic" && !looseIds.has(b.id))) {
       const layer = layers.get(b.id) ?? 0;
-      const y = colY.get(layer) ?? startY;
+      const y = colY.get(layer) ?? dependencyStart;
       // Only a first-render placeholder. ResizeObserver supplies actual card
       // heights, independent of font metrics, title length, and wrapping.
       const height = heights.get(b.id) ?? 120;
@@ -93,7 +116,7 @@ export function containerLayout(
       colY.set(layer, y + height + 24);
       order.push(b);
     }
-    let y = Math.max(startY, ...colY.values());
+    let y = Math.max(dependencyStart, ...colY.values());
     for (const epic of members.filter((b) => b.issue_type === "epic")) {
       order.push(epic); // React Flow requires parents before descendants.
       place(epic.id, y + 120);

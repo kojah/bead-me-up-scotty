@@ -1,12 +1,10 @@
-// Use an isolated demo server started with SCOTTY_READ_ONLY=1.
-// SCOTTY_TEST_URL=http://127.0.0.1:3000 node scripts/test-read-only.mjs
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated demo server");
-const browser = await chromium.launch();
-try {
+test("read only", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
+
   const context = await browser.newContext();
   const other = await browser.newContext();
   const page = await context.newPage();
@@ -164,6 +162,4 @@ try {
   console.log(
     "PASS: banner preferences, disabled editors, session-only unlock, reload, and re-enable",
   );
-} finally {
-  await browser.close();
-}
+});

@@ -1,36 +1,34 @@
-// Isolated demo server only; project data is intercepted and never written.
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated app server");
+test("epic focus", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
 
-const bead = (id, title, extra = {}) => ({
-  id,
-  title,
-  status: "open",
-  issue_type: "task",
-  priority: 2,
-  labels: [],
-  dependencies: [],
-  created_at: "2026-09-01T00:00:00Z",
-  updated_at: "2026-09-01T00:00:00Z",
-  ...extra,
-});
-const parent = (id, epicId) => ({ issue_id: id, depends_on_id: epicId, type: "parent-child" });
+  const bead = (id, title, extra = {}) => ({
+    id,
+    title,
+    status: "open",
+    issue_type: "task",
+    priority: 2,
+    labels: [],
+    dependencies: [],
+    created_at: "2026-09-01T00:00:00Z",
+    updated_at: "2026-09-01T00:00:00Z",
+    ...extra,
+  });
+  const parent = (id, epicId) => ({ issue_id: id, depends_on_id: epicId, type: "parent-child" });
 
-const closedEpic = bead("closed-epic", "Closed epic", { issue_type: "epic", status: "closed" });
-const openChild = bead("open-child", "Open child", {
-  dependencies: [parent("open-child", "closed-epic")],
-});
-const closedChild = bead("closed-child", "Closed child", {
-  status: "closed",
-  dependencies: [parent("closed-child", "closed-epic")],
-});
-const beads = [closedEpic, openChild, closedChild];
+  const closedEpic = bead("closed-epic", "Closed epic", { issue_type: "epic", status: "closed" });
+  const openChild = bead("open-child", "Open child", {
+    dependencies: [parent("open-child", "closed-epic")],
+  });
+  const closedChild = bead("closed-child", "Closed child", {
+    status: "closed",
+    dependencies: [parent("closed-child", "closed-epic")],
+  });
+  const beads = [closedEpic, openChild, closedChild];
 
-const browser = await chromium.launch();
-try {
   const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
   const errors = [];
   page.setDefaultTimeout(7000);
@@ -46,7 +44,9 @@ try {
         },
       });
     }
-    return route.fulfill({ json: beads.find((item) => path.endsWith(`/beads/${item.id}`)) ?? {} });
+    return route.fulfill({
+      json: beads.find((item) => path.endsWith(`/beads/${item.id}`)) ?? {},
+    });
   });
 
   const epic = () => page.locator('[data-epic-id="closed-epic"]');
@@ -120,6 +120,4 @@ try {
   console.log(
     "PASS: drawer parent trail, closed epic focus, authoritative hide-closed, no stale focus, repeat navigation, and read-only detail controls",
   );
-} finally {
-  await browser.close();
-}
+});

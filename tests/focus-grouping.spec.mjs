@@ -1,61 +1,60 @@
-// Run only against an isolated demo server with telemetry disabled.
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated demo server");
-assert.equal((await (await fetch(`${base}/api/telemetry`)).json()).configured, false);
-const bead = (id, extra = {}) => ({
-  id,
-  title: id,
-  status: "open",
-  issue_type: "task",
-  priority: 1,
-  labels: [],
-  dependencies: [],
-  created_at: "2026-09-01T00:00:00Z",
-  updated_at: "2026-09-08T00:00:00Z",
-  ...extra,
-});
-const dep = (type, target) => ({ type, depends_on_id: target });
-let beads = [
-  bead("source", { priority: 3 }),
-  bead("manual-block", { status: "blocked", assignee: "Alice", labels: ["ctx:alpha"] }),
-  bead("waiting", { assignee: "Bob", dependencies: [dep("waits-for", "source")] }),
-  bead("conditional", { dependencies: [dep("conditional-blocks", "source")] }),
-  bead("direct-block", { dependencies: [dep("blocks", "source")] }),
-  bead("missing-block", { dependencies: [dep("blocks", "missing")] }),
-  bead("flight", { status: "in_progress", assignee: "Alice", labels: ["ctx:alpha"] }),
-  bead("hooked", { status: "hooked", assignee: "Bob" }),
-  bead("named-unassigned", { status: "in_progress", assignee: "Unassigned" }),
-  bead("blank-assignee", { status: "in_progress", assignee: "  " }),
-  bead("parent", { issue_type: "epic", priority: 3 }),
-  bead("child", { assignee: "Alice", dependencies: [dep("parent-child", "parent")] }),
-  bead("resolved", { dependencies: [dep("blocks", "done-1")] }),
-  bead("archived-active", { status: "in_progress", labels: ["archived"] }),
-  bead("archived-done", {
-    status: "closed",
-    labels: ["archived"],
-    closed_at: "2026-09-30T00:00:00Z",
-  }),
-  ...Array.from({ length: 12 }, (_, i) =>
-    bead(`active-${i}`, { status: "in_progress", assignee: "Alice" }),
-  ),
-  ...Array.from({ length: 12 }, (_, i) =>
-    bead(`blocked-${i}`, { status: "blocked", assignee: "Bob" }),
-  ),
-  ...Array.from({ length: 9 }, (_, i) =>
-    bead(`done-${i + 1}`, {
+test("focus grouping", async ({ browser, baseURL }, testInfo) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
+  assert.equal((await (await fetch(`${base}/api/telemetry`)).json()).configured, false);
+  const bead = (id, extra = {}) => ({
+    id,
+    title: id,
+    status: "open",
+    issue_type: "task",
+    priority: 1,
+    labels: [],
+    dependencies: [],
+    created_at: "2026-09-01T00:00:00Z",
+    updated_at: "2026-09-08T00:00:00Z",
+    ...extra,
+  });
+  const dep = (type, target) => ({ type, depends_on_id: target });
+  let beads = [
+    bead("source", { priority: 3 }),
+    bead("manual-block", { status: "blocked", assignee: "Alice", labels: ["ctx:alpha"] }),
+    bead("waiting", { assignee: "Bob", dependencies: [dep("waits-for", "source")] }),
+    bead("conditional", { dependencies: [dep("conditional-blocks", "source")] }),
+    bead("direct-block", { dependencies: [dep("blocks", "source")] }),
+    bead("missing-block", { dependencies: [dep("blocks", "missing")] }),
+    bead("flight", { status: "in_progress", assignee: "Alice", labels: ["ctx:alpha"] }),
+    bead("hooked", { status: "hooked", assignee: "Bob" }),
+    bead("named-unassigned", { status: "in_progress", assignee: "Unassigned" }),
+    bead("blank-assignee", { status: "in_progress", assignee: "  " }),
+    bead("parent", { issue_type: "epic", priority: 3 }),
+    bead("child", { assignee: "Alice", dependencies: [dep("parent-child", "parent")] }),
+    bead("resolved", { dependencies: [dep("blocks", "done-1")] }),
+    bead("archived-active", { status: "in_progress", labels: ["archived"] }),
+    bead("archived-done", {
       status: "closed",
-      assignee: i % 2 ? "Bob" : "Alice",
-      closed_at: i === 0 ? "invalid" : `2026-09-${String(i + 1).padStart(2, "0")}T12:00:00Z`,
-      updated_at: `2026-09-${String(i + 1).padStart(2, "0")}T12:00:00Z`,
-      labels: i === 0 ? ["ctx:alpha"] : [],
+      labels: ["archived"],
+      closed_at: "2026-09-30T00:00:00Z",
     }),
-  ),
-];
-const browser = await chromium.launch();
-try {
+    ...Array.from({ length: 12 }, (_, i) =>
+      bead(`active-${i}`, { status: "in_progress", assignee: "Alice" }),
+    ),
+    ...Array.from({ length: 12 }, (_, i) =>
+      bead(`blocked-${i}`, { status: "blocked", assignee: "Bob" }),
+    ),
+    ...Array.from({ length: 9 }, (_, i) =>
+      bead(`done-${i + 1}`, {
+        status: "closed",
+        assignee: i % 2 ? "Bob" : "Alice",
+        closed_at: i === 0 ? "invalid" : `2026-09-${String(i + 1).padStart(2, "0")}T12:00:00Z`,
+        updated_at: `2026-09-${String(i + 1).padStart(2, "0")}T12:00:00Z`,
+        labels: i === 0 ? ["ctx:alpha"] : [],
+      }),
+    ),
+  ];
+
   const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -150,11 +149,9 @@ try {
   await page.setViewportSize({ width: 720, height: 900 });
   await group.selectOption("assignee");
   await row("Alice").waitFor();
-  await page.screenshot({ path: "/tmp/scotty-focus-grouped-narrow.png" });
+  await page.screenshot({ path: testInfo.outputPath("scotty-focus-grouped-narrow.png") });
   assert.deepEqual(errors, []);
   console.log(
     "PASS: Focus defaults, assignee grouping, hooked and uncapped blocked work, recent limit/show-all, lanes, keyboard links, read-only details, live updates and narrow layout",
   );
-} finally {
-  await browser.close();
-}
+});

@@ -1,40 +1,38 @@
-// Isolated demo server only; project data is intercepted and never written.
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated app server");
+test("assignee", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
 
-const bead = (id, title, extra = {}) => ({
-  id,
-  title,
-  status: "open",
-  issue_type: "task",
-  priority: 1,
-  labels: [],
-  dependencies: [],
-  created_at: "2026-09-01T00:00:00Z",
-  updated_at: "2026-09-01T00:00:00Z",
-  ...extra,
-});
+  const bead = (id, title, extra = {}) => ({
+    id,
+    title,
+    status: "open",
+    issue_type: "task",
+    priority: 1,
+    labels: [],
+    dependencies: [],
+    created_at: "2026-09-01T00:00:00Z",
+    updated_at: "2026-09-01T00:00:00Z",
+    ...extra,
+  });
 
-const beads = [
-  bead("alice-alpha", "Alice alpha task", { assignee: "Alice", labels: ["alpha"] }),
-  bead("alice-beta", "Alice beta task", { assignee: "Alice", labels: ["beta"] }),
-  bead("bob-alpha", "Bob alpha task", { assignee: "Bob", labels: ["alpha"] }),
-  bead("carol-alpha", "Carol alpha task", { assignee: "Carol", labels: ["alpha"] }),
-  bead("blank-alpha", "Blank alpha task", { assignee: "   ", labels: ["alpha"] }),
-  bead("missing-beta", "Missing beta task", { labels: ["beta"] }),
-  bead("literal-sentinel", "Literal sentinel task", {
-    assignee: "__unassigned__",
-    labels: ["alpha"],
-  }),
-];
+  const beads = [
+    bead("alice-alpha", "Alice alpha task", { assignee: "Alice", labels: ["alpha"] }),
+    bead("alice-beta", "Alice beta task", { assignee: "Alice", labels: ["beta"] }),
+    bead("bob-alpha", "Bob alpha task", { assignee: "Bob", labels: ["alpha"] }),
+    bead("carol-alpha", "Carol alpha task", { assignee: "Carol", labels: ["alpha"] }),
+    bead("blank-alpha", "Blank alpha task", { assignee: "   ", labels: ["alpha"] }),
+    bead("missing-beta", "Missing beta task", { labels: ["beta"] }),
+    bead("literal-sentinel", "Literal sentinel task", {
+      assignee: "__unassigned__",
+      labels: ["alpha"],
+    }),
+  ];
 
-const allIds = beads.map((b) => b.id).sort();
-const browser = await chromium.launch();
+  const allIds = beads.map((b) => b.id).sort();
 
-try {
   const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
   const errors = [];
   page.setDefaultTimeout(7000);
@@ -135,6 +133,4 @@ try {
   console.log(
     "PASS: Board and List assignee facet OR matching, Unassigned normalization, facet intersection, stable options, clear-all, and sentinel-like usernames",
   );
-} finally {
-  await browser.close();
-}
+});

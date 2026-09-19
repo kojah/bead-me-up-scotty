@@ -1,41 +1,38 @@
-// Run against an isolated app server: SCOTTY_TEST_URL=http://127.0.0.1:43188 node scripts/test-graph-spotlight.mjs
-// Project API requests are intercepted; this test is deliberately read-only.
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated app server");
+test("graph spotlight", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
 
-const bead = (id, extra = {}) => ({
-  id,
-  title: id,
-  issue_type: "task",
-  status: "open",
-  priority: 2,
-  created_at: "2026-09-01T00:00:00Z",
-  updated_at: "2026-09-01T00:00:00Z",
-  labels: [],
-  dependencies: [],
-  ...extra,
-});
-const dep = (type, target) => ({ type, depends_on_id: target });
+  const bead = (id, extra = {}) => ({
+    id,
+    title: id,
+    issue_type: "task",
+    status: "open",
+    priority: 2,
+    created_at: "2026-09-01T00:00:00Z",
+    updated_at: "2026-09-01T00:00:00Z",
+    labels: [],
+    dependencies: [],
+    ...extra,
+  });
+  const dep = (type, target) => ({ type, depends_on_id: target });
 
-// Edges point from the bead that has a dependency to the prerequisite it names.
-// Thus d -> a -> b <-> c is the active blocking neighborhood of a.
-const beads = [
-  bead("a", { title: "selected", dependencies: [dep("blocks", "b")] }),
-  bead("b", { dependencies: [dep("waits-for", "c")] }),
-  bead("c", { dependencies: [dep("conditional-blocks", "b"), dep("blocks", "closed-target")] }),
-  bead("d", { dependencies: [dep("blocks", "a")] }),
-  bead("parent", { issue_type: "epic" }),
-  bead("child", { dependencies: [dep("parent-child", "a")] }),
-  bead("related", { dependencies: [dep("related", "a")] }),
-  bead("closed-target", { status: "closed" }),
-  bead("loose"),
-];
+  // Edges point from the bead that has a dependency to the prerequisite it names.
+  // Thus d -> a -> b <-> c is the active blocking neighborhood of a.
+  const beads = [
+    bead("a", { title: "selected", dependencies: [dep("blocks", "b")] }),
+    bead("b", { dependencies: [dep("waits-for", "c")] }),
+    bead("c", { dependencies: [dep("conditional-blocks", "b"), dep("blocks", "closed-target")] }),
+    bead("d", { dependencies: [dep("blocks", "a")] }),
+    bead("parent", { issue_type: "epic" }),
+    bead("child", { dependencies: [dep("parent-child", "a")] }),
+    bead("related", { dependencies: [dep("related", "a")] }),
+    bead("closed-target", { status: "closed" }),
+    bead("loose"),
+  ];
 
-const browser = await chromium.launch();
-try {
   const page = await browser.newPage({ viewport: { width: 1600, height: 1100 } });
   page.setDefaultTimeout(10000);
   const errors = [];
@@ -195,20 +192,18 @@ try {
   console.log(
     "PASS: spotlight dependency traversal, dimming, clearing, filtered selection recovery, and read-only details",
   );
-} finally {
-  await browser.close();
-}
 
-async function expectSpotlightInstruction(page) {
-  await page.getByText(/double-click.*details/i).waitFor();
-}
+  async function expectSpotlightInstruction(page) {
+    await page.getByText(/double-click.*details/i).waitFor();
+  }
 
-async function clearBadgeText(page) {
-  return page.getByTitle("Clear the dependency spotlight", { exact: true }).innerText();
-}
+  async function clearBadgeText(page) {
+    return page.getByTitle("Clear the dependency spotlight", { exact: true }).innerText();
+  }
 
-async function closeDrawer(page) {
-  const close = page.getByTitle("Close", { exact: true });
-  await close.click();
-  await close.waitFor({ state: "detached" });
-}
+  async function closeDrawer(page) {
+    const close = page.getByTitle("Close", { exact: true });
+    await close.click();
+    await close.waitFor({ state: "detached" });
+  }
+});

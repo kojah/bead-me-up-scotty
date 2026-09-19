@@ -1,55 +1,53 @@
-// Isolated demo server only; all project data and dependency writes are intercepted.
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated app server");
-const bead = (id, title = id, extra = {}) => ({
-  id,
-  title,
-  status: "open",
-  issue_type: "task",
-  priority: 2,
-  labels: [],
-  dependencies: [],
-  created_at: "2026-09-01T00:00:00Z",
-  updated_at: "2026-09-01T00:00:00Z",
-  ...extra,
-});
-const dep = (type, depends_on_id) => ({ type, depends_on_id });
-const beads = [
-  bead("center", "Center", {
-    dependencies: [
-      dep("blocks", "out-block"),
-      dep("waits-for", "out-wait"),
-      dep("conditional-blocks", "out-condition"),
-      dep("related", "out-related"),
-      dep("parent-child", "parent"),
-      dep("blocks", "missing"),
-      dep("blocks", "out-closed"),
-    ],
-  }),
-  bead("out-block"),
-  bead("out-wait"),
-  bead("out-condition"),
-  bead("out-related"),
-  bead("parent", "Hidden hierarchy"),
-  bead("out-closed", "Closed target", { status: "closed" }),
-  bead("in-block", "Incoming blocks", { dependencies: [dep("blocks", "center")] }),
-  bead("in-wait", "Incoming waits", { dependencies: [dep("waits-for", "center")] }),
-  bead("in-condition", "Incoming condition", {
-    dependencies: [dep("conditional-blocks", "center")],
-  }),
-  bead("closed-center", "Closed center", {
-    status: "closed",
-    dependencies: [dep("blocks", "closed-out")],
-  }),
-  bead("closed-out"),
-  bead("closed-in", "Closed incoming", { dependencies: [dep("blocks", "closed-center")] }),
-];
+test("dependency rows", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
+  const bead = (id, title = id, extra = {}) => ({
+    id,
+    title,
+    status: "open",
+    issue_type: "task",
+    priority: 2,
+    labels: [],
+    dependencies: [],
+    created_at: "2026-09-01T00:00:00Z",
+    updated_at: "2026-09-01T00:00:00Z",
+    ...extra,
+  });
+  const dep = (type, depends_on_id) => ({ type, depends_on_id });
+  const beads = [
+    bead("center", "Center", {
+      dependencies: [
+        dep("blocks", "out-block"),
+        dep("waits-for", "out-wait"),
+        dep("conditional-blocks", "out-condition"),
+        dep("related", "out-related"),
+        dep("parent-child", "parent"),
+        dep("blocks", "missing"),
+        dep("blocks", "out-closed"),
+      ],
+    }),
+    bead("out-block"),
+    bead("out-wait"),
+    bead("out-condition"),
+    bead("out-related"),
+    bead("parent", "Hidden hierarchy"),
+    bead("out-closed", "Closed target", { status: "closed" }),
+    bead("in-block", "Incoming blocks", { dependencies: [dep("blocks", "center")] }),
+    bead("in-wait", "Incoming waits", { dependencies: [dep("waits-for", "center")] }),
+    bead("in-condition", "Incoming condition", {
+      dependencies: [dep("conditional-blocks", "center")],
+    }),
+    bead("closed-center", "Closed center", {
+      status: "closed",
+      dependencies: [dep("blocks", "closed-out")],
+    }),
+    bead("closed-out"),
+    bead("closed-in", "Closed incoming", { dependencies: [dep("blocks", "closed-center")] }),
+  ];
 
-const browser = await chromium.launch();
-try {
   const context = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
   const page = await context.newPage();
   page.setDefaultTimeout(10000);
@@ -75,7 +73,9 @@ try {
       });
     if (path.endsWith("/deps") && request.method() === "DELETE") {
       deletes.push({ path, body: request.postDataJSON() });
-      return route.fulfill({ json: beads.find((b) => path.endsWith(`/beads/${b.id}/deps`)) ?? {} });
+      return route.fulfill({
+        json: beads.find((b) => path.endsWith(`/beads/${b.id}/deps`)) ?? {},
+      });
     }
     return route.fulfill({ json: beads.find((b) => path.endsWith(`/beads/${b.id}`)) ?? {} });
   });
@@ -160,6 +160,4 @@ try {
   console.log(
     "PASS: dependency rows cover outgoing/incoming blocking types, resolved state, hierarchy exclusion, navigation, read-only, and exact removal sources",
   );
-} finally {
-  await browser.close();
-}
+});

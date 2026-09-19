@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { test } from "./fixtures.mjs";
 
-const base = process.env.SCOTTY_TEST_URL;
-assert.ok(base, "Set SCOTTY_TEST_URL to an isolated development server");
-const browser = await chromium.launch();
-try {
+test("theme hydration", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  assert.ok(base, "Playwright baseURL must be configured");
+
   const page = await browser.newPage();
   const errors = [];
   page.on("console", (msg) => {
@@ -32,6 +32,4 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem("bmus.theme.demo")), "light");
   assert.deepEqual(errors, []);
   console.log("PASS: saved dark theme hydration, reload, toggle, and persistence");
-} finally {
-  await browser.close();
-}
+});
