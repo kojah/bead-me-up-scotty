@@ -1,8 +1,8 @@
 import "server-only";
-import type { Bead, CreateInput, UpdateInput, DepType } from "./schema";
-import { getProject, touchProject, DEMO_PROJECT, ConfigError } from "./config";
 import { createBdStore, isBdAvailable } from "./bd";
+import { ConfigError, DEMO_PROJECT, getProject, touchProject } from "./config";
 import { demoStore } from "./demo-store";
+import type { Bead, CreateInput, DepType, UpdateInput } from "./schema";
 
 /**
  * Storage abstraction. Two implementations:

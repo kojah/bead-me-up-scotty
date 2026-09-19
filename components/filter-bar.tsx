@@ -1,11 +1,11 @@
 "use client";
 import * as React from "react";
 import { Icon } from "@/components/icons";
-import { MultiSelectFilter, type FilterOption } from "@/components/multi-select-filter";
-import { typeLabel, statusLabel, prioLabel } from "@/lib/beads-view";
-import { BEAD_TYPES, BEAD_STATUSES } from "@/lib/schema";
-import { type Filters, emptyFilters, toggleStr, toggleNum } from "@/lib/filters";
+import { type FilterOption, MultiSelectFilter } from "@/components/multi-select-filter";
 import { ResponsiveControls } from "@/components/responsive-controls";
+import { prioLabel, statusLabel, typeLabel } from "@/lib/beads-view";
+import { emptyFilters, type Filters, toggleNum, toggleStr } from "@/lib/filters";
+import { BEAD_STATUSES, BEAD_TYPES } from "@/lib/schema";
 
 /**
  * Search + multi-select facet filters, shared by the Board and List views so
@@ -77,7 +77,10 @@ export function FilterBar({
         />
         <MultiSelectFilter
           label="Type"
-          options={BEAD_TYPES.filter((t) => t !== "epic").map((t) => ({ value: t, label: typeLabel(t) }))}
+          options={BEAD_TYPES.filter((t) => t !== "epic").map((t) => ({
+            value: t,
+            label: typeLabel(t),
+          }))}
           selected={filters.type}
           onToggle={(v) => set({ type: toggleStr(filters.type, v) })}
           onClear={() => set({ type: [] })}

@@ -1,10 +1,10 @@
 "use client";
 import * as React from "react";
 import { useApp } from "@/components/app-context";
-import { useGamification } from "@/hooks/use-beads";
 import { Icon } from "@/components/icons";
-import { avatarColor, initials } from "@/lib/beads-view";
+import { useGamification } from "@/hooks/use-beads";
 import type { ActorStat } from "@/lib/api-client";
+import { avatarColor, initials } from "@/lib/beads-view";
 
 /**
  * Gamification surface: your level/XP + daily streaks (txs.2), badges (txs.3),
@@ -20,8 +20,9 @@ export function AchievementsView() {
     return (
       <Shell>
         <div className="p-10 text-center text-[13px] text-[var(--text-3)]">
-          Gamification is off. Enable it in <span className="font-[550]">Settings → Gamification</span> to
-          earn XP, streaks, and badges.
+          Gamification is off. Enable it in{" "}
+          <span className="font-[550]">Settings → Gamification</span> to earn XP, streaks, and
+          badges.
         </div>
       </Shell>
     );
@@ -29,7 +30,9 @@ export function AchievementsView() {
   if (isLoading && !data) {
     return (
       <Shell>
-        <div className="p-10 text-center text-[13px] text-[var(--text-3)]">Loading achievements…</div>
+        <div className="p-10 text-center text-[13px] text-[var(--text-3)]">
+          Loading achievements…
+        </div>
       </Shell>
     );
   }
@@ -47,10 +50,15 @@ export function AchievementsView() {
           <div className="rounded-[13px] border border-border bg-[var(--surface)] p-4 md:col-span-2">
             <div className="flex items-baseline justify-between">
               <div className="text-[13px] font-semibold">Level {you.level}</div>
-              <div className="font-mono text-[12px] text-[var(--text-3)]">{you.xp} XP · {you.closed} closed</div>
+              <div className="font-mono text-[12px] text-[var(--text-3)]">
+                {you.xp} XP · {you.closed} closed
+              </div>
             </div>
             <div className="mt-2 h-[8px] overflow-hidden rounded-full bg-[var(--surface-3)]">
-              <div className="h-full rounded-full" style={{ width: `${Math.round(you.progress * 100)}%`, background: "var(--brand)" }} />
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${Math.round(you.progress * 100)}%`, background: "var(--brand)" }}
+              />
             </div>
             <div className="mt-1 text-[11px] text-[var(--text-3)]">
               {Math.max(0, you.span - you.intoLevel)} XP to level {you.level + 1}
@@ -71,12 +79,20 @@ export function AchievementsView() {
                 key={b.key}
                 title={b.description}
                 className={`flex flex-col items-center gap-1 rounded-[10px] border p-3 text-center ${
-                  b.earned ? "border-[var(--brand)] bg-[var(--brand-weak)]" : "border-border bg-[var(--surface-2)] opacity-60"
+                  b.earned
+                    ? "border-[var(--brand)] bg-[var(--brand-weak)]"
+                    : "border-border bg-[var(--surface-2)] opacity-60"
                 }`}
               >
-                <Icon name="feature" size={20} style={{ color: b.earned ? "var(--brand)" : "var(--text-3)" }} />
+                <Icon
+                  name="feature"
+                  size={20}
+                  style={{ color: b.earned ? "var(--brand)" : "var(--text-3)" }}
+                />
                 <span className="text-[12px] font-[600]">{b.label}</span>
-                <span className="text-[10.5px] leading-tight text-[var(--text-3)]">{b.description}</span>
+                <span className="text-[10.5px] leading-tight text-[var(--text-3)]">
+                  {b.description}
+                </span>
               </div>
             ))}
           </div>
@@ -101,7 +117,9 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div className="flex items-center gap-2 border-b border-border px-6 py-4">
         <Icon name="feature" size={18} className="text-[var(--brand)]" />
         <h1 className="text-[15px] font-[650]">Achievements</h1>
-        <span className="text-[12px] text-[var(--text-3)]">· XP, streaks, badges & leaderboard</span>
+        <span className="text-[12px] text-[var(--text-3)]">
+          · XP, streaks, badges & leaderboard
+        </span>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
     </div>
@@ -132,7 +150,9 @@ function LeaderColumn({ title, actors, you }: { title: string; actors: ActorStat
                 a.actor === you ? "bg-[var(--brand-weak)]" : "bg-[var(--surface-2)]"
               }`}
             >
-              <span className="w-4 text-center font-mono text-[11px] text-[var(--text-3)]">{i + 1}</span>
+              <span className="w-4 text-center font-mono text-[11px] text-[var(--text-3)]">
+                {i + 1}
+              </span>
               <span
                 className="flex h-[22px] w-[22px] items-center justify-center rounded-full text-[9px] font-semibold text-white"
                 style={{ background: avatarColor(a.actor) }}
@@ -140,7 +160,11 @@ function LeaderColumn({ title, actors, you }: { title: string; actors: ActorStat
                 {initials(a.actor)}
               </span>
               <span className="flex-1 truncate">{a.actor}</span>
-              {a.currentStreak >= 2 && <span className="text-[11px]" title="current streak">🔥{a.currentStreak}</span>}
+              {a.currentStreak >= 2 && (
+                <span className="text-[11px]" title="current streak">
+                  🔥{a.currentStreak}
+                </span>
+              )}
               <span className="font-mono text-[12px] font-[600]">{a.xp}</span>
               <span className="text-[10.5px] text-[var(--text-3)]">XP</span>
             </li>

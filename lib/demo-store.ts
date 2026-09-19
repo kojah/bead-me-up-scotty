@@ -1,7 +1,14 @@
 import "server-only";
-import { beadSchema, type Bead, type CreateInput, type UpdateInput, type DepType, type Dependency } from "./schema";
-import type { BeadsStore, DoctorInfo } from "./store";
 import { demoBeads } from "./demo-data";
+import {
+  type Bead,
+  beadSchema,
+  type CreateInput,
+  type Dependency,
+  type DepType,
+  type UpdateInput,
+} from "./schema";
+import type { BeadsStore, DoctorInfo } from "./store";
 
 /**
  * In-memory store backed by the demo dataset in `lib/demo-data.ts`. Used when bd
@@ -29,7 +36,8 @@ export const demoStore: BeadsStore = {
   async create(input: CreateInput, actor: string) {
     const id = "bd-" + Math.random().toString(16).slice(2, 6);
     const dependencies: Dependency[] = [];
-    if (input.parent) dependencies.push({ issue_id: id, depends_on_id: input.parent, type: "parent-child" });
+    if (input.parent)
+      dependencies.push({ issue_id: id, depends_on_id: input.parent, type: "parent-child" });
     const bead = beadSchema.parse({
       id,
       title: input.title.trim(),
@@ -99,7 +107,10 @@ export const demoStore: BeadsStore = {
   },
   async addDep(id, dependsOnId, type: DepType) {
     const b = find(id);
-    b.dependencies = [...(b.dependencies ?? []), { issue_id: id, depends_on_id: dependsOnId, type }];
+    b.dependencies = [
+      ...(b.dependencies ?? []),
+      { issue_id: id, depends_on_id: dependsOnId, type },
+    ];
     b.updated_at = nowIso();
     return { ...b };
   },
@@ -131,7 +142,10 @@ export const demoStore: BeadsStore = {
     beads = [...beads, gate];
     // The target now waits on the gate; isBlocked() derives blocked-ness from
     // this dep, and clears once the gate is closed (approved).
-    target.dependencies = [...(target.dependencies ?? []), { issue_id: blocks, depends_on_id: id, type: "blocks" }];
+    target.dependencies = [
+      ...(target.dependencies ?? []),
+      { issue_id: blocks, depends_on_id: id, type: "blocks" },
+    ];
     target.updated_at = nowIso();
     return { ...gate };
   },
@@ -154,7 +168,8 @@ export const demoStore: BeadsStore = {
       kind: "demo",
       ok: true,
       repoPath: "(in-memory demo)",
-      message: "Demo mode — in-memory data seeded from the design export. Install bd and point Settings at a .beads repo to use real data.",
+      message:
+        "Demo mode — in-memory data seeded from the design export. Install bd and point Settings at a .beads repo to use real data.",
     };
   },
 };

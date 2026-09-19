@@ -1,8 +1,8 @@
 "use client";
 
-import * as React from "react";
 import { useRouter } from "next/navigation";
-import type { View, DetailAction } from "@/components/app-context";
+import * as React from "react";
+import type { DetailAction, View } from "@/components/app-context";
 import { useProjects } from "@/hooks/use-projects";
 import { VIEW_KEY_BINDINGS } from "@/lib/keyboard-shortcuts";
 
@@ -27,7 +27,9 @@ interface KeyboardActions {
 
 function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
-  return !!target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+  return !!target.closest(
+    'input, textarea, select, [contenteditable]:not([contenteditable="false"])',
+  );
 }
 
 function isNativeControlActivation(target: EventTarget | null, key: string): boolean {
@@ -46,7 +48,9 @@ function visibleItems(): HTMLElement[] {
   return Array.from(document.querySelectorAll<HTMLElement>(ITEM_SELECTOR)).filter((element) => {
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
-    return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+    return (
+      rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none"
+    );
   });
 }
 
@@ -62,20 +66,31 @@ function focusItem(element: HTMLElement, selectId: (id: string | null) => void) 
   element.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
 }
 
-function moveLinear(direction: 1 | -1, selectedId: string | null, selectId: KeyboardActions["selectId"]) {
+function moveLinear(
+  direction: 1 | -1,
+  selectedId: string | null,
+  selectId: KeyboardActions["selectId"],
+) {
   const items = visibleItems();
   if (items.length === 0) return;
-  const focused = document.activeElement instanceof HTMLElement ? items.indexOf(document.activeElement) : -1;
-  const current = focused !== -1 ? focused : items.findIndex((element) => itemId(element) === selectedId);
+  const focused =
+    document.activeElement instanceof HTMLElement ? items.indexOf(document.activeElement) : -1;
+  const current =
+    focused !== -1 ? focused : items.findIndex((element) => itemId(element) === selectedId);
   const next = current === -1 ? (direction === 1 ? 0 : items.length - 1) : current + direction;
   focusItem(items[Math.max(0, Math.min(items.length - 1, next))], selectId);
 }
 
-function moveHorizontal(direction: 1 | -1, selectedId: string | null, selectId: KeyboardActions["selectId"]) {
+function moveHorizontal(
+  direction: 1 | -1,
+  selectedId: string | null,
+  selectId: KeyboardActions["selectId"],
+) {
   const items = visibleItems();
   if (items.length === 0) return;
   const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  const current = (focused && items.includes(focused) ? focused : null) ??
+  const current =
+    (focused && items.includes(focused) ? focused : null) ??
     items.find((element) => itemId(element) === selectedId) ??
     items[0];
   const rect = current.getBoundingClientRect();
@@ -94,10 +109,14 @@ function moveHorizontal(direction: 1 | -1, selectedId: string | null, selectId: 
   if (candidates[0]) focusItem(candidates[0].element, selectId);
 }
 
-function selectedOrFirst(selectedId: string | null, selectId: KeyboardActions["selectId"]): string | null {
+function selectedOrFirst(
+  selectedId: string | null,
+  selectId: KeyboardActions["selectId"],
+): string | null {
   const items = visibleItems();
   const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  const selected = (focused && items.includes(focused) ? focused : null) ??
+  const selected =
+    (focused && items.includes(focused) ? focused : null) ??
     items.find((element) => itemId(element) === selectedId) ??
     items[0];
   if (!selected) return null;
@@ -133,8 +152,7 @@ function runGlobalShortcut(key: string, actions: KeyboardActions): boolean {
   else if (key === "/") document.querySelector<HTMLInputElement>("input[data-search]")?.focus();
   else if (key === "n") {
     if (!actions.readOnly) actions.openCreate();
-  }
-  else if (key === "t") actions.toggleTheme();
+  } else if (key === "t") actions.toggleTheme();
   else return false;
   return true;
 }

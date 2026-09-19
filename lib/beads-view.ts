@@ -38,7 +38,9 @@ export function readyHumanGate(b: Bead, index: Map<string, Bead>): boolean {
 /** Beads that this gate blocks (they depend on it via a blocking dep). */
 export function gateBlocks(gateId: string, beads: Bead[]): Bead[] {
   return beads.filter((b) =>
-    (b.dependencies ?? []).some((d) => d.depends_on_id === gateId && BLOCKING_DEP_TYPES.includes(d.type as never)),
+    (b.dependencies ?? []).some(
+      (d) => d.depends_on_id === gateId && BLOCKING_DEP_TYPES.includes(d.type as never),
+    ),
   );
 }
 
@@ -132,15 +134,7 @@ export function typeLabel(t: string): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-const AVATARS = [
-  "#6d5ef0",
-  "#0ea5e9",
-  "#16a34a",
-  "#d97706",
-  "#db2777",
-  "#0891b2",
-  "#7c3aed",
-];
+const AVATARS = ["#6d5ef0", "#0ea5e9", "#16a34a", "#d97706", "#db2777", "#0891b2", "#7c3aed"];
 export function avatarColor(name: string): string {
   if (!name) return "#9aa0aa";
   let h = 0;
@@ -204,7 +198,7 @@ export function blockingDeps(b: Bead, index: Map<string, Bead>): string[] {
  */
 export function parentOf(b: Bead, index: Map<string, Bead>): Bead | null {
   const d = (b.dependencies ?? []).find((x) => x.type === "parent-child");
-  return d ? index.get(d.depends_on_id) ?? null : null;
+  return d ? (index.get(d.depends_on_id) ?? null) : null;
 }
 
 /**
@@ -224,9 +218,7 @@ export function childrenCountMap(beads: Bead[]): Map<string, number> {
 
 export function childrenOf(epicId: string, beads: Bead[]): Bead[] {
   return beads.filter((b) =>
-    (b.dependencies ?? []).some(
-      (d) => d.type === "parent-child" && d.depends_on_id === epicId,
-    ),
+    (b.dependencies ?? []).some((d) => d.type === "parent-child" && d.depends_on_id === epicId),
   );
 }
 

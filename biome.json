@@ -1,0 +1,170 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!!design",
+      "!!.claude",
+      "!!.agents",
+      "!!.codex",
+      "!!docs/releases",
+      "!!public",
+      "!!bun.lock",
+      "!!next-env.d.ts"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "none",
+      "complexity": {
+        "noUselessTypeConstraint": "error"
+      },
+      "correctness": {
+        "noBeforeInteractiveScriptOutsideDocument": "warn",
+        "noNextAsyncClientComponent": "warn",
+        "noUnusedVariables": "error",
+        "useInlineScriptId": "error"
+      },
+      "performance": {
+        "noImgElement": "warn",
+        "noSyncScripts": "error",
+        "noUnwantedPolyfillio": "warn",
+        "useGoogleFontPreconnect": "warn"
+      },
+      "style": {
+        "noCommonJs": "error",
+        "noHeadElement": "warn",
+        "noNamespace": "error",
+        "useArrayLiterals": "error",
+        "useAsConstAssertion": "error"
+      },
+      "suspicious": {
+        "noDocumentImportInPage": "error",
+        "noDuplicateEnumValues": "error",
+        "noExplicitAny": "error",
+        "noExtraNonNullAssertion": "error",
+        "noHeadImportInDocument": "error",
+        "noMisleadingInstantiator": "error",
+        "noNonNullAssertedOptionalChain": "error",
+        "noUnsafeDeclarationMerging": "error",
+        "noUnusedExpressions": "off",
+        "useGoogleFontDisplay": "warn",
+        "useNamespaceKeyword": "error"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noAriaUnsupportedElements": "warn",
+            "useAltText": "warn",
+            "useAriaPropsForRole": "warn",
+            "useAriaPropsSupportedByRole": "warn",
+            "useValidAriaProps": "warn",
+            "useValidAriaValues": "warn"
+          },
+          "correctness": {
+            "noBeforeInteractiveScriptOutsideDocument": "warn",
+            "noChildrenProp": "error",
+            "noNextAsyncClientComponent": "warn",
+            "useExhaustiveDependencies": "warn",
+            "useHookAtTopLevel": "error",
+            "useInlineScriptId": "error",
+            "useJsxKeyInIterable": "error"
+          },
+          "performance": {
+            "noImgElement": "warn",
+            "noSyncScripts": "warn",
+            "noUnwantedPolyfillio": "warn",
+            "useGoogleFontPreconnect": "warn"
+          },
+          "security": {
+            "noDangerouslySetInnerHtmlWithChildren": "error"
+          },
+          "style": {
+            "noHeadElement": "warn"
+          },
+          "suspicious": {
+            "noCommentText": "error",
+            "noDocumentImportInPage": "error",
+            "noDuplicateJsxProps": "error",
+            "noHeadImportInDocument": "error",
+            "noUnknownAttribute": "off",
+            "useGoogleFontDisplay": "warn"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noArguments": "error"
+          },
+          "correctness": {
+            "noConstAssign": "off",
+            "noGlobalObjectCalls": "off",
+            "noInvalidBuiltinInstantiation": "off",
+            "noInvalidConstructorSuper": "off",
+            "noSetterReturn": "off",
+            "noUndeclaredVariables": "off",
+            "noUnreachable": "off",
+            "noUnreachableSuper": "off"
+          },
+          "style": {
+            "useConst": "error",
+            "useSpreadOverApply": "error"
+          },
+          "suspicious": {
+            "noClassAssign": "off",
+            "noDuplicateClassMembers": "off",
+            "noDuplicateObjectKeys": "off",
+            "noDuplicateParameters": "off",
+            "noFunctionAssign": "off",
+            "noImportAssign": "off",
+            "noRedeclare": "off",
+            "noUnsafeNegation": "off",
+            "noVar": "error",
+            "noWith": "off",
+            "useGetterReturn": "off"
+          }
+        }
+      }
+    }
+  ],
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
+}

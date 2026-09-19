@@ -1,18 +1,27 @@
 "use client";
-import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
+import * as React from "react";
 import { toast } from "sonner";
-import { Icon } from "@/components/icons";
 import { useApp } from "@/components/app-context";
+import { Icon } from "@/components/icons";
 import { api } from "@/lib/api-client";
 
 const TEMPLATES = [
-  { id: "manager", name: "Manager Dashboard", blurb: "Stats-forward hero + highlights. Warm & fuzzy for managers." },
-  { id: "timeline", name: "Activity Timeline", blurb: "A chronological feed of everything that got done." },
+  {
+    id: "manager",
+    name: "Manager Dashboard",
+    blurb: "Stats-forward hero + highlights. Warm & fuzzy for managers.",
+  },
+  {
+    id: "timeline",
+    name: "Activity Timeline",
+    blurb: "A chronological feed of everything that got done.",
+  },
   { id: "portfolio", name: "Minimal Portfolio", blurb: "Clean card grid — understated and tidy." },
 ] as const;
 
-const cardBase = "rounded-[12px] border bg-[var(--surface)] p-[14px_16px] text-left transition-colors";
+const cardBase =
+  "rounded-[12px] border bg-[var(--surface)] p-[14px_16px] text-left transition-colors";
 
 export function PublishView() {
   const { projectId, beads, meta, readOnly } = useApp();
@@ -23,7 +32,11 @@ export function PublishView() {
   const [search, setSearch] = React.useState(true);
   const gamificationEnabled = !!meta?.gamification;
   const [gamification, setGamification] = React.useState(false);
-  const [result, setResult] = React.useState<{ outDir: string; indexPath: string; count: number } | null>(null);
+  const [result, setResult] = React.useState<{
+    outDir: string;
+    indexPath: string;
+    count: number;
+  } | null>(null);
   const [deployUrl, setDeployUrl] = React.useState<string | null>(null);
 
   const build = useMutation({
@@ -92,13 +105,18 @@ export function PublishView() {
                     <div className="flex items-center gap-2">
                       <span
                         className="flex h-6 w-6 items-center justify-center rounded-[7px]"
-                        style={{ background: active ? "var(--brand)" : "var(--surface-2)", color: active ? "#fff" : "var(--text-3)" }}
+                        style={{
+                          background: active ? "var(--brand)" : "var(--surface-2)",
+                          color: active ? "#fff" : "var(--text-3)",
+                        }}
                       >
                         <Icon name="rocket" size={13} />
                       </span>
                       <span className="text-[13px] font-[600]">{t.name}</span>
                     </div>
-                    <div className="mt-[6px] text-[11.5px] leading-[1.4] text-[var(--text-3)]">{t.blurb}</div>
+                    <div className="mt-[6px] text-[11.5px] leading-[1.4] text-[var(--text-3)]">
+                      {t.blurb}
+                    </div>
                   </button>
                 );
               })}
@@ -143,7 +161,11 @@ export function PublishView() {
             </div>
 
             <div className="flex flex-col gap-[8px]">
-              <Toggle checked={stats} onChange={setStats} label="Include a stats dashboard (counts, human vs agent)" />
+              <Toggle
+                checked={stats}
+                onChange={setStats}
+                label="Include a stats dashboard (counts, human vs agent)"
+              />
               <Toggle checked={search} onChange={setSearch} label="Include client-side search" />
               {gamificationEnabled && (
                 <Toggle
@@ -205,7 +227,8 @@ export function PublishView() {
                 )}
               </div>
               <span className="text-[11px] text-[var(--text-3)]">
-                Deploy uses the Vercel CLI (best-effort). The folder above can also be hosted anywhere.
+                Deploy uses the Vercel CLI (best-effort). The folder above can also be hosted
+                anywhere.
               </span>
             </Card>
           )}
@@ -224,7 +247,15 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
   return (
     <label className="flex cursor-pointer select-none items-center gap-[9px]">
       <input

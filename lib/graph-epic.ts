@@ -1,4 +1,4 @@
-import { BLOCKING_DEP_TYPES, type Bead } from "./schema";
+import { type Bead, BLOCKING_DEP_TYPES } from "./schema";
 
 export type EpicGraphScope = {
   beads: Bead[];
@@ -138,7 +138,8 @@ export function graphDependencyLayers(beads: Bead[]): Map<string, number> {
     const fromComponent = componentOf.get(from)!;
     for (const target of targets) {
       const toComponent = componentOf.get(target)!;
-      if (fromComponent === toComponent || componentEdges.get(fromComponent)!.has(toComponent)) continue;
+      if (fromComponent === toComponent || componentEdges.get(fromComponent)!.has(toComponent))
+        continue;
       componentEdges.get(fromComponent)!.add(toComponent);
       indegree[toComponent] += 1;
     }

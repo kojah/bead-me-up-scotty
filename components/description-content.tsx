@@ -1,7 +1,7 @@
 "use client";
 import ReactMarkdown, { type Components } from "react-markdown";
-import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
 import { api } from "@/lib/api-client";
 
 /**
@@ -39,15 +39,22 @@ export function DescriptionContent({
 
   const components: Components = {
     a: ({ children, ...props }) => (
-      <a {...props} target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] underline">
+      <a
+        {...props}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[var(--brand)] underline"
+      >
         {children}
       </a>
     ),
     img: ({ src, alt }) => {
       const raw = typeof src === "string" ? src : "";
-      const resolved = raw.startsWith("attachment://") ? api.attachments.urlFor(projectId, raw) : raw;
+      const resolved = raw.startsWith("attachment://")
+        ? api.attachments.urlFor(projectId, raw)
+        : raw;
       return (
-        // eslint-disable-next-line @next/next/no-img-element
+        // biome-ignore lint/performance/noImgElement: Bead markdown supports local attachments and arbitrary external image URLs.
         <img
           src={resolved}
           alt={alt ?? ""}

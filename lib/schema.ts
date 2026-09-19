@@ -64,14 +64,13 @@ const statusSchema = z.string();
 const typeSchema = z.string();
 
 /** Flat dependency link records, as emitted by `bd export --json`. */
-const flatDepSchema = z
-  .object({
-    issue_id: z.string().optional(),
-    depends_on_id: z.string(),
-    type: z.string(),
-    created_by: z.string().optional(),
-    created_at: z.string().optional(),
-  });
+const flatDepSchema = z.object({
+  issue_id: z.string().optional(),
+  depends_on_id: z.string(),
+  type: z.string(),
+  created_by: z.string().optional(),
+  created_at: z.string().optional(),
+});
 
 /**
  * `bd show --json` instead expands each dependency into the full target bead
@@ -81,60 +80,58 @@ const flatDepSchema = z
  * has id/dependency_type. The expanded record's created_at/created_by belong
  * to the target bead, not the link, so they are intentionally not mapped.
  */
-const expandedDepSchema = z
-  .object({ id: z.string(), dependency_type: z.string() })
-  .transform((d): z.infer<typeof flatDepSchema> => ({
+const expandedDepSchema = z.object({ id: z.string(), dependency_type: z.string() }).transform(
+  (d): z.infer<typeof flatDepSchema> => ({
     depends_on_id: d.id,
     type: d.dependency_type,
-  }));
+  }),
+);
 
 export const dependencySchema = z.union([flatDepSchema, expandedDepSchema]);
 export type Dependency = z.infer<typeof flatDepSchema>;
 
-export const commentSchema = z
-  .object({
-    id: z.string().optional(),
-    issue_id: z.string().optional(),
-    author: z.string().default(""),
-    text: z.string().default(""),
-    created_at: z.string().optional(),
-  });
+export const commentSchema = z.object({
+  id: z.string().optional(),
+  issue_id: z.string().optional(),
+  author: z.string().default(""),
+  text: z.string().default(""),
+  created_at: z.string().optional(),
+});
 export type Comment = z.infer<typeof commentSchema>;
 
-export const beadSchema = z
-  .object({
-    id: z.string(),
-    title: z.string(),
-    description: z.string().optional().default(""),
-    notes: z.string().optional().default(""),
-    design: z.string().optional().default(""),
-    acceptance_criteria: z.string().optional().default(""),
-    status: statusSchema,
-    priority: z.coerce.number().int().min(0).max(4).default(2),
-    issue_type: typeSchema,
-    assignee: z.string().optional().default(""),
-    owner: z.string().optional(),
-    created_by: z.string().optional().default(""),
-    created_at: z.string().optional(),
-    updated_at: z.string().optional(),
-    started_at: z.string().optional().nullable(),
-    closed_at: z.string().optional().nullable(),
-    close_reason: z.string().optional().nullable(),
-    labels: z.array(z.string()).optional().default([]),
-    dependencies: z.array(dependencySchema).optional().default([]),
-    comments: z.array(commentSchema).optional().default([]),
-    dependency_count: z.number().optional(),
-    dependent_count: z.number().optional(),
-    comment_count: z.number().optional(),
-    parent: z.string().nullable().optional(),
-    /**
-     * Gate sub-type from `bd gate create --type <t>` (human | timer | gh:run |
-     * gh:pr | bead). Present only on issue_type "gate". Preserved here — zod
-     * strips unknown keys — so the UI can surface human-approval gates that are
-     * waiting on a person (bead 8qc / gh-6).
-     */
-    await_type: z.string().optional(),
-  });
+export const beadSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().optional().default(""),
+  notes: z.string().optional().default(""),
+  design: z.string().optional().default(""),
+  acceptance_criteria: z.string().optional().default(""),
+  status: statusSchema,
+  priority: z.coerce.number().int().min(0).max(4).default(2),
+  issue_type: typeSchema,
+  assignee: z.string().optional().default(""),
+  owner: z.string().optional(),
+  created_by: z.string().optional().default(""),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+  started_at: z.string().optional().nullable(),
+  closed_at: z.string().optional().nullable(),
+  close_reason: z.string().optional().nullable(),
+  labels: z.array(z.string()).optional().default([]),
+  dependencies: z.array(dependencySchema).optional().default([]),
+  comments: z.array(commentSchema).optional().default([]),
+  dependency_count: z.number().optional(),
+  dependent_count: z.number().optional(),
+  comment_count: z.number().optional(),
+  parent: z.string().nullable().optional(),
+  /**
+   * Gate sub-type from `bd gate create --type <t>` (human | timer | gh:run |
+   * gh:pr | bead). Present only on issue_type "gate". Preserved here — zod
+   * strips unknown keys — so the UI can surface human-approval gates that are
+   * waiting on a person (bead 8qc / gh-6).
+   */
+  await_type: z.string().optional(),
+});
 export type Bead = z.infer<typeof beadSchema>;
 
 export const beadArraySchema = z.array(beadSchema);

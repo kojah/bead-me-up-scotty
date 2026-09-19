@@ -1,7 +1,7 @@
-import { getStore } from "@/lib/store";
+import { fail, ok } from "@/lib/api";
 import { getConfig, getProject } from "@/lib/config";
-import { ok, fail } from "@/lib/api";
-import { readInteractions, buildActivity } from "@/lib/interactions";
+import { buildActivity, readInteractions } from "@/lib/interactions";
+import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 

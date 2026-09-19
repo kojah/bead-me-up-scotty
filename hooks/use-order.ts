@@ -1,7 +1,7 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
 import { toastError } from "@/components/error-toast";
+import { api } from "@/lib/api-client";
 
 /** Manual board ordering, scoped per project (stored in app config). */
 export const orderKey = (projectId: string) => ["order", projectId] as const;

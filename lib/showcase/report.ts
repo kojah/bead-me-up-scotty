@@ -1,7 +1,7 @@
 import "server-only";
-import type { Bead } from "../schema";
 import { beadOrigin } from "../attribution";
-import { statusLabel, childrenOf, initials, avatarColor } from "../beads-view";
+import { avatarColor, childrenOf, initials, statusLabel } from "../beads-view";
+import type { Bead } from "../schema";
 
 /**
  * Delivery Report — a static, data-backed dashboard injected at the top of the
@@ -66,7 +66,8 @@ const CAT_COLOR: Record<string, string> = {
   ready: "var(--blue)",
 };
 const catColor = (s: string) => CAT_COLOR[cat(s)];
-const prioColor = (p: number) => ["var(--red)", "#f97316", "var(--amber)", "var(--blue)", "var(--slate)"][p] ?? "var(--slate)";
+const prioColor = (p: number) =>
+  ["var(--red)", "#f97316", "var(--amber)", "var(--blue)", "var(--slate)"][p] ?? "var(--slate)";
 const FIB = [1, 2, 3, 5, 8];
 function hash(s: string): number {
   let h = 0;
@@ -85,7 +86,8 @@ function weekLabels(now: number): string[] {
 }
 function weeklySeries(beads: Bead[], now: number) {
   const start = now - WEEKS * 7 * DAY;
-  const bucket = (t: number) => Math.min(WEEKS - 1, Math.max(0, Math.floor((t - start) / (7 * DAY))));
+  const bucket = (t: number) =>
+    Math.min(WEEKS - 1, Math.max(0, Math.floor((t - start) / (7 * DAY))));
   const created = Array(WEEKS).fill(0);
   const closed = Array(WEEKS).fill(0);
   for (const b of beads) {
@@ -96,15 +98,25 @@ function weeklySeries(beads: Bead[], now: number) {
       if (cl !== null && cl >= start && cl <= now) closed[bucket(cl)]++;
     }
   }
-  const cum = (a: number[]) => a.reduce<number[]>((o, v) => (o.push((o[o.length - 1] ?? 0) + v), o), []);
-  return { created, closed, createdCum: cum(created), closedCum: cum(closed), labels: weekLabels(now) };
+  const cum = (a: number[]) =>
+    a.reduce<number[]>((o, v) => (o.push((o[o.length - 1] ?? 0) + v), o), []);
+  return {
+    created,
+    closed,
+    createdCum: cum(created),
+    closedCum: cum(closed),
+    labels: weekLabels(now),
+  };
 }
 
 // ─────────────────────────── sparklines ───────────────────────────
 function spark(arr: number[], color: string): string {
   const max = Math.max(...arr, 1);
   return `<span class="dr-spk">${arr
-    .map((v) => `<span style="background:${color};height:${Math.max(8, Math.round((v / max) * 100))}%"></span>`)
+    .map(
+      (v) =>
+        `<span style="background:${color};height:${Math.max(8, Math.round((v / max) * 100))}%"></span>`,
+    )
     .join("")}</span>`;
 }
 
@@ -139,7 +151,16 @@ function kpiRow(beads: Bead[], allow: string[], w: ReturnType<typeof weeklySerie
     ${card("Total beads", "layers", "var(--accent)", total, "", w.created, `+${thisWk} this wk`, "var(--text-3)")}
     ${card("Completion", "check", "var(--green)", donePct, "%", w.closedCum, `${done}/${total}`, "var(--green)")}
     ${card("In progress", "spin", "var(--amber)", wip, "", w.closed, "active", "var(--text-3)")}
-    ${card("Blocked", "block", "var(--red)", blocked, "", w.closed.map((_, i) => (i === WEEKS - 1 ? blocked : 0)), blocked ? "needs unblock" : "all clear", blocked ? "var(--red)" : "var(--green)")}
+    ${card(
+      "Blocked",
+      "block",
+      "var(--red)",
+      blocked,
+      "",
+      w.closed.map((_, i) => (i === WEEKS - 1 ? blocked : 0)),
+      blocked ? "needs unblock" : "all clear",
+      blocked ? "var(--red)" : "var(--green)",
+    )}
     ${card("Velocity", "bolt", "var(--blue)", vel.toFixed(1), "/wk", w.closed, "4-wk avg", "var(--text-3)")}
     ${card("Agent share", "bot", "var(--accent-2)", agentPct, "%", w.created, `${agent} beads`, "var(--text-3)")}
   </section>`;
@@ -147,7 +168,10 @@ function kpiRow(beads: Bead[], allow: string[], w: ReturnType<typeof weeklySerie
 
 // ─────────────────────────── main viz (tabbed) ───────────────────────────
 function throughputSvg(w: ReturnType<typeof weeklySeries>): string {
-  const T = 16, B = 234, L = 34, R = 668;
+  const T = 16,
+    B = 234,
+    L = 34,
+    R = 668;
   const data = w.closed;
   const max = Math.max(...data, 1);
   const n = data.length;
@@ -159,12 +183,16 @@ function throughputSvg(w: ReturnType<typeof weeklySeries>): string {
     .map((v, i) => {
       const x = L + i * slot + (slot - bw) / 2;
       const yy = y(v);
-      const fill = i >= n - 1 ? "var(--accent)" : "color-mix(in srgb,var(--accent) 78%,transparent)";
+      const fill =
+        i >= n - 1 ? "var(--accent)" : "color-mix(in srgb,var(--accent) 78%,transparent)";
       return `<rect x="${x.toFixed(1)}" y="${yy.toFixed(1)}" width="${bw.toFixed(1)}" height="${(B - yy).toFixed(1)}" rx="4" fill="${fill}"><title>${w.labels[i]}: ${v} closed</title></rect><text x="${(x + bw / 2).toFixed(1)}" y="258" text-anchor="middle" font-size="10" fill="var(--text-3)">${w.labels[i]}</text>`;
     })
     .join("");
   const yTicks = [0, Math.ceil(max / 2), max]
-    .map((v) => `<line x1="34" y1="${y(v).toFixed(1)}" x2="668" y2="${y(v).toFixed(1)}" stroke="var(--grid-line)"/><text x="28" y="${(y(v) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-3)">${v}</text>`)
+    .map(
+      (v) =>
+        `<line x1="34" y1="${y(v).toFixed(1)}" x2="668" y2="${y(v).toFixed(1)}" stroke="var(--grid-line)"/><text x="28" y="${(y(v) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-3)">${v}</text>`,
+    )
     .join("");
   const best = Math.max(...data);
   const recent = data.slice(-2).reduce((a, b) => a + b, 0) / 2;
@@ -178,12 +206,17 @@ function throughputSvg(w: ReturnType<typeof weeklySeries>): string {
     </div></div>`;
 }
 function burnupSvg(w: ReturnType<typeof weeklySeries>): string {
-  const T = 16, B = 234, L = 40, R = 668;
-  const cc = w.createdCum, clc = w.closedCum;
+  const T = 16,
+    B = 234,
+    L = 40,
+    R = 668;
+  const cc = w.createdCum,
+    clc = w.closedCum;
   const total = Math.max(...cc, 1);
   const x = (i: number) => L + (i / (WEEKS - 1)) * (R - L);
   const y = (v: number) => B - (v / total) * (B - T);
-  const lineP = (arr: number[]) => arr.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+  const lineP = (arr: number[]) =>
+    arr.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
   const area = `${lineP(clc)} L${x(WEEKS - 1).toFixed(1)} ${B} L${L} ${B} Z`;
   const yTicks = [0, 0.25, 0.5, 0.75, 1]
     .map((f) => {
@@ -191,8 +224,18 @@ function burnupSvg(w: ReturnType<typeof weeklySeries>): string {
       return `<line x1="40" y1="${y(v).toFixed(1)}" x2="668" y2="${y(v).toFixed(1)}" stroke="var(--grid-line)"/><text x="34" y="${(y(v) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-3)">${v}</text>`;
     })
     .join("");
-  const xTicks = w.labels.map((l, i) => `<text x="${x(i).toFixed(1)}" y="258" text-anchor="middle" font-size="10" fill="var(--text-3)">${l}</text>`).join("");
-  const dots = clc.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3.4" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>`).join("");
+  const xTicks = w.labels
+    .map(
+      (l, i) =>
+        `<text x="${x(i).toFixed(1)}" y="258" text-anchor="middle" font-size="10" fill="var(--text-3)">${l}</text>`,
+    )
+    .join("");
+  const dots = clc
+    .map(
+      (v, i) =>
+        `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3.4" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>`,
+    )
+    .join("");
   const doneNow = clc[clc.length - 1] ?? 0;
   const vel = w.closed.slice(-4).reduce((a, b) => a + b, 0) / 4;
   const projWeeks = vel > 0 ? Math.ceil((total - doneNow) / vel) : "—";
@@ -214,7 +257,9 @@ function ganttDemo(beads: Bead[]): string {
         { id: "demo-2", title: "Core features", status: "in_progress" },
         { id: "demo-3", title: "Polish & ship", status: "open" },
       ];
-  const head = `<div class="dr-gantt-head"><div class="dr-gantt-label"></div><div class="dr-gantt-track">${weekLabels(Date.now())
+  const head = `<div class="dr-gantt-head"><div class="dr-gantt-label"></div><div class="dr-gantt-track">${weekLabels(
+    Date.now(),
+  )
     .map((l) => `<div class="dr-gantt-col">${l}</div>`)
     .join("")}</div></div>`;
   const bars = rows
@@ -227,14 +272,23 @@ function ganttDemo(beads: Bead[]): string {
       const left = (startW / WEEKS) * 100;
       const width = (span / WEEKS) * 100;
       const color = catColor(e.status);
-      return `<div class="dr-gantt-row"><div class="dr-gantt-label"><span class="dot" style="background:${color}"></span><div><div class="t">${esc(e.title)}</div><div class="m">${kids.length || "demo"} beads</div></div></div><div class="dr-gantt-track">${weekLabels(Date.now()).map(() => `<div class="dr-gantt-cell"></div>`).join("")}<div class="dr-gantt-bar" style="left:${left}%;width:${width}%;background:color-mix(in srgb,${color} 22%,transparent);border:1px solid color-mix(in srgb,${color} 45%,transparent)"><div class="fill" style="width:${pct}%;background:${color}"></div><span class="pct" style="color:${pct > 22 ? "#fff" : "var(--text-2)"}">${pct}%</span></div></div></div>`;
+      return `<div class="dr-gantt-row"><div class="dr-gantt-label"><span class="dot" style="background:${color}"></span><div><div class="t">${esc(e.title)}</div><div class="m">${kids.length || "demo"} beads</div></div></div><div class="dr-gantt-track">${weekLabels(
+        Date.now(),
+      )
+        .map(() => `<div class="dr-gantt-cell"></div>`)
+        .join(
+          "",
+        )}<div class="dr-gantt-bar" style="left:${left}%;width:${width}%;background:color-mix(in srgb,${color} 22%,transparent);border:1px solid color-mix(in srgb,${color} 45%,transparent)"><div class="fill" style="width:${pct}%;background:${color}"></div><span class="pct" style="color:${pct > 22 ? "#fff" : "var(--text-2)"}">${pct}%</span></div></div></div>`;
     })
     .join("");
   return `<div class="dr-gantt">${head}${bars}</div>`;
 }
 function effortDemo(beads: Bead[]): string {
   // DEMO: positions tasks by REAL priority but fabricates effort (no points field).
-  const T = 16, B = 234, L = 46, R = 668;
+  const T = 16,
+    B = 234,
+    L = 46,
+    R = 668;
   const maxE = 13;
   const cx = (pr: number) => L + ((pr + 0.5) / 5) * (R - L);
   const y = (e: number) => B - (e / maxE) * (B - T);
@@ -248,8 +302,18 @@ function effortDemo(beads: Bead[]): string {
       return `<circle cx="${(cx(b.priority) + jit).toFixed(1)}" cy="${y(effort).toFixed(1)}" r="${(5 + effort * 1.5).toFixed(1)}" fill="${c}" fill-opacity="0.22" stroke="${c}" stroke-width="1.5"><title>${esc(b.id)} · ${esc(b.title)} · ${effort}p</title></circle>`;
     })
     .join("");
-  const yTicks = [0, 4, 8, 12].map((v) => `<line x1="46" y1="${y(v).toFixed(1)}" x2="668" y2="${y(v).toFixed(1)}" stroke="var(--grid-line)"/><text x="40" y="${(y(v) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-3)">${v}</text>`).join("");
-  const xCols = [0, 1, 2, 3, 4].map((pr) => `<text x="${cx(pr).toFixed(1)}" y="264" text-anchor="middle" font-size="10.5" fill="var(--text-3)" font-weight="600">P${pr}</text>`).join("");
+  const yTicks = [0, 4, 8, 12]
+    .map(
+      (v) =>
+        `<line x1="46" y1="${y(v).toFixed(1)}" x2="668" y2="${y(v).toFixed(1)}" stroke="var(--grid-line)"/><text x="40" y="${(y(v) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-3)">${v}</text>`,
+    )
+    .join("");
+  const xCols = [0, 1, 2, 3, 4]
+    .map(
+      (pr) =>
+        `<text x="${cx(pr).toFixed(1)}" y="264" text-anchor="middle" font-size="10.5" fill="var(--text-3)" font-weight="600">P${pr}</text>`,
+    )
+    .join("");
   return `<div class="dr-viz-row"><svg viewBox="0 0 680 272" class="dr-svg">${yTicks}<text x="14" y="130" text-anchor="middle" font-size="10.5" fill="var(--text-3)" transform="rotate(-90 14 130)">effort (pts)</text>${xCols}${bubbles}</svg>
     <div class="dr-viz-side"><div class="dr-side-note">Bubble size = story-point effort. Beads has no effort field, so points are illustrative.</div></div></div>`;
 }
@@ -296,17 +360,24 @@ function donut(beads: Bead[]): string {
     if (n > 0) {
       const frac = n / total;
       const seg = frac * C;
-      segs.push(`<circle cx="80" cy="80" r="60" fill="none" stroke="${color}" stroke-width="20" stroke-dasharray="${seg.toFixed(2)} ${(C - seg).toFixed(2)}" stroke-dashoffset="${(-acc * C).toFixed(2)}"/>`);
+      segs.push(
+        `<circle cx="80" cy="80" r="60" fill="none" stroke="${color}" stroke-width="20" stroke-dasharray="${seg.toFixed(2)} ${(C - seg).toFixed(2)}" stroke-dashoffset="${(-acc * C).toFixed(2)}"/>`,
+      );
       acc += frac;
     }
-    legend.push(`<div class="dr-lg"><span class="sw" style="background:${color}"></span><span class="lb">${label}</span><span class="ct">${n}</span><span class="pc">${Math.round(((n) / total) * 100)}%</span></div>`);
+    legend.push(
+      `<div class="dr-lg"><span class="sw" style="background:${color}"></span><span class="lb">${label}</span><span class="ct">${n}</span><span class="pc">${Math.round((n / total) * 100)}%</span></div>`,
+    );
   }
   const donePct = Math.round(((counts.done ?? 0) / total) * 100);
   return `<div class="dr-card"><div class="dr-h">Status mix</div><div class="dr-sub">Where every bead sits right now</div>
     <div class="dr-donut-row"><div class="dr-donut"><svg viewBox="0 0 160 160" style="transform:rotate(-90deg)"><circle cx="80" cy="80" r="60" fill="none" stroke="var(--surface-3)" stroke-width="20"/>${segs.join("")}</svg><div class="dr-donut-c"><div class="n">${donePct}<span>%</span></div><div class="l">complete</div></div></div><div class="dr-donut-leg">${legend.join("")}</div></div></div>`;
 }
 function priority(beads: Bead[]): string {
-  const max = Math.max(...[0, 1, 2, 3, 4].map((pr) => beads.filter((b) => b.priority === pr).length), 1);
+  const max = Math.max(
+    ...[0, 1, 2, 3, 4].map((pr) => beads.filter((b) => b.priority === pr).length),
+    1,
+  );
   const rows = [0, 1, 2, 3, 4]
     .map((pr) => {
       const n = beads.filter((b) => b.priority === pr).length;
@@ -329,7 +400,8 @@ function originPanel(beads: Bead[], allow: string[]): string {
   };
   const human = make("human", "Human", "user", "var(--slate)");
   const agent = make("agent", "Agent", "bot", "var(--accent)");
-  const note = agent.pct >= 50 ? "agents are now the primary authors" : "humans still lead authorship";
+  const note =
+    agent.pct >= 50 ? "agents are now the primary authors" : "humans still lead authorship";
   return `<div class="dr-card"><div class="dr-h">Human vs agent <span class="dr-badge">signature metric</span></div><div class="dr-sub">Who is filing and finishing the work</div>
     <div class="dr-o-cards">${human.card}${agent.card}</div>
     <div class="dr-o-bar"><div style="width:${(human.count / total) * 100}%;background:var(--slate)"></div><div style="width:${(agent.count / total) * 100}%;background:var(--accent)"></div></div>
@@ -346,7 +418,8 @@ function workload(beads: Bead[]): string {
       const blk = items.filter((b) => b.status === "blocked").length;
       const open = items.length - done - wip - blk;
       const total = items.length || 1;
-      const seg = (v: number, c: string) => (v ? `<div style="width:${(v / total) * 100}%;background:${c}"></div>` : "");
+      const seg = (v: number, c: string) =>
+        v ? `<div style="width:${(v / total) * 100}%;background:${c}"></div>` : "";
       return {
         total: items.length,
         html: `<div class="dr-wl"><span class="who"><span class="av" style="background:${avatarColor(name)}">${initials(name)}</span><span class="nm">${esc(name)}</span></span><div class="bar">${seg(done, "var(--green)")}${seg(wip, "var(--amber)")}${seg(open, "var(--blue)")}${seg(blk, "var(--red)")}</div><span class="ct">${items.length}</span></div>`,
@@ -362,7 +435,10 @@ function workload(beads: Bead[]): string {
     ["Open", "var(--blue)"],
     ["Blocked", "var(--red)"],
   ]
-    .map(([l, c]) => `<span class="dr-wl-lg"><span class="sw" style="background:${c}"></span>${l}</span>`)
+    .map(
+      ([l, c]) =>
+        `<span class="dr-wl-lg"><span class="sw" style="background:${c}"></span>${l}</span>`,
+    )
     .join("");
   return `<div class="dr-card"><div class="dr-h">Workload by assignee</div><div class="dr-sub">Stacked by current status</div><div class="dr-wl-list">${body}</div><div class="dr-wl-leg">${leg}</div></div>`;
 }
@@ -380,7 +456,13 @@ function epicPanel(beads: Bead[]): string {
         ]
       : epics.map((e) => {
           const kids = childrenOf(e.id, beads);
-          return { id: e.id, title: e.title, status: e.status, closed: kids.filter((k) => k.status === "closed").length, total: kids.length };
+          return {
+            id: e.id,
+            title: e.title,
+            status: e.status,
+            closed: kids.filter((k) => k.status === "closed").length,
+            total: kids.length,
+          };
         })
   )
     .map((e) => {
@@ -414,17 +496,23 @@ function riskPanel(beads: Bead[], allow: string[]): string {
   };
   beads.filter((b) => b.status === "blocked").forEach((b) => push(b, "blocked"));
   beads.filter((b) => b.priority === 0 && b.status !== "closed").forEach((b) => push(b, "crit"));
-  beads.filter((b) => b.status === "deferred" && b.priority <= 2).slice(0, 2).forEach((b) => push(b, "stale"));
+  beads
+    .filter((b) => b.status === "deferred" && b.priority <= 2)
+    .slice(0, 2)
+    .forEach((b) => push(b, "stale"));
   void allow;
   const list = items.slice(0, 6);
   const body = list.length
     ? list
         .map(
-          (r) => `<div class="dr-risk-item">${ic(r.icon, 15, r.color)}<div class="bd"><div class="t">${esc(r.title)}</div><div class="m">${esc(r.meta)}</div></div><span class="tag" style="color:${r.tagC};background:color-mix(in srgb,${r.tagC} 15%,transparent)">${r.tag}</span></div>`,
+          (r) =>
+            `<div class="dr-risk-item">${ic(r.icon, 15, r.color)}<div class="bd"><div class="t">${esc(r.title)}</div><div class="m">${esc(r.meta)}</div></div><span class="tag" style="color:${r.tagC};background:color-mix(in srgb,${r.tagC} 15%,transparent)">${r.tag}</span></div>`,
         )
         .join("")
     : `<div class="dr-risk-clear">${ic("check", 18, "var(--green)")}<span>Nothing blocked, critical, or stalling.</span></div>`;
-  const summary = list.length ? `${list.length} beads flagged · blocked, critical or stalling` : "All clear";
+  const summary = list.length
+    ? `${list.length} beads flagged · blocked, critical or stalling`
+    : "All clear";
   return `<div class="dr-card dr-risk"><div class="dr-h">${ic("alert", 15, "var(--red)")} Needs attention</div><div class="dr-sub">${summary}</div><div class="dr-risk-list">${body}</div></div>`;
 }
 

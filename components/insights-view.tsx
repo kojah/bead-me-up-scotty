@@ -1,16 +1,16 @@
 "use client";
 import * as React from "react";
 import {
-  ResponsiveContainer,
-  BarChart,
   Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
+  BarChart,
   CartesianGrid,
   Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 import { useApp } from "@/components/app-context";
 import { useInsights } from "@/hooks/use-beads";
@@ -62,7 +62,9 @@ export function InsightsView() {
               key={r}
               onClick={() => setDays(r)}
               className={`px-[10px] py-[5px] text-[12px] ${
-                days === r ? "bg-[var(--brand)] text-white" : "bg-[var(--surface-2)] text-[var(--text-2)]"
+                days === r
+                  ? "bg-[var(--brand)] text-white"
+                  : "bg-[var(--surface-2)] text-[var(--text-2)]"
               }`}
             >
               {r}d
@@ -101,15 +103,21 @@ function Dashboard({ data, split }: { data: InsightsData; split: boolean }) {
     <div className="mx-auto flex max-w-5xl flex-col gap-5">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi label={`Closed (last ${data.days}d)`} value={String(totalClosed)} />
-        <Kpi label="Cycle p50" value={data.cycle.overall.count ? hrs(data.cycle.overall.p50) : "—"} />
-        <Kpi label="Cycle p90" value={data.cycle.overall.count ? hrs(data.cycle.overall.p90) : "—"} />
+        <Kpi
+          label="Cycle p50"
+          value={data.cycle.overall.count ? hrs(data.cycle.overall.p50) : "—"}
+        />
+        <Kpi
+          label="Cycle p90"
+          value={data.cycle.overall.count ? hrs(data.cycle.overall.p90) : "—"}
+        />
         <Kpi label="In progress" value={String(inProgress)} />
       </div>
 
       {!data.hasEvents && (
         <div className="rounded-[8px] border border-border bg-[var(--surface-2)] px-3 py-2 text-[12px] text-[var(--text-3)]">
-          No interaction log found for this project — metrics are derived from bead
-          created/closed timestamps (best effort).
+          No interaction log found for this project — metrics are derived from bead created/closed
+          timestamps (best effort).
         </div>
       )}
 
@@ -117,10 +125,19 @@ function Dashboard({ data, split }: { data: InsightsData; split: boolean }) {
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={data.throughput} margin={{ top: 6, right: 8, bottom: 0, left: -18 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fontSize: 11 }} stroke="var(--text-3)" />
+            <XAxis
+              dataKey="date"
+              tickFormatter={shortDate}
+              tick={{ fontSize: 11 }}
+              stroke="var(--text-3)"
+            />
             <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="var(--text-3)" />
             <Tooltip
-              contentStyle={{ fontSize: 12, background: "var(--surface)", border: "1px solid var(--border)" }}
+              contentStyle={{
+                fontSize: 12,
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+              }}
               labelFormatter={shortDate}
             />
             {split ? (
@@ -140,15 +157,38 @@ function Dashboard({ data, split }: { data: InsightsData; split: boolean }) {
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={data.createdClosed} margin={{ top: 6, right: 8, bottom: 0, left: -18 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fontSize: 11 }} stroke="var(--text-3)" />
+            <XAxis
+              dataKey="date"
+              tickFormatter={shortDate}
+              tick={{ fontSize: 11 }}
+              stroke="var(--text-3)"
+            />
             <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="var(--text-3)" />
             <Tooltip
-              contentStyle={{ fontSize: 12, background: "var(--surface)", border: "1px solid var(--border)" }}
+              contentStyle={{
+                fontSize: 12,
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+              }}
               labelFormatter={shortDate}
             />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Line type="monotone" dataKey="created" stroke="#64748b" strokeWidth={2} dot={false} name="Created" />
-            <Line type="monotone" dataKey="closed" stroke="#16a34a" strokeWidth={2} dot={false} name="Closed" />
+            <Line
+              type="monotone"
+              dataKey="created"
+              stroke="#64748b"
+              strokeWidth={2}
+              dot={false}
+              name="Created"
+            />
+            <Line
+              type="monotone"
+              dataKey="closed"
+              stroke="#16a34a"
+              strokeWidth={2}
+              dot={false}
+              name="Closed"
+            />
           </LineChart>
         </ResponsiveContainer>
       </Panel>
@@ -164,7 +204,9 @@ function Dashboard({ data, split }: { data: InsightsData; split: boolean }) {
 
         <Panel title="Aging work in progress">
           {data.aging.length === 0 ? (
-            <div className="py-6 text-center text-[12px] text-[var(--text-3)]">Nothing in progress.</div>
+            <div className="py-6 text-center text-[12px] text-[var(--text-3)]">
+              Nothing in progress.
+            </div>
           ) : (
             <div className="flex flex-col gap-[6px]">
               {data.aging.map((a) => (
@@ -202,7 +244,10 @@ function Dashboard({ data, split }: { data: InsightsData; split: boolean }) {
                 >
                   <div>
                     <div className="flex items-center gap-[6px] text-[12.5px] font-[550]">
-                      <span className="h-[8px] w-[8px] rounded-full" style={{ background: c.color }} />
+                      <span
+                        className="h-[8px] w-[8px] rounded-full"
+                        style={{ background: c.color }}
+                      />
                       {c.name}
                     </div>
                     <div
@@ -254,7 +299,13 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function CycleRow({ label, stat }: { label: string; stat: { p50: number; p90: number; count: number } }) {
+function CycleRow({
+  label,
+  stat,
+}: {
+  label: string;
+  stat: { p50: number; p90: number; count: number };
+}) {
   return (
     <div className="flex items-center justify-between rounded-[9px] bg-[var(--surface-2)] px-3 py-2 text-[12.5px]">
       <span className="font-[550] text-[var(--text-2)]">{label}</span>
@@ -263,7 +314,9 @@ function CycleRow({ label, stat }: { label: string; stat: { p50: number; p90: nu
       ) : (
         <span className="flex items-center gap-3 font-mono text-[12px]">
           <span title="median">p50 {hrs(stat.p50)}</span>
-          <span title="90th percentile" className="text-[var(--text-3)]">p90 {hrs(stat.p90)}</span>
+          <span title="90th percentile" className="text-[var(--text-3)]">
+            p90 {hrs(stat.p90)}
+          </span>
           <span className="text-[var(--text-3)]">· {stat.count}</span>
         </span>
       )}

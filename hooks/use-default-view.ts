@@ -12,8 +12,11 @@ function subscribe(callback: () => void) {
   };
 }
 function snapshot(): boolean {
-  try { return globalThis.localStorage?.getItem(KEY) === "true"; }
-  catch { return false; }
+  try {
+    return globalThis.localStorage?.getItem(KEY) === "true";
+  } catch {
+    return false;
+  }
 }
 function save(enabled: boolean) {
   // Let the caller report storage failures instead of pretending it was saved.

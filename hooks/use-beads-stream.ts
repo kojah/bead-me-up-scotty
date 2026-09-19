@@ -1,7 +1,7 @@
 "use client";
-import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { beadsKey, activityKey } from "@/hooks/use-beads";
+import * as React from "react";
+import { activityKey, beadsKey } from "@/hooks/use-beads";
 
 /**
  * Subscribe to the server's SSE change stream for a project and refetch the
@@ -18,9 +18,7 @@ export function useBeadsStream(projectId: string): { live: boolean } {
   React.useEffect(() => {
     if (projectId === "demo") return; // demo has no .beads to watch
 
-    const es = new EventSource(
-      `/api/p/${encodeURIComponent(projectId)}/beads/stream`,
-    );
+    const es = new EventSource(`/api/p/${encodeURIComponent(projectId)}/beads/stream`);
     es.addEventListener("open", () => setLive(true));
     es.addEventListener("error", () => setLive(false)); // EventSource auto-reconnects
     es.addEventListener("change", () => {

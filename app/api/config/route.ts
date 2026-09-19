@@ -1,7 +1,7 @@
+import { z } from "zod";
+import { fail, ok } from "@/lib/api";
 import { getConfig, saveConfig } from "@/lib/config";
 import { resetStore } from "@/lib/store";
-import { ok, fail } from "@/lib/api";
-import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 

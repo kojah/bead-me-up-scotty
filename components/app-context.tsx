@@ -1,8 +1,8 @@
 "use client";
 import * as React from "react";
-import { type BeadType } from "@/lib/schema";
-import type { Bead } from "@/lib/schema";
 import type { Meta } from "@/lib/api-client";
+import type { Bead } from "@/lib/schema";
+import { type BeadType } from "@/lib/schema";
 
 export type DetailAction = "view" | "edit" | "close";
 

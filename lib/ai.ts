@@ -28,7 +28,10 @@ function childEnv(): NodeJS.ProcessEnv {
 
 function runClaude(prompt: string, timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(CLAUDE_BIN, ["-p", prompt], { stdio: ["ignore", "pipe", "pipe"], env: childEnv() });
+    const child = spawn(CLAUDE_BIN, ["-p", prompt], {
+      stdio: ["ignore", "pipe", "pipe"],
+      env: childEnv(),
+    });
     let stdout = "";
     let stderr = "";
     let done = false;
@@ -65,7 +68,13 @@ function runClaude(prompt: string, timeoutMs: number): Promise<string> {
     child.on("close", (code) =>
       finish(() => {
         if (code === 0) resolve(stdout);
-        else reject(new AiError(stderr.trim() || `The Claude CLI exited with code ${code}.`, "claude_failed"));
+        else
+          reject(
+            new AiError(
+              stderr.trim() || `The Claude CLI exited with code ${code}.`,
+              "claude_failed",
+            ),
+          );
       }),
     );
   });
@@ -168,10 +177,15 @@ export async function assistBead(input: AssistInput): Promise<AssistResult> {
   return {
     description: typeof parsed.description === "string" ? parsed.description : input.description,
     acceptance: typeof parsed.acceptance === "string" ? parsed.acceptance : "",
-    labels: Array.isArray(parsed.labels) ? parsed.labels.filter((l): l is string => typeof l === "string") : [],
+    labels: Array.isArray(parsed.labels)
+      ? parsed.labels.filter((l): l is string => typeof l === "string")
+      : [],
     duplicates: Array.isArray(parsed.duplicates)
       ? parsed.duplicates
-          .filter((d): d is { id: string; title: string; reason: string } => !!d && typeof d.id === "string")
+          .filter(
+            (d): d is { id: string; title: string; reason: string } =>
+              !!d && typeof d.id === "string",
+          )
           .filter((d) => validIds.has(d.id))
       : [],
   };

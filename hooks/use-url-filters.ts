@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { useUrlState } from "@/hooks/use-url-state";
 import {
   emptyFilters,
+  type Filters,
   filtersFromSearchParams,
   writeFiltersToSearchParams,
-  type Filters,
 } from "@/lib/filters";
-import { useUrlState } from "@/hooks/use-url-state";
 
 function sameFacets(a: Filters, b: Filters): boolean {
   return (
@@ -23,15 +23,14 @@ function sameFacets(a: Filters, b: Filters): boolean {
 /** Shared, URL-backed Board/List filter state. */
 export function useUrlFilters() {
   const { searchParams, updateUrl } = useUrlState();
-  const filters = React.useMemo(
-    () => filtersFromSearchParams(searchParams),
-    [searchParams],
-  );
+  const filters = React.useMemo(() => filtersFromSearchParams(searchParams), [searchParams]);
   const showArchived = searchParams.get("archived") === "1";
 
   const searchEntry = React.useRef<string | null>(null);
   React.useEffect(() => {
-    const reset = () => { searchEntry.current = null; };
+    const reset = () => {
+      searchEntry.current = null;
+    };
     window.addEventListener("popstate", reset);
     return () => window.removeEventListener("popstate", reset);
   }, []);

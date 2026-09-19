@@ -1,16 +1,16 @@
 "use client";
-import * as React from "react";
 import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
-import { useTheme } from "@/components/theme-provider";
-import { THEMES } from "@/lib/themes";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Icon } from "@/components/icons";
+import * as React from "react";
 import { useApp, type View } from "@/components/app-context";
-import { useProjects } from "@/hooks/use-projects";
+import { Icon } from "@/components/icons";
+import { useTheme } from "@/components/theme-provider";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useSetStatus, useUpdateBead } from "@/hooks/use-beads";
+import { useProjects } from "@/hooks/use-projects";
+import { catColor, statusLabel, typeLabel } from "@/lib/beads-view";
 import { BEAD_STATUSES, type Bead } from "@/lib/schema";
-import { statusLabel, catColor, typeLabel } from "@/lib/beads-view";
+import { THEMES } from "@/lib/themes";
 
 const VIEWS: { key: View; label: string; icon: string }[] = [
   { key: "focus", label: "Focus", icon: "bolt" },
@@ -97,7 +97,9 @@ function PaletteBody({
 
   const safeInitialPage =
     readOnly && (initialPage === "status" || initialPage === "priority")
-      ? initialBeadId ? "bead" : "root"
+      ? initialBeadId
+        ? "bead"
+        : "root"
       : initialPage;
   const [page, setPage] = React.useState<PalettePage>(safeInitialPage);
   const [search, setSearch] = React.useState("");
@@ -123,7 +125,10 @@ function PaletteBody({
   };
 
   const recents = React.useMemo(
-    () => loadRecents().map((id) => index.get(id)).filter(Boolean) as Bead[],
+    () =>
+      loadRecents()
+        .map((id) => index.get(id))
+        .filter(Boolean) as Bead[],
     [index],
   );
 
@@ -180,9 +185,11 @@ function PaletteBody({
         {page === "root" && (
           <>
             <Command.Group heading="Actions">
-              {!readOnly && <Item icon="plus" value="create bead new" onSelect={() => run(() => openCreate())}>
-                Create bead…
-              </Item>}
+              {!readOnly && (
+                <Item icon="plus" value="create bead new" onSelect={() => run(() => openCreate())}>
+                  Create bead…
+                </Item>
+              )}
               <Item
                 icon={mode === "dark" ? "sun" : "moon"}
                 value="toggle theme dark light"
@@ -193,18 +200,33 @@ function PaletteBody({
               <Item
                 icon="settings"
                 value="change theme palette dracula nord"
-                onSelect={() => { setSearch(""); setPage("theme"); }}
+                onSelect={() => {
+                  setSearch("");
+                  setPage("theme");
+                }}
               >
                 Change theme…
               </Item>
-              <Item icon="logo" value="switch project" onSelect={() => { setSearch(""); setPage("projects"); }}>
+              <Item
+                icon="logo"
+                value="switch project"
+                onSelect={() => {
+                  setSearch("");
+                  setPage("projects");
+                }}
+              >
                 Switch project…
               </Item>
             </Command.Group>
 
             <Command.Group heading="Go to">
               {VIEWS.map((v) => (
-                <Item key={v.key} icon={v.icon} value={`go ${v.label}`} onSelect={() => run(() => onView(v.key))}>
+                <Item
+                  key={v.key}
+                  icon={v.icon}
+                  value={`go ${v.label}`}
+                  onSelect={() => run(() => onView(v.key))}
+                >
                   {v.label}
                 </Item>
               ))}
@@ -213,7 +235,12 @@ function PaletteBody({
             {recents.length > 0 && search === "" && (
               <Command.Group heading="Recent beads">
                 {recents.map((b) => (
-                  <BeadItem key={`r-${b.id}`} bead={b} valuePrefix="recent " onSelect={() => toBead(b.id)} />
+                  <BeadItem
+                    key={`r-${b.id}`}
+                    bead={b}
+                    valuePrefix="recent "
+                    onSelect={() => toBead(b.id)}
+                  />
                 ))}
               </Command.Group>
             )}
@@ -231,32 +258,57 @@ function PaletteBody({
             <Item
               icon="search"
               value="open details view"
-              onSelect={() => { pushRecent(activeBead.id); run(() => openDetail(activeBead.id)); }}
+              onSelect={() => {
+                pushRecent(activeBead.id);
+                run(() => openDetail(activeBead.id));
+              }}
             >
               Open details
             </Item>
-            {!readOnly && <>
-            <Item
-              icon="user"
-              value="claim in progress"
-              onSelect={() => runMutation(() => setStatus.mutate({ id: activeBead.id, status: "in_progress" }))}
-            >
-              Claim · set In Progress
-            </Item>
-            <Item
-              icon="check"
-              value="close done"
-              onSelect={() => runMutation(() => setStatus.mutate({ id: activeBead.id, status: "closed" }))}
-            >
-              Close
-            </Item>
-            <Item icon="chevron" value="set status" onSelect={() => { setSearch(""); setPage("status"); }}>
-              Set status…
-            </Item>
-            <Item icon="chevron" value="set priority" onSelect={() => { setSearch(""); setPage("priority"); }}>
-              Set priority…
-            </Item>
-            </>}
+            {!readOnly && (
+              <>
+                <Item
+                  icon="user"
+                  value="claim in progress"
+                  onSelect={() =>
+                    runMutation(() =>
+                      setStatus.mutate({ id: activeBead.id, status: "in_progress" }),
+                    )
+                  }
+                >
+                  Claim · set In Progress
+                </Item>
+                <Item
+                  icon="check"
+                  value="close done"
+                  onSelect={() =>
+                    runMutation(() => setStatus.mutate({ id: activeBead.id, status: "closed" }))
+                  }
+                >
+                  Close
+                </Item>
+                <Item
+                  icon="chevron"
+                  value="set status"
+                  onSelect={() => {
+                    setSearch("");
+                    setPage("status");
+                  }}
+                >
+                  Set status…
+                </Item>
+                <Item
+                  icon="chevron"
+                  value="set priority"
+                  onSelect={() => {
+                    setSearch("");
+                    setPage("priority");
+                  }}
+                >
+                  Set priority…
+                </Item>
+              </>
+            )}
           </Command.Group>
         )}
 
@@ -267,7 +319,9 @@ function PaletteBody({
                 key={s}
                 dotColor={catColor(s)}
                 value={`status ${statusLabel(s)}`}
-                onSelect={() => runMutation(() => setStatus.mutate({ id: activeBead.id, status: s }))}
+                onSelect={() =>
+                  runMutation(() => setStatus.mutate({ id: activeBead.id, status: s }))
+                }
               >
                 {statusLabel(s)}
               </Item>
@@ -281,7 +335,9 @@ function PaletteBody({
               <Item
                 key={p}
                 value={`priority ${p} ${PRIORITIES[p]}`}
-                onSelect={() => runMutation(() => update.mutate({ id: activeBead.id, patch: { priority: p } }))}
+                onSelect={() =>
+                  runMutation(() => update.mutate({ id: activeBead.id, patch: { priority: p } }))
+                }
               >
                 P{p} · {PRIORITIES[p]}
               </Item>
@@ -291,7 +347,11 @@ function PaletteBody({
 
         {page === "projects" && (
           <Command.Group heading="Switch project">
-            <Item icon="logo" value="project demo" onSelect={() => run(() => router.push("/p/demo"))}>
+            <Item
+              icon="logo"
+              value="project demo"
+              onSelect={() => run(() => router.push("/p/demo"))}
+            >
               Demo{projectId === "demo" ? " · current" : ""}
             </Item>
             {projects
@@ -349,7 +409,10 @@ function Item({
       className="flex cursor-pointer items-center gap-[10px] rounded-[8px] px-3 py-[7px] text-[13.5px] text-[var(--text)] data-[selected=true]:bg-[var(--surface-2)]"
     >
       {dotColor ? (
-        <span className="h-[8px] w-[8px] flex-shrink-0 rounded-full" style={{ background: dotColor }} />
+        <span
+          className="h-[8px] w-[8px] flex-shrink-0 rounded-full"
+          style={{ background: dotColor }}
+        />
       ) : icon ? (
         <Icon name={icon} size={15} className="flex-shrink-0 text-[var(--text-2)]" />
       ) : (

@@ -1,8 +1,8 @@
 import "server-only";
+import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
-import { EventEmitter } from "node:events";
-import { getProject, DEMO_PROJECT } from "./config";
+import { DEMO_PROJECT, getProject } from "./config";
 
 /**
  * Per-project filesystem watcher registry.
@@ -84,10 +84,7 @@ function startWatcher(entry: Entry) {
  * directory (demo, missing path, not yet initialized), this is a no-op and the
  * client falls back to interval polling.
  */
-export function subscribeBeadsChange(
-  projectId: string,
-  onChange: () => void,
-): () => void {
+export function subscribeBeadsChange(projectId: string, onChange: () => void): () => void {
   const beadsDir = beadsDirFor(projectId);
   if (!beadsDir) return () => {};
 

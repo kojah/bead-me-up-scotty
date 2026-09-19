@@ -2,7 +2,7 @@ import type { Bead } from "./schema";
 
 /** Active blocking chains only; hierarchy and related links remain visible context. */
 export function graphNeighborhood(beads: Bead[], visibleIds: Set<string>, focusId: string) {
-  const present = new Map(beads.filter(b => visibleIds.has(b.id)).map(b => [b.id, b]));
+  const present = new Map(beads.filter((b) => visibleIds.has(b.id)).map((b) => [b.id, b]));
   const upstream = new Map<string, string[]>();
   const downstream = new Map<string, string[]>();
   const edgeIds = new Set<string>();

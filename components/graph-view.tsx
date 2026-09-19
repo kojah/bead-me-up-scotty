@@ -1,24 +1,24 @@
 "use client";
-import * as React from "react";
 import {
-  ReactFlow,
   Background,
+  type Connection,
   Controls,
   Handle,
-  Position,
-  type Connection,
   type NodeProps,
+  Position,
+  ReactFlow,
   type ReactFlowInstance,
 } from "@xyflow/react";
+import * as React from "react";
 import "@xyflow/react/dist/style.css";
-import { Icon, typeIconName } from "@/components/icons";
 import { useApp } from "@/components/app-context";
+import { Icon, typeIconName } from "@/components/icons";
+import { ResponsiveControls } from "@/components/responsive-controls";
 import { useAddDep } from "@/hooks/use-beads";
+import { useGraphPrefs } from "@/hooks/use-graph-prefs";
 import { catColor, typeColor } from "@/lib/beads-view";
 import { containerLayout } from "@/lib/graph-containers";
-import { graphScope, graphEdges } from "@/lib/graph-model";
-import { ResponsiveControls } from "@/components/responsive-controls";
-import { useGraphPrefs } from "@/hooks/use-graph-prefs";
+import { graphEdges, graphScope } from "@/lib/graph-model";
 import { graphNeighborhood } from "@/lib/graph-neighborhood";
 import type { Bead } from "@/lib/schema";
 
@@ -29,7 +29,10 @@ type BeadNodeData = {
   outsideEpic?: boolean;
 };
 
-const SpotlightContext = React.createContext<{ selected: string | null; active: Set<string> | null }>({ selected: null, active: null });
+const SpotlightContext = React.createContext<{
+  selected: string | null;
+  active: Set<string> | null;
+}>({ selected: null, active: null });
 const MeasurementContext = React.createContext<(id: string, height: number) => void>(() => {});
 
 function BeadNode({ data }: NodeProps) {
@@ -50,7 +53,10 @@ function BeadNode({ data }: NodeProps) {
       ref={element}
       style={{
         opacity: !spotlight.active || spotlight.active.has(bead.id) ? 1 : 0.2,
-        outline: spotlight.active && spotlight.selected === bead.id ? "2.5px solid var(--brand)" : undefined,
+        outline:
+          spotlight.active && spotlight.selected === bead.id
+            ? "2.5px solid var(--brand)"
+            : undefined,
         outlineOffset: 3,
       }}
       role="button"
@@ -59,9 +65,12 @@ function BeadNode({ data }: NodeProps) {
       data-epic-scope={outsideEpic ? "outside" : "inside"}
       aria-current={selectedBeadId === bead.id ? "true" : undefined}
       onFocus={() => selectBead(bead.id)}
-      onKeyDown={event => {
+      onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;
-        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(bead.id); }
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen(bead.id);
+        }
       }}
       onClick={() => {
         selectBead(bead.id);
@@ -80,9 +89,18 @@ function BeadNode({ data }: NodeProps) {
       />
       <div className="mb-[5px] flex items-center gap-[6px]">
         <span className="h-2 w-2 rounded-full" style={{ background: catColor(bead.status) }} />
-        <span className="min-w-0 truncate font-mono text-[10.5px] text-[var(--text-3)]" title={bead.id}>{bead.id}</span>
+        <span
+          className="min-w-0 truncate font-mono text-[10.5px] text-[var(--text-3)]"
+          title={bead.id}
+        >
+          {bead.id}
+        </span>
         <span className="flex-1" />
-        <Icon name={typeIconName(bead.issue_type)} size={12} style={{ color: typeColor(bead.issue_type) }} />
+        <Icon
+          name={typeIconName(bead.issue_type)}
+          size={12}
+          style={{ color: typeColor(bead.issue_type) }}
+        />
       </div>
       {outsideEpic && (
         <div className="mb-[5px] w-fit rounded-full bg-[var(--surface-3)] px-[6px] py-[2px] text-[9px] font-[650] uppercase tracking-[.04em] text-[var(--text-3)]">
@@ -102,17 +120,28 @@ function BeadNode({ data }: NodeProps) {
 }
 
 function EpicNode({ data }: NodeProps) {
-  const { bead, onOpen, completed, total } = data as unknown as BeadNodeData & { completed: number; total: number };
+  const { bead, onOpen, completed, total } = data as unknown as BeadNodeData & {
+    completed: number;
+    total: number;
+  };
   const spotlight = React.useContext(SpotlightContext);
   return (
-    <div className="h-full w-full rounded-xl border-2 border-[var(--border-strong)] bg-[var(--surface-2)]" data-epic-container={bead.id}>
+    <div
+      className="h-full w-full rounded-xl border-2 border-[var(--border-strong)] bg-[var(--surface-2)]"
+      data-epic-container={bead.id}
+    >
       <Handle type="target" position={Position.Left} style={{ top: 45 }} />
-      <button type="button" onClick={() => onOpen(bead.id)}
+      <button
+        type="button"
+        onClick={() => onOpen(bead.id)}
         data-keyboard-bead-id={bead.id}
         style={{ opacity: !spotlight.active || spotlight.active.has(bead.id) ? 1 : 0.2 }}
         className="nodrag flex w-full flex-col gap-1 border-b border-border px-4 py-3 text-left text-[var(--text)]"
-        aria-label={`Open epic ${bead.title}`}>
-        <span className="text-xs text-[var(--text-3)]">Epic · {bead.id} · {completed}/{total} completed</span>
+        aria-label={`Open epic ${bead.title}`}
+      >
+        <span className="text-xs text-[var(--text-3)]">
+          Epic · {bead.id} · {completed}/{total} completed
+        </span>
         <span className="line-clamp-2 text-sm font-semibold">{bead.title}</span>
       </button>
       <Handle type="source" position={Position.Right} style={{ top: 45 }} />
@@ -132,53 +161,78 @@ export function GraphView() {
   const [heights, setHeights] = React.useState<ReadonlyMap<string, number>>(() => new Map());
   const measure = React.useCallback((id: string, height: number) => {
     if (height <= 0) return;
-    setHeights(current => current.get(id) === height ? current : new Map(current).set(id, height));
+    setHeights((current) =>
+      current.get(id) === height ? current : new Map(current).set(id, height),
+    );
   }, []);
-  const activateNode = React.useCallback((id: string) => {
-    if (spotlight) setFocusId(id);
-    else openDetail(id);
-  }, [spotlight, openDetail]);
+  const activateNode = React.useCallback(
+    (id: string) => {
+      if (spotlight) setFocusId(id);
+      else openDetail(id);
+    },
+    [spotlight, openDetail],
+  );
   const addDep = useAddDep();
   // Recenter/fit the graph on the current nodes (bead mpe).
   const rf = React.useRef<ReactFlowInstance | null>(null);
-  const center = React.useCallback(() => rf.current?.fitView({ padding: 0.2, minZoom: 0.02, duration: 400 }), []);
+  const center = React.useCallback(
+    () => rf.current?.fitView({ padding: 0.2, minZoom: 0.02, duration: 400 }),
+    [],
+  );
 
   const epics = React.useMemo(
     () =>
       beads
-        .filter(
-          (bead) =>
-            bead.issue_type === "epic" && !(bead.labels ?? []).includes("archived"),
-        )
+        .filter((bead) => bead.issue_type === "epic" && !(bead.labels ?? []).includes("archived"))
         .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id)),
     [beads],
   );
   const effectiveEpicId = epics.some((epic) => epic.id === epicId) ? epicId : "";
 
-  const scope = React.useMemo(() => graphScope(beads, effectiveEpicId, hideCompleted, liveOnly),
-    [beads, effectiveEpicId, hideCompleted, liveOnly]);
-  const nodes = React.useMemo(() => containerLayout(scope.visible, scope.all, activateNode, scope.outsideIds, heights),
-    [scope, activateNode, heights]);
+  const scope = React.useMemo(
+    () => graphScope(beads, effectiveEpicId, hideCompleted, liveOnly),
+    [beads, effectiveEpicId, hideCompleted, liveOnly],
+  );
+  const nodes = React.useMemo(
+    () => containerLayout(scope.visible, scope.all, activateNode, scope.outsideIds, heights),
+    [scope, activateNode, heights],
+  );
   const edges = React.useMemo(() => graphEdges(scope.visible), [scope]);
   const considered = scope.considered;
   // Fit after measured layout settles, never on spotlight/selection changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Scope and measured sizes trigger an imperative fit after React Flow processes the layout.
   React.useEffect(() => {
-    const timer = setTimeout(() => { void rf.current?.fitView({ padding: 0.2, minZoom: 0.02 }); }, 100);
+    const timer = setTimeout(() => {
+      void rf.current?.fitView({ padding: 0.2, minZoom: 0.02 });
+    }, 100);
     return () => clearTimeout(timer);
   }, [scope, heights]);
   const hidden = Math.max(0, considered - nodes.length);
   const focus = React.useMemo(() => {
-    if (!spotlight || !focusId || !nodes.some(n => n.id === focusId)) return null;
-    return graphNeighborhood(beads, new Set(nodes.map(n => n.id)), focusId);
+    if (!spotlight || !focusId || !nodes.some((n) => n.id === focusId)) return null;
+    return graphNeighborhood(beads, new Set(nodes.map((n) => n.id)), focusId);
   }, [beads, nodes, spotlight, focusId]);
   // Keep React Flow node objects stable while highlighting. Replacing raw
   // nodes discards their measured dimensions and briefly hides click targets.
-  const spotlightContext = React.useMemo(() => ({ selected: focusId, active: focus?.all ?? null }), [focusId, focus]);
-  const shownEdges = React.useMemo(() => focus ? edges.map(e => {
-    const lit = focus.edgeIds.has(e.id) && focus.all.has(e.source) && focus.all.has(e.target);
-    return { ...e, style: { ...e.style, opacity: lit ? 1 : 0.12 }, animated: lit && e.animated };
-  }) : edges, [edges, focus]);
-
+  const spotlightContext = React.useMemo(
+    () => ({ selected: focusId, active: focus?.all ?? null }),
+    [focusId, focus],
+  );
+  const shownEdges = React.useMemo(
+    () =>
+      focus
+        ? edges.map((e) => {
+            const lit =
+              focus.edgeIds.has(e.id) && focus.all.has(e.source) && focus.all.has(e.target);
+            return {
+              ...e,
+              style: { ...e.style, opacity: lit ? 1 : 0.12 },
+              animated: lit && e.animated,
+            };
+          })
+        : edges,
+    [edges, focus],
+  );
 
   const onConnect = React.useCallback(
     (c: Connection) => {
@@ -208,7 +262,8 @@ export function GraphView() {
                 : readOnly
                   ? "Select a bead to view its details"
                   : "Left → right: prerequisite → dependent · drag a prerequisite onto its dependent"}
-            {" · "}{nodes.length} beads shown
+            {" · "}
+            {nodes.length} beads shown
             {hidden > 0 && (
               <>
                 {" · "}
@@ -218,7 +273,9 @@ export function GraphView() {
               </>
             )}
           </span>
-          <p className="text-xs text-[var(--text-3)] md:hidden">{nodes.length} shown · drag to pan, pinch to zoom</p>
+          <p className="text-xs text-[var(--text-3)] md:hidden">
+            {nodes.length} shown · drag to pan, pinch to zoom
+          </p>
         </div>
         <select
           aria-label="Graph scope"
@@ -237,30 +294,54 @@ export function GraphView() {
             </option>
           ))}
         </select>
-        <ResponsiveControls title="Graph options" count={Number(hideCompleted) + Number(liveOnly) + Number(spotlight)}>
-        <label className="flex cursor-pointer items-center gap-2 text-[12px] text-[var(--text-2)]">
-          <input type="checkbox" checked={hideCompleted} className="accent-[var(--brand)]"
-            onChange={e => { setHideCompleted(e.target.checked); setFocusId(null); }} />
-          Hide completed
-        </label>
-        <label className="flex cursor-pointer items-center gap-2 text-[12px] text-[var(--text-2)]">
-          <input type="checkbox" checked={spotlight} className="accent-[var(--brand)]"
-            onChange={e => { setSpotlight(e.target.checked); setFocusId(null); }} />
-          Spotlight dependencies
-        </label>
-        <label className="flex cursor-pointer items-center gap-2 text-[12px] text-[var(--text-2)]">
-          <input
-            type="checkbox"
-            checked={liveOnly}
-            onChange={(e) => { setLiveOnly(e.target.checked); setFocusId(null); }}
-            className="accent-[var(--brand)]"
-          />
-          Live dependencies only
-        </label>
+        <ResponsiveControls
+          title="Graph options"
+          count={Number(hideCompleted) + Number(liveOnly) + Number(spotlight)}
+        >
+          <label className="flex cursor-pointer items-center gap-2 text-[12px] text-[var(--text-2)]">
+            <input
+              type="checkbox"
+              checked={hideCompleted}
+              className="accent-[var(--brand)]"
+              onChange={(e) => {
+                setHideCompleted(e.target.checked);
+                setFocusId(null);
+              }}
+            />
+            Hide completed
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-[12px] text-[var(--text-2)]">
+            <input
+              type="checkbox"
+              checked={spotlight}
+              className="accent-[var(--brand)]"
+              onChange={(e) => {
+                setSpotlight(e.target.checked);
+                setFocusId(null);
+              }}
+            />
+            Spotlight dependencies
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-[12px] text-[var(--text-2)]">
+            <input
+              type="checkbox"
+              checked={liveOnly}
+              onChange={(e) => {
+                setLiveOnly(e.target.checked);
+                setFocusId(null);
+              }}
+              className="accent-[var(--brand)]"
+            />
+            Live dependencies only
+          </label>
         </ResponsiveControls>
         <button
           onClick={center}
-          title={effectiveEpicId ? "Fit selected epic and its dependencies" : "Center the graph on all issues"}
+          title={
+            effectiveEpicId
+              ? "Fit selected epic and its dependencies"
+              : "Center the graph on all issues"
+          }
           className="flex h-9 flex-shrink-0 items-center gap-[6px] rounded-[9px] border border-border bg-[var(--surface-2)] px-[12px] text-[12.5px] font-[550] text-[var(--text-2)] hover:bg-[var(--surface-3)]"
         >
           <Icon name="target" size={15} />
@@ -269,42 +350,53 @@ export function GraphView() {
         {spotlight && (
           <div className="flex h-9 basis-full items-center">
             {focus && focusId ? (
-              <button onClick={() => setFocusId(null)} title="Clear the dependency spotlight"
-                className="flex h-9 items-center gap-2 rounded-[9px] bg-[var(--brand-weak)] px-3 text-[12px] text-[var(--brand)]">
+              <button
+                onClick={() => setFocusId(null)}
+                title="Clear the dependency spotlight"
+                className="flex h-9 items-center gap-2 rounded-[9px] bg-[var(--brand-weak)] px-3 text-[12px] text-[var(--brand)]"
+              >
                 <span className="font-mono">{focusId}</span>
-                <span>{focus.up} upstream · {focus.down} downstream</span>
+                <span>
+                  {focus.up} upstream · {focus.down} downstream
+                </span>
                 <Icon name="x" size={13} />
               </button>
-            ) : <span className="text-[12px] text-[var(--text-3)]">Choose a bead to highlight its blocking chains.</span>}
+            ) : (
+              <span className="text-[12px] text-[var(--text-3)]">
+                Choose a bead to highlight its blocking chains.
+              </span>
+            )}
           </div>
         )}
       </header>
       <div className="relative min-h-0 flex-1">
         <MeasurementContext.Provider value={measure}>
-        <SpotlightContext.Provider value={spotlightContext}>
-        <ReactFlow
-          key={`${effectiveEpicId || "all"}:${liveOnly}:${hideCompleted}`}
-          nodes={nodes}
-          edges={shownEdges}
-          zoomOnDoubleClick={!spotlight}
-          onPaneClick={() => setFocusId(null)}
-          onNodeDoubleClick={(_, node) => { if (spotlight) openDetail(node.id); }}
-          nodeTypes={nodeTypes}
-          nodesConnectable={!readOnly}
-          defaultEdgeOptions={{ zIndex: 1 }}
-          onConnect={onConnect}
-          onInit={(inst) => {
-            rf.current = inst;
-          }}
-          minZoom={0.02}
-          fitView
-          fitViewOptions={{ padding: 0.2, minZoom: 0.02 }}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background gap={22} color="var(--border)" />
-          <Controls fitViewOptions={{ padding: 0.2, minZoom: 0.02 }} />
-        </ReactFlow>
-        </SpotlightContext.Provider>
+          <SpotlightContext.Provider value={spotlightContext}>
+            <ReactFlow
+              key={`${effectiveEpicId || "all"}:${liveOnly}:${hideCompleted}`}
+              nodes={nodes}
+              edges={shownEdges}
+              zoomOnDoubleClick={!spotlight}
+              onPaneClick={() => setFocusId(null)}
+              onNodeDoubleClick={(_, node) => {
+                if (spotlight) openDetail(node.id);
+              }}
+              nodeTypes={nodeTypes}
+              nodesConnectable={!readOnly}
+              defaultEdgeOptions={{ zIndex: 1 }}
+              onConnect={onConnect}
+              onInit={(inst) => {
+                rf.current = inst;
+              }}
+              minZoom={0.02}
+              fitView
+              fitViewOptions={{ padding: 0.2, minZoom: 0.02 }}
+              proOptions={{ hideAttribution: true }}
+            >
+              <Background gap={22} color="var(--border)" />
+              <Controls fitViewOptions={{ padding: 0.2, minZoom: 0.02 }} />
+            </ReactFlow>
+          </SpotlightContext.Provider>
         </MeasurementContext.Provider>
         {nodes.length === 0 && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
@@ -319,7 +411,10 @@ export function GraphView() {
               </p>
               {considered > 0 && (
                 <button
-                  onClick={() => { setLiveOnly(false); setHideCompleted(false); }}
+                  onClick={() => {
+                    setLiveOnly(false);
+                    setHideCompleted(false);
+                  }}
                   className="mt-3 rounded-lg border border-border px-3 py-1.5 text-[12px] hover:bg-[var(--surface-2)]"
                 >
                   Show all beads

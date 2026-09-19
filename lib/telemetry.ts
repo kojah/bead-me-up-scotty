@@ -1,6 +1,6 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 
 // Public ingestion-only project token: safe to distribute; never use a personal API key here.
 const DEFAULT_POSTHOG_KEY = "phc_rgigo4YQzZwrhRSzFkpBt2ZUuiKkRbXvN9wrCmn6Er4a";
@@ -54,13 +54,18 @@ export function createTelemetry(options: Options) {
       if (!fs.existsSync(file)) {
         fs.writeFileSync(temp, randomUUID(), { mode: 0o600 });
         // Publish a complete ID exclusively. Concurrent processes all use the winner.
-        try { fs.linkSync(temp, file); }
-        catch (e) { if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e; }
+        try {
+          fs.linkSync(temp, file);
+        } catch (e) {
+          if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+        }
       }
       const id = fs.readFileSync(file, "utf8");
       if (!/^[0-9a-f-]{36}$/.test(id)) throw new Error("Invalid installation ID");
       return id;
-    } finally { fs.rmSync(temp, { force: true }); }
+    } finally {
+      fs.rmSync(temp, { force: true });
+    }
   }
   // Publish complete records exclusively, including across independent server processes.
   // A crash before publication leaves no half-written record for another process to read.
@@ -68,9 +73,16 @@ export function createTelemetry(options: Options) {
     const temp = `${file}.${randomUUID()}.tmp`;
     try {
       fs.writeFileSync(temp, JSON.stringify(value), { mode: 0o600 });
-      try { fs.linkSync(temp, file); return true; }
-      catch (e) { if ((e as NodeJS.ErrnoException).code === "EEXIST") return false; throw e; }
-    } finally { fs.rmSync(temp, { force: true }); }
+      try {
+        fs.linkSync(temp, file);
+        return true;
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code === "EEXIST") return false;
+        throw e;
+      }
+    } finally {
+      fs.rmSync(temp, { force: true });
+    }
   }
   async function capture(): Promise<void> {
     try {
@@ -90,15 +102,23 @@ export function createTelemetry(options: Options) {
       const eventFile = `${complete}.event.json`;
       reserve(eventFile, { uuid: randomUUID(), timestamp, version: options.version });
       const event = JSON.parse(fs.readFileSync(eventFile, "utf8"));
-      if (!/^[0-9a-f-]{36}$/.test(event.uuid) || typeof event.version !== "string" ||
-          typeof event.timestamp !== "string" || event.timestamp.slice(0, 10) !== day ||
-          !Number.isFinite(Date.parse(event.timestamp))) return;
+      if (
+        !/^[0-9a-f-]{36}$/.test(event.uuid) ||
+        typeof event.version !== "string" ||
+        typeof event.timestamp !== "string" ||
+        event.timestamp.slice(0, 10) !== day ||
+        !Number.isFinite(Date.parse(event.timestamp))
+      )
+        return;
       // At most three attempts, ten minutes apart, triggered only by current-day UI use.
       // Immutable attempt records survive crashes without a stale lock or endless retries.
       let claimed = false;
       for (let attempt = 1; attempt <= 3; attempt++) {
         const attemptFile = `${complete}.attempt-${attempt}.json`;
-        if (reserve(attemptFile, timestamp)) { claimed = true; break; }
+        if (reserve(attemptFile, timestamp)) {
+          claimed = true;
+          break;
+        }
         const previous = Date.parse(JSON.parse(fs.readFileSync(attemptFile, "utf8")));
         if (!Number.isFinite(previous) || Date.parse(timestamp) - previous < 10 * 60_000) return;
       }
@@ -123,8 +143,12 @@ export function createTelemetry(options: Options) {
       });
       if (!response.ok) return;
       const acknowledgement = await response.json();
-      if (acknowledgement === 1 || ((acknowledgement?.status === 1 || acknowledgement?.status === "Ok") &&
-          !acknowledgement.quota_limited?.length)) reserve(complete, true);
+      if (
+        acknowledgement === 1 ||
+        ((acknowledgement?.status === 1 || acknowledgement?.status === "Ok") &&
+          !acknowledgement.quota_limited?.length)
+      )
+        reserve(complete, true);
     } catch {
       // Analytics must never interrupt use or log tokens / request details.
     }

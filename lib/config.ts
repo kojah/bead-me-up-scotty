@@ -1,7 +1,7 @@
 import "server-only";
 import fs from "node:fs";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 
 /**
  * Local app config (NOT stored in beads). Lives as a small JSON file under the
@@ -66,8 +66,12 @@ export const VIEWER_MODE_COOKIE = "scotty-viewer-mode";
 export function isReadOnly(request?: Request): boolean {
   // This is a browser preference, not an authorization boundary. A session
   // cookie lets one browser override the launch default without affecting others.
-  const cookie = request?.headers.get("cookie")?.split(";").map((v) => v.trim())
-    .find((v) => v.startsWith(`${VIEWER_MODE_COOKIE}=`))?.slice(VIEWER_MODE_COOKIE.length + 1);
+  const cookie = request?.headers
+    .get("cookie")
+    ?.split(";")
+    .map((v) => v.trim())
+    .find((v) => v.startsWith(`${VIEWER_MODE_COOKIE}=`))
+    ?.slice(VIEWER_MODE_COOKIE.length + 1);
   if (cookie === "read-only") return true;
   if (cookie === "editing") return false;
   const v = process.env.SCOTTY_READ_ONLY;
@@ -210,9 +214,7 @@ export function getConfig(): AppConfig {
   if (cached) return cached;
   const d = defaults();
 
-  let onDisk:
-    | (Partial<AppConfig> & { repoPath?: string; demo?: boolean })
-    | null = null;
+  let onDisk: (Partial<AppConfig> & { repoPath?: string; demo?: boolean }) | null = null;
   try {
     onDisk = JSON.parse(fs.readFileSync(configFile(), "utf8"));
   } catch {
@@ -258,7 +260,9 @@ export function getConfig(): AppConfig {
 
 /** Update global settings (actor / allowlist / poll). Project registry has its own mutators. */
 export function saveConfig(
-  patch: Partial<Pick<AppConfig, "humanActor" | "humanAllowlist" | "pollIntervalMs" | "gamification">>,
+  patch: Partial<
+    Pick<AppConfig, "humanActor" | "humanAllowlist" | "pollIntervalMs" | "gamification">
+  >,
 ): AppConfig {
   const next = { ...getConfig(), ...patch };
   persist(next);

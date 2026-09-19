@@ -1,8 +1,8 @@
 "use client";
 import * as React from "react";
 import { toast } from "sonner";
-import { useActivity } from "@/hooks/use-beads";
 import { useApp } from "@/components/app-context";
+import { useActivity } from "@/hooks/use-beads";
 import { needsHuman } from "@/lib/beads-view";
 
 /**
@@ -27,7 +27,10 @@ const DEFAULTS: NotifPrefs = { enabled: false, finished: true, blocked: true, es
 export function loadPrefs(): NotifPrefs {
   if (typeof window === "undefined") return DEFAULTS;
   try {
-    return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(PREFS_KEY) || "{}") as Partial<NotifPrefs>) };
+    return {
+      ...DEFAULTS,
+      ...(JSON.parse(localStorage.getItem(PREFS_KEY) || "{}") as Partial<NotifPrefs>),
+    };
   } catch {
     return DEFAULTS;
   }
@@ -110,7 +113,11 @@ export function useNotificationActivation(projectId: string, openDetail: (id: st
 function fire(title: string, body: string, projectId: string, beadId: string) {
   // Always show an in-app toast; raise a desktop Notification when granted.
   toast(title, { description: body });
-  if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+  if (
+    typeof window !== "undefined" &&
+    "Notification" in window &&
+    Notification.permission === "granted"
+  ) {
     try {
       const notification = new Notification(title, { body });
       notification.onclick = () => {

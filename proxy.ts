@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { isReadOnly } from "@/lib/config";
 
 /**
@@ -22,9 +22,18 @@ import { isReadOnly } from "@/lib/config";
  * build time would have failed open while the UI still claimed read-only.
  */
 export function proxy(req: NextRequest) {
-  if (isReadOnly(req) && req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
+  if (
+    isReadOnly(req) &&
+    req.method !== "GET" &&
+    req.method !== "HEAD" &&
+    req.method !== "OPTIONS"
+  ) {
     return NextResponse.json(
-      { error: "Read Only Mode is enabled. Use the top banner to enable editing for this browser session.", code: "read_only" },
+      {
+        error:
+          "Read Only Mode is enabled. Use the top banner to enable editing for this browser session.",
+        code: "read_only",
+      },
       { status: 403 },
     );
   }

@@ -1,19 +1,14 @@
 "use client";
-import * as React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
+import * as React from "react";
 import { toast } from "sonner";
-import { Icon } from "@/components/icons";
 import { useApp } from "@/components/app-context";
-import { useCreateBead, beadsKey } from "@/hooks/use-beads";
+import { DescriptionContent, hasImageRef } from "@/components/description-content";
+import { Icon } from "@/components/icons";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { beadsKey, useCreateBead } from "@/hooks/use-beads";
 import { useImageDrop } from "@/hooks/use-image-drop";
 import { useResizableWidth } from "@/hooks/use-resizable-width";
-import { DescriptionContent, hasImageRef } from "@/components/description-content";
 import { api } from "@/lib/api-client";
 import { typeLabel } from "@/lib/beads-view";
 import { BEAD_TYPES, type BeadType } from "@/lib/schema";
@@ -69,9 +64,7 @@ export function CreateBeadModal({
         />
         {/* Conditionally mounted, so the form remounts on every open and the
             preset below is picked up fresh — no useEffect sync needed. */}
-        {open && (
-          <CreateForm parent={parent} type={type} onClose={() => onOpenChange(false)} />
-        )}
+        {open && <CreateForm parent={parent} type={type} onClose={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   );
@@ -174,7 +167,10 @@ function CreateForm({
         priority: form.priority,
         description: form.description,
         assignee: form.assignee,
-        labels: form.labels.split(",").map((s) => s.trim()).filter(Boolean),
+        labels: form.labels
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
         parent: form.parent,
         backlog: form.backlog,
       },
@@ -223,9 +219,7 @@ function CreateForm({
           <Icon name="plus" size={16} />
         </div>
         <div className="flex-1">
-          <DialogTitle className="text-[15px] font-[650]">
-            {dialogTitle}
-          </DialogTitle>
+          <DialogTitle className="text-[15px] font-[650]">{dialogTitle}</DialogTitle>
           <DialogDescription className="font-mono text-[11.5px] text-[var(--text-3)]">
             bd create … --json
           </DialogDescription>
@@ -242,7 +236,11 @@ function CreateForm({
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-[6px]">
             <span className={labelClass}>Type</span>
-            <select className={selectClass} value={form.type} onChange={(e) => set("type", e.target.value as BeadType)}>
+            <select
+              className={selectClass}
+              value={form.type}
+              onChange={(e) => set("type", e.target.value as BeadType)}
+            >
               {BEAD_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {typeLabel(t)}
@@ -356,7 +354,11 @@ function CreateForm({
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-[6px]">
             <span className={labelClass}>Assignee</span>
-            <select className={selectClass} value={form.assignee} onChange={(e) => set("assignee", e.target.value)}>
+            <select
+              className={selectClass}
+              value={form.assignee}
+              onChange={(e) => set("assignee", e.target.value)}
+            >
               <option value="">Unassigned</option>
               {assignees.map((a) => (
                 <option key={a} value={a}>

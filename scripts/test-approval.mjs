@@ -26,17 +26,30 @@ const writes = [];
 let inboxAttempts = 0;
 let releaseDrawerApproval;
 let markDrawerRequest;
-const drawerRequest = new Promise((resolve) => { markDrawerRequest = resolve; });
+const drawerRequest = new Promise((resolve) => {
+  markDrawerRequest = resolve;
+});
 
 function assertAuditableApproval(write) {
   assert.equal(write.method, "POST", "approval uses the status endpoint");
-  assert.match(write.path, /\/beads\/(inbox-gate|drawer-gate)\/status$/, "approval must not use a generic close action");
+  assert.match(
+    write.path,
+    /\/beads\/(inbox-gate|drawer-gate)\/status$/,
+    "approval must not use a generic close action",
+  );
   assert.equal(write.body.status, "closed");
   assert.equal(typeof write.body.reason, "string", "approval always supplies an audit reason");
-  assert.ok(write.body.reason.length > 20, "approval reason is meaningful rather than a bare status change");
+  assert.ok(
+    write.body.reason.length > 20,
+    "approval reason is meaningful rather than a bare status change",
+  );
   assert.match(write.body.reason, /reviewer/i, "approval reason identifies the human actor");
   assert.match(write.body.reason, /approv/i, "approval reason records approval intent");
-  assert.match(write.body.reason, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z/, "approval reason records when the human approved");
+  assert.match(
+    write.body.reason,
+    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z/,
+    "approval reason records when the human approved",
+  );
 }
 
 const browser = await chromium.launch();
@@ -69,7 +82,9 @@ try {
           },
         });
       }
-      return route.fulfill({ json: beads.find((entry) => path.endsWith(`/beads/${entry.id}`)) ?? {} });
+      return route.fulfill({
+        json: beads.find((entry) => path.endsWith(`/beads/${entry.id}`)) ?? {},
+      });
     }
 
     const body = request.postDataJSON();
@@ -80,7 +95,9 @@ try {
     }
     if (path.endsWith("/beads/drawer-gate/status")) {
       markDrawerRequest();
-      await new Promise((resolve) => { releaseDrawerApproval = resolve; });
+      await new Promise((resolve) => {
+        releaseDrawerApproval = resolve;
+      });
     }
     const target = beads.find((entry) => path.endsWith(`/beads/${entry.id}/status`));
     if (target) target.status = "closed";
@@ -89,7 +106,9 @@ try {
 
   await page.goto(`${base}/p/demo`);
   await context.request.put(`${base}/api/viewer-mode`, { data: { readOnly: false } });
-  await page.getByRole("button", { name: "Read Only Mode", exact: true }).waitFor({ state: "detached" });
+  await page
+    .getByRole("button", { name: "Read Only Mode", exact: true })
+    .waitFor({ state: "detached" });
   await page.getByRole("button", { name: /^Needs You(?:\s+\d+)?$/ }).click();
   const inboxCard = page.locator('[data-keyboard-bead-id="inbox-gate"]');
   await inboxCard.waitFor();
@@ -100,7 +119,9 @@ try {
   const inboxNote = inboxCard.getByPlaceholder("Optional approval note", { exact: true });
   const noteText = "The release owner confirmed the rollback plan.";
   await inboxNote.fill(noteText);
-  const firstRequest = page.waitForRequest((request) => request.url().endsWith("/beads/inbox-gate/status"));
+  const firstRequest = page.waitForRequest((request) =>
+    request.url().endsWith("/beads/inbox-gate/status"),
+  );
   await directApprove.click();
   await firstRequest;
   await page.getByText(/temporary failure/i).waitFor();
@@ -109,10 +130,20 @@ try {
   assertAuditableApproval(writes[0]);
   assert.match(writes[0].body.reason, /The release owner confirmed the rollback plan\./);
   await directApprove.waitFor();
-  assert.equal(await directApprove.isEnabled(), true, "a failed approval keeps the gate open and retryable");
-  assert.equal(await inboxNote.inputValue(), noteText, "a failed approval preserves the exact note draft");
+  assert.equal(
+    await directApprove.isEnabled(),
+    true,
+    "a failed approval keeps the gate open and retryable",
+  );
+  assert.equal(
+    await inboxNote.inputValue(),
+    noteText,
+    "a failed approval preserves the exact note draft",
+  );
   await directApprove.click();
-  await page.waitForFunction(() => document.querySelector('[data-keyboard-bead-id="inbox-gate"]') === null);
+  await page.waitForFunction(
+    () => document.querySelector('[data-keyboard-bead-id="inbox-gate"]') === null,
+  );
   assert.equal(writes.length, 2, "a failed approval can be retried once");
   assertAuditableApproval(writes[1]);
   assert.match(writes[1].body.reason, /The release owner confirmed the rollback plan\./);
@@ -124,9 +155,17 @@ try {
   const drawerApprove = drawer.getByRole("button", { name: "Approve", exact: true });
   await drawerApprove.dblclick();
   await drawerRequest;
-  assert.equal(writes.filter((write) => write.path.endsWith("/beads/drawer-gate/status")).length, 1, "pending double clicks make one approval request");
+  assert.equal(
+    writes.filter((write) => write.path.endsWith("/beads/drawer-gate/status")).length,
+    1,
+    "pending double clicks make one approval request",
+  );
   assertAuditableApproval(writes[2]);
-  assert.equal("note" in writes[2].body, false, "direct approval works without sending an empty note field");
+  assert.equal(
+    "note" in writes[2].body,
+    false,
+    "direct approval works without sending an empty note field",
+  );
   releaseDrawerApproval();
   await drawerApprove.waitFor({ state: "detached" });
   await drawer.getByTitle("Close", { exact: true }).click();
@@ -142,16 +181,27 @@ try {
   await page.getByRole("button", { name: /^Needs You(?:\s+\d+)?$/ }).click();
   const readOnlyCard = page.locator('[data-keyboard-bead-id="read-only-gate"]');
   await readOnlyCard.getByRole("button", { name: "Approve", exact: true }).waitFor();
-  assert.equal(await readOnlyCard.getByRole("button", { name: "Approve", exact: true }).isDisabled(), true);
+  assert.equal(
+    await readOnlyCard.getByRole("button", { name: "Approve", exact: true }).isDisabled(),
+    true,
+  );
   await page.getByText("read-only-gate", { exact: true }).click();
   await drawer.getByRole("button", { name: "Approve", exact: true }).waitFor();
-  assert.equal(await drawer.getByRole("button", { name: "Approve", exact: true }).isDisabled(), true);
+  assert.equal(
+    await drawer.getByRole("button", { name: "Approve", exact: true }).isDisabled(),
+    true,
+  );
   assert.equal(writes.length, 3, "read-only mode never sends an approval write");
   writes.forEach(assertAuditableApproval);
 
-  console.log("PASS: audit-ready approvals from Needs You and drawer, retry/note preservation, pending dedupe, and read-only guards");
+  console.log(
+    "PASS: audit-ready approvals from Needs You and drawer, retry/note preservation, pending dedupe, and read-only guards",
+  );
 } catch (error) {
-  console.error({ url: page?.url(), body: page ? (await page.locator("body").innerText()).slice(0, 3000) : "" });
+  console.error({
+    url: page?.url(),
+    body: page ? (await page.locator("body").innerText()).slice(0, 3000) : "",
+  });
   throw error;
 } finally {
   await browser.close();

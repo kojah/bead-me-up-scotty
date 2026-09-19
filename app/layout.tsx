@@ -12,9 +12,7 @@ export const metadata: Metadata = {
   description: "A local web UI for the beads (bd) issue tracker",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en"

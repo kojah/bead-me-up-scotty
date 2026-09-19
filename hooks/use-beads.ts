@@ -1,14 +1,10 @@
 "use client";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useApp } from "@/components/app-context";
 import { toastError } from "@/components/error-toast";
 import { api, type BeadsResponse } from "@/lib/api-client";
-import type { Bead, CreateInput, UpdateInput, DepType } from "@/lib/schema";
-import { useApp } from "@/components/app-context";
+import type { Bead, CreateInput, DepType, UpdateInput } from "@/lib/schema";
 
 /** Query key is scoped per project so tabs on different projects never collide. */
 export const beadsKey = (projectId: string) => ["beads", projectId] as const;

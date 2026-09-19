@@ -1,57 +1,52 @@
 "use client";
 import * as React from "react";
-import { GateApproval } from "@/components/gate-approval";
-import { AssigneeField } from "@/components/assignee-field";
-import { DependencyEditor } from "@/components/dependency-editor";
 import { toast } from "sonner";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import { Icon, typeIconName } from "@/components/icons";
+import { AiAssistPanel } from "@/components/ai-assist-panel";
+import { type DetailAction, useApp } from "@/components/app-context";
+import { AssigneeField } from "@/components/assignee-field";
 import { OriginBadge, PriorityChip } from "@/components/board/bead-card";
 import { CopyableId } from "@/components/copyable-id";
-import { useApp, type DetailAction } from "@/components/app-context";
+import { DependencyEditor } from "@/components/dependency-editor";
+import { DescriptionContent } from "@/components/description-content";
+import { GateApproval } from "@/components/gate-approval";
+import { Icon, typeIconName } from "@/components/icons";
+import { applyTransform, MarkdownToolbar } from "@/components/markdown-toolbar";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import {
+  useAddComment,
+  useArchiveBead,
+  useCreateGate,
+  useDeleteBead,
+  useRemoveDep,
+  useSetStatus,
+  useUpdateBead,
+} from "@/hooks/use-beads";
 import { useImageDrop } from "@/hooks/use-image-drop";
 import { useResizableWidth } from "@/hooks/use-resizable-width";
-import { DescriptionContent } from "@/components/description-content";
-import { MarkdownToolbar, applyTransform } from "@/components/markdown-toolbar";
-import { bold, italic, link } from "@/lib/markdown-edit";
-import { AiAssistPanel } from "@/components/ai-assist-panel";
-import {
-  useUpdateBead,
-  useSetStatus,
-  useAddComment,
-  useRemoveDep,
-  useArchiveBead,
-  useDeleteBead,
-  useCreateGate,
-} from "@/hooks/use-beads";
 import { beadOrigin, originOf, originTitle } from "@/lib/attribution";
 import {
-  catColor,
-  statusLabel,
-  typeColor,
-  typeLabel,
   avatarColor,
-  initials,
-  parentOf,
+  catColor,
+  checklistProgress,
   childrenOf,
+  closeReasonOf,
   epicProgress,
-  isHumanGate,
-  relTime,
   fmtDate,
   fmtDateTime,
-  checklistProgress,
+  initials,
+  isHumanGate,
+  parentOf,
+  relTime,
+  statusLabel,
   toggleTask,
-  closeReasonOf,
+  typeColor,
+  typeLabel,
 } from "@/lib/beads-view";
+import { bold, italic, link } from "@/lib/markdown-edit";
 import {
   BEAD_STATUSES,
-  BLOCKING_DEP_TYPES,
   type Bead,
+  BLOCKING_DEP_TYPES,
   type BlockingDepType,
   type Dependency,
 } from "@/lib/schema";
@@ -86,9 +81,7 @@ type DependencyRow = {
 };
 
 function isDisplayedBlockingDepType(type: string): type is DisplayedBlockingDepType {
-  return (
-    type !== "parent-child" && (BLOCKING_DEP_TYPES as readonly string[]).includes(type)
-  );
+  return type !== "parent-child" && (BLOCKING_DEP_TYPES as readonly string[]).includes(type);
 }
 
 function dependencyIsResolved(current: Bead, related: Bead | undefined): boolean {
@@ -322,10 +315,7 @@ function DrawerBody({
     });
     const incomingRows = beads.flatMap<DependencyRow>((dependent) =>
       (dependent.dependencies ?? []).flatMap<DependencyRow>((dependency) => {
-        if (
-          dependency.depends_on_id !== bead.id ||
-          !isDisplayedBlockingDepType(dependency.type)
-        ) {
+        if (dependency.depends_on_id !== bead.id || !isDisplayedBlockingDepType(dependency.type)) {
           return [];
         }
         const resolved = dependencyIsResolved(bead, dependent);
@@ -380,8 +370,14 @@ function DrawerBody({
             <Icon name="chevron" size={15} className="rotate-90" />
           </IconBtn>
         )}
-        <span className="h-[9px] w-[9px] rounded-full" style={{ background: catColor(bead.status) }} />
-        <CopyableId id={bead.id} className="min-w-0 max-w-[220px] truncate font-mono text-[13px] text-[var(--text-2)]" />
+        <span
+          className="h-[9px] w-[9px] rounded-full"
+          style={{ background: catColor(bead.status) }}
+        />
+        <CopyableId
+          id={bead.id}
+          className="min-w-0 max-w-[220px] truncate font-mono text-[13px] text-[var(--text-2)]"
+        />
         <StatusChip status={bead.status} />
         <span className="flex-1" />
         <IconBtn title="Copy link" onClick={copyLink}>
@@ -422,7 +418,11 @@ function DrawerBody({
       <div className="p-5 [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-50 [&_select:disabled]:opacity-60 [&_textarea:disabled]:opacity-60 [&_input:disabled]:opacity-60">
         <div className="mb-[10px] flex items-center gap-2">
           <span className="inline-flex items-center gap-[6px] rounded-[7px] border border-border bg-[var(--surface-2)] px-[9px] py-[3px] text-[12px] text-[var(--text-2)]">
-            <Icon name={typeIconName(bead.issue_type)} size={13} style={{ color: typeColor(bead.issue_type) }} />
+            <Icon
+              name={typeIconName(bead.issue_type)}
+              size={13}
+              style={{ color: typeColor(bead.issue_type) }}
+            />
             {typeLabel(bead.issue_type)}
           </span>
           <OriginBadge origin={o} title={originTitle(bead.created_by, o)} withLabel />
@@ -430,7 +430,12 @@ function DrawerBody({
 
         {gateBead && bead.status !== "closed" && (
           <div className="mb-4 flex items-center gap-3 rounded-[10px] border border-[var(--brand)]/40 bg-[var(--brand-weak)] p-[11px_13px]">
-            <Icon name="gate" size={16} style={{ color: "var(--brand)" }} className="flex-shrink-0" />
+            <Icon
+              name="gate"
+              size={16}
+              style={{ color: "var(--brand)" }}
+              className="flex-shrink-0"
+            />
             <span className="flex-1 text-[12.5px] leading-[1.45] text-[var(--text-2)]">
               Human approval gate. Approving closes it and unblocks everything waiting on it.
             </span>
@@ -518,7 +523,11 @@ function DrawerBody({
                   {ep.title}
                 </span>
                 <span className="flex-1" />
-                <Icon name="chevron" size={13} className="-rotate-90 flex-shrink-0 text-[var(--text-3)]" />
+                <Icon
+                  name="chevron"
+                  size={13}
+                  className="-rotate-90 flex-shrink-0 text-[var(--text-3)]"
+                />
               </button>
             ) : (
               <div className="flex h-9 items-center gap-[7px] rounded-[9px] border border-border bg-[var(--surface-2)] px-[10px] text-[var(--text-3)]">
@@ -534,7 +543,6 @@ function DrawerBody({
           suggestions={labelSuggestions}
           onChange={(labels) => update.mutate({ id: bead.id, patch: { labels } })}
         />
-
 
         {closing && !readOnly && (
           <div className="mb-4 rounded-[10px] border border-border bg-[var(--surface-2)] p-[11px_13px]">
@@ -608,47 +616,59 @@ function DrawerBody({
                   className="rounded-[10px] border border-border bg-[var(--surface-2)] p-[12px_13px] text-[13.5px] leading-[1.55] text-[var(--text-2)]"
                 />
               ) : (
-              <div
-                className="relative"
-                onDrop={drop.onDrop}
-                onDragOver={drop.onDragOver}
-                onDragLeave={drop.onDragLeave}
-              >
-                <MarkdownToolbar textareaRef={descRef} value={descDraft} onChange={setDescDraft} />
-                <textarea
-                  ref={descRef}
-                  value={descDraft}
-                  onChange={(e) => setDescDraft(e.target.value)}
-                  onPaste={drop.onPaste}
-                  onKeyDown={(e) => {
-                    // Cmd/Ctrl+Enter saves the edit, mirroring the create modal.
-                    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                      e.preventDefault();
-                      saveEdit();
-                      return;
-                    }
-                    // Formatting shortcuts while the textarea is focused.
-                    if (e.metaKey || e.ctrlKey) {
-                      const fn =
-                        e.key === "b" ? bold : e.key === "i" ? italic : e.key === "k" ? link : null;
-                      if (fn) {
+                <div
+                  className="relative"
+                  onDrop={drop.onDrop}
+                  onDragOver={drop.onDragOver}
+                  onDragLeave={drop.onDragLeave}
+                >
+                  <MarkdownToolbar
+                    textareaRef={descRef}
+                    value={descDraft}
+                    onChange={setDescDraft}
+                  />
+                  <textarea
+                    ref={descRef}
+                    value={descDraft}
+                    onChange={(e) => setDescDraft(e.target.value)}
+                    onPaste={drop.onPaste}
+                    onKeyDown={(e) => {
+                      // Cmd/Ctrl+Enter saves the edit, mirroring the create modal.
+                      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
                         e.preventDefault();
-                        applyTransform(descRef.current, descDraft, setDescDraft, fn);
+                        saveEdit();
+                        return;
                       }
-                    }
-                  }}
-                  rows={6}
-                  placeholder="Describe this bead…"
-                  className={`w-full resize-y rounded-[10px] border bg-[var(--surface-2)] p-[12px_13px] text-[13.5px] leading-[1.55] text-[var(--text)] outline-none ${
-                    drop.dragOver ? "border-[var(--brand)] ring-1 ring-[var(--brand)]" : "border-border"
-                  }`}
-                />
-                {drop.uploading && (
-                  <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text-3)]">
-                    <Icon name="image" size={12} /> Uploading…
-                  </span>
-                )}
-              </div>
+                      // Formatting shortcuts while the textarea is focused.
+                      if (e.metaKey || e.ctrlKey) {
+                        const fn =
+                          e.key === "b"
+                            ? bold
+                            : e.key === "i"
+                              ? italic
+                              : e.key === "k"
+                                ? link
+                                : null;
+                        if (fn) {
+                          e.preventDefault();
+                          applyTransform(descRef.current, descDraft, setDescDraft, fn);
+                        }
+                      }
+                    }}
+                    rows={6}
+                    placeholder="Describe this bead…"
+                    className={`w-full resize-y rounded-[10px] border bg-[var(--surface-2)] p-[12px_13px] text-[13.5px] leading-[1.55] text-[var(--text)] outline-none ${
+                      drop.dragOver
+                        ? "border-[var(--brand)] ring-1 ring-[var(--brand)]"
+                        : "border-border"
+                    }`}
+                  />
+                  {drop.uploading && (
+                    <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text-3)]">
+                      <Icon name="image" size={12} /> Uploading…
+                    </span>
+                  )}
+                </div>
               )}
               <div className="mt-2 flex items-center gap-2">
                 {!isDemo && !previewEdit && (
@@ -690,11 +710,14 @@ function DrawerBody({
             <DescriptionContent
               text={bead.description}
               projectId={projectId}
-              onToggleTask={readOnly ? undefined : (idx) =>
-                update.mutate({
-                  id: bead.id,
-                  patch: { description: toggleTask(bead.description ?? "", idx) },
-                })
+              onToggleTask={
+                readOnly
+                  ? undefined
+                  : (idx) =>
+                      update.mutate({
+                        id: bead.id,
+                        patch: { description: toggleTask(bead.description ?? "", idx) },
+                      })
               }
               className={detailContentClass}
             />
@@ -784,7 +807,9 @@ function DrawerBody({
             {/* Require a human approval gate before this bead can proceed
                 (bd gate create --type human --blocks <this>). Resolved from the
                 gate's own drawer or the Needs You inbox. */}
-            {!readOnly && !gateBead && bead.status !== "closed" &&
+            {!readOnly &&
+              !gateBead &&
+              bead.status !== "closed" &&
               (addingGate ? (
                 <div className="flex items-center gap-[7px] rounded-[9px] border border-border bg-[var(--surface)] p-[9px_11px]">
                   <input
@@ -946,11 +971,7 @@ function DrawerBody({
         {notes && (
           <Section>
             <Header icon="list" label="Notes" />
-            <DescriptionContent
-              text={notes}
-              projectId={projectId}
-              className={detailContentClass}
-            />
+            <DescriptionContent text={notes} projectId={projectId} className={detailContentClass} />
           </Section>
         )}
 
@@ -983,7 +1004,10 @@ function DrawerBody({
                     <div className="mb-[3px] flex items-center gap-[7px]">
                       <span className="text-[12.5px] font-semibold">{c.author}</span>
                       <OriginBadge origin={co} title={co === "human" ? "Human" : "Agent"} />
-                      <span title={fmtDateTime(c.created_at)} className="text-[11px] text-[var(--text-3)]">
+                      <span
+                        title={fmtDateTime(c.created_at)}
+                        className="text-[11px] text-[var(--text-3)]"
+                      >
                         {relTime(c.created_at)}
                       </span>
                     </div>
@@ -1021,9 +1045,13 @@ function DrawerBody({
                   disabled={readOnly || !draft.trim() || addComment.isPending}
                   onClick={() => {
                     const submitted = draft;
-                    addComment.mutate({ id: bead.id, text: submitted.trim() }, {
-                      onSuccess: () => setDraft((current) => current === submitted ? "" : current),
-                    });
+                    addComment.mutate(
+                      { id: bead.id, text: submitted.trim() },
+                      {
+                        onSuccess: () =>
+                          setDraft((current) => (current === submitted ? "" : current)),
+                      },
+                    );
                   }}
                   className="h-8 rounded-lg px-[14px] text-[12.5px] font-[550] text-white disabled:opacity-50"
                   style={{ background: "var(--brand)" }}

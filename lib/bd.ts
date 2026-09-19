@@ -4,12 +4,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import {
-  beadSchema,
-  unwrapEnvelope,
   type Bead,
+  beadSchema,
   type CreateInput,
-  type UpdateInput,
   type DepType,
+  type UpdateInput,
+  unwrapEnvelope,
 } from "./schema";
 import type { BeadsStore, DoctorInfo } from "./store";
 
@@ -140,9 +140,7 @@ export function createBdStore(repoPath: string): BeadsStore {
     if (!rec) throw new BdError(`bead ${id} not found`, "not_found");
     const parsed = beadSchema.safeParse(rec);
     if (!parsed.success) {
-      const detail = parsed.error.issues
-        .map((i) => `${i.path.join(".")}: ${i.message}`)
-        .join("; ");
+      const detail = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
       throw new BdError(`could not parse bead ${id}: ${detail}`, "parse_error");
     }
     return parsed.data;

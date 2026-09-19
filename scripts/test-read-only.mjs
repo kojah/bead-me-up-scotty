@@ -2,6 +2,7 @@
 // SCOTTY_TEST_URL=http://127.0.0.1:3000 node scripts/test-read-only.mjs
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
+
 const base = process.env.SCOTTY_TEST_URL;
 assert.ok(base, "Set SCOTTY_TEST_URL to an isolated demo server");
 const browser = await chromium.launch();
@@ -15,12 +16,37 @@ try {
   const mode = await context.request.get(`${base}/api/viewer-mode`);
   assert.equal(mode.status(), 200, "Browser-session mode API must exist");
   assert.equal((await mode.json()).readOnly, true);
-  assert.equal((await context.request.put(`${base}/api/viewer-mode`, { data: { readOnly: "false" } })).status(), 400);
-  assert.equal((await context.request.put(`${base}/api/viewer-mode`, { data: { readOnly: false }, headers: { Origin: "https://unrelated.example" } })).status(), 403);
-  const write = (ctx) => ctx.request.post(`${base}/api/p/demo/beads`, { data: { title: "Viewer regression sample", issue_type: "task", priority: 2 } });
+  assert.equal(
+    (
+      await context.request.put(`${base}/api/viewer-mode`, { data: { readOnly: "false" } })
+    ).status(),
+    400,
+  );
+  assert.equal(
+    (
+      await context.request.put(`${base}/api/viewer-mode`, {
+        data: { readOnly: false },
+        headers: { Origin: "https://unrelated.example" },
+      })
+    ).status(),
+    403,
+  );
+  const write = (ctx) =>
+    ctx.request.post(`${base}/api/p/demo/beads`, {
+      data: { title: "Viewer regression sample", issue_type: "task", priority: 2 },
+    });
   assert.equal((await write(context)).status(), 403);
-  for (const [method, path] of [["PATCH", "beads/example"], ["DELETE", "beads/example"], ["POST", "attachments"], ["PUT", "order"], ["POST", "publish"]]) {
-    assert.equal((await context.request.fetch(`${base}/api/p/demo/${path}`, { method, data: {} })).status(), 403);
+  for (const [method, path] of [
+    ["PATCH", "beads/example"],
+    ["DELETE", "beads/example"],
+    ["POST", "attachments"],
+    ["PUT", "order"],
+    ["POST", "publish"],
+  ]) {
+    assert.equal(
+      (await context.request.fetch(`${base}/api/p/demo/${path}`, { method, data: {} })).status(),
+      403,
+    );
   }
   await page.goto(`${base}/p/demo`);
   const banner = page.getByRole("button", { name: "Read Only Mode", exact: true });
@@ -34,18 +60,24 @@ try {
   assert.ok((await banner.boundingBox()).height > small);
   await page.reload();
   await banner.waitFor();
-  assert.equal(await banner.evaluate((e) => getComputedStyle(e).backgroundColor), "rgb(18, 52, 86)");
+  assert.equal(
+    await banner.evaluate((e) => getComputedStyle(e).backgroundColor),
+    "rgb(18, 52, 86)",
+  );
   assert.equal(await banner.evaluate((e) => getComputedStyle(e).color), "rgb(255, 255, 255)");
   assert.ok((await banner.boundingBox()).height > small);
   await page.getByRole("button", { name: "Board", exact: true }).click();
   assert.equal(await page.getByRole("button", { name: "New", exact: true }).count(), 0);
   await page.locator("article").first().click();
-  assert.equal(await page.getByRole('dialog').locator('select').first().isDisabled(), true);
+  assert.equal(await page.getByRole("dialog").locator("select").first().isDisabled(), true);
   assert.equal(await page.getByLabel("Add label", { exact: true }).isDisabled(), true);
   assert.equal(await page.getByPlaceholder(/^Comment as/).isDisabled(), true);
   await page.getByTitle("Close", { exact: true }).click();
   await page.getByRole("button", { name: "Publish", exact: true }).click();
-  assert.equal(await page.getByRole("button", { name: "Publish site", exact: true }).isDisabled(), true);
+  assert.equal(
+    await page.getByRole("button", { name: "Publish site", exact: true }).isDisabled(),
+    true,
+  );
   await page.keyboard.press("Control+k");
   await page.getByRole("dialog").waitFor();
   assert.equal(await page.getByText("Create bead…", { exact: true }).count(), 0);
@@ -55,12 +87,18 @@ try {
   await sibling.goto(`${base}/p/demo`);
   await sibling.getByRole("button", { name: "Read Only Mode", exact: true }).waitFor();
   await banner.click();
-  const changed = page.waitForResponse((r) => r.url().endsWith("/api/viewer-mode") && r.request().method() === "PUT");
+  const changed = page.waitForResponse(
+    (r) => r.url().endsWith("/api/viewer-mode") && r.request().method() === "PUT",
+  );
   await page.getByRole("button", { name: "Disable read-only mode", exact: true }).click();
   assert.equal((await changed).status(), 200);
-  await page.getByRole("dialog", { name: "Read Only Mode", exact: true }).waitFor({ state: "detached" });
+  await page
+    .getByRole("dialog", { name: "Read Only Mode", exact: true })
+    .waitFor({ state: "detached" });
   await banner.waitFor({ state: "detached" });
-  await sibling.getByRole("button", { name: "Read Only Mode", exact: true }).waitFor({ state: "detached" });
+  await sibling
+    .getByRole("button", { name: "Read Only Mode", exact: true })
+    .waitFor({ state: "detached" });
   const cookie = (await context.cookies()).find((c) => c.name === "scotty-viewer-mode");
   assert.equal(cookie.expires, -1, "Editing preference must use a session cookie");
   assert.equal((await write(context)).status(), 201);
@@ -70,15 +108,22 @@ try {
   await page.locator("article").first().click();
   const draft = page.getByPlaceholder(/^Comment as/);
   await draft.fill("Keep this draft if saving fails");
-  await page.route("**/comments", (r) => r.fulfill({ status: 403, json: { error: "Read-only mode", code: "read_only" } }));
+  await page.route("**/comments", (r) =>
+    r.fulfill({ status: 403, json: { error: "Read-only mode", code: "read_only" } }),
+  );
   const rejected = page.waitForResponse((r) => r.url().endsWith("/comments"));
   await page.getByRole("button", { name: "Comment", exact: true }).click();
   await rejected;
   assert.equal(await draft.inputValue(), "Keep this draft if saving fails");
   await page.unroute("**/comments");
   let releaseSave;
-  const saveGate = new Promise((resolve) => { releaseSave = resolve; });
-  await page.route("**/comments", async (route) => { await saveGate; await route.continue(); });
+  const saveGate = new Promise((resolve) => {
+    releaseSave = resolve;
+  });
+  await page.route("**/comments", async (route) => {
+    await saveGate;
+    await route.continue();
+  });
   await draft.fill("First message");
   const saving = page.waitForRequest((r) => r.url().endsWith("/comments"));
   const saved = page.waitForResponse((r) => r.url().endsWith("/comments"));
@@ -89,22 +134,36 @@ try {
   assert.equal((await saved).status(), 200);
   await page.waitForFunction(() => {
     const input = document.querySelector('textarea[placeholder^="Comment as"]');
-    const button = Array.from(document.querySelectorAll("button")).find((b) => b.textContent.trim() === "Comment");
+    const button = Array.from(document.querySelectorAll("button")).find(
+      (b) => b.textContent.trim() === "Comment",
+    );
     return input?.value === "" || !button?.disabled;
   });
-  assert.equal(await draft.inputValue(), "Newer text must stay", "Save must not erase newer typing");
+  assert.equal(
+    await draft.inputValue(),
+    "Newer text must stay",
+    "Save must not erase newer typing",
+  );
   const status = page.getByRole("dialog").locator("select").first();
   const originalStatus = await status.inputValue();
   await status.selectOption("closed");
   await sibling.getByRole("button", { name: "Settings", exact: true }).click();
   await sibling.getByRole("button", { name: "Enable read-only mode", exact: true }).click();
   await page.getByText("Close reason — optional", { exact: true }).waitFor({ state: "detached" });
-  assert.equal(await status.inputValue(), originalStatus, "Read-only must show the saved status, not an unconfirmed close");
+  assert.equal(
+    await status.inputValue(),
+    originalStatus,
+    "Read-only must show the saved status, not an unconfirmed close",
+  );
   await page.getByTitle("Close", { exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await banner.waitFor();
   await sibling.getByRole("button", { name: "Read Only Mode", exact: true }).waitFor();
   assert.equal((await write(context)).status(), 403);
   assert.deepEqual(errors, []);
-  console.log("PASS: banner preferences, disabled editors, session-only unlock, reload, and re-enable");
-} finally { await browser.close(); }
+  console.log(
+    "PASS: banner preferences, disabled editors, session-only unlock, reload, and re-enable",
+  );
+} finally {
+  await browser.close();
+}

@@ -1,22 +1,22 @@
 "use client";
 import * as React from "react";
-import { Icon } from "@/components/icons";
-import { useTheme } from "@/components/theme-provider";
 import { useApp, type View } from "@/components/app-context";
+import { BuildBadge } from "@/components/build-badge";
+import { Icon } from "@/components/icons";
 import { ProjectSwitcher } from "@/components/project-switcher";
+import { useTheme } from "@/components/theme-provider";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { initials, avatarColor, needsHuman, readyHumanGate } from "@/lib/beads-view";
+import { UpdateIndicator } from "@/components/update-indicator";
 import { useGamification } from "@/hooks/use-beads";
+import { avatarColor, initials, needsHuman, readyHumanGate } from "@/lib/beads-view";
 // GITHUB_REPO is shared with the build badge (where bug/feature issues are filed).
 import { GITHUB_REPO } from "@/lib/build-info";
-import { BuildBadge } from "@/components/build-badge";
-import { UpdateIndicator } from "@/components/update-indicator";
 import { cn } from "@/lib/utils";
 
 function githubIssueUrl(kind: "bug" | "feature"): string {
@@ -74,7 +74,12 @@ export function Sidebar({
   const game = useGamification(projectId, !!meta?.gamification);
 
   return (
-    <aside className={cn("flex w-[228px] flex-shrink-0 flex-col gap-2 overflow-y-auto border-r border-border bg-[var(--surface)] p-[18px_14px]", className)}>
+    <aside
+      className={cn(
+        "flex w-[228px] flex-shrink-0 flex-col gap-2 overflow-y-auto border-r border-border bg-[var(--surface)] p-[18px_14px]",
+        className,
+      )}
+    >
       <div className="flex items-center gap-[10px] px-2 pb-[18px] pt-1">
         <div
           className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[9px] text-white"
@@ -82,13 +87,10 @@ export function Sidebar({
         >
           <Icon name="logo" size={17} />
         </div>
-        <div className="text-sm font-[650] leading-[1.15] tracking-[-.01em]">
-          Bead Me Up Scotty
-        </div>
+        <div className="text-sm font-[650] leading-[1.15] tracking-[-.01em]">Bead Me Up Scotty</div>
       </div>
 
       <ProjectSwitcher projectId={projectId} kind={kind} live={live} />
-
 
       <nav aria-label="Views" className="flex flex-col gap-[2px]">
         {NAV.filter((n) => n.key !== "achievements" || meta?.gamification).map((n) => {

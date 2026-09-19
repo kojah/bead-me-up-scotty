@@ -1,37 +1,33 @@
 "use client";
-import * as React from "react";
 import {
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  closestCorners,
-  pointerWithin,
-  DragOverlay,
   type CollisionDetection,
+  closestCorners,
+  DndContext,
   type DragEndEvent,
   type DragOverEvent,
+  DragOverlay,
   type DragStartEvent,
+  PointerSensor,
+  pointerWithin,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { Icon } from "@/components/icons";
+import * as React from "react";
 import { useApp } from "@/components/app-context";
+import { FilterBar } from "@/components/filter-bar";
+import { Icon } from "@/components/icons";
 import { useSetStatus } from "@/hooks/use-beads";
-import { useOrder, useSetOrder } from "@/hooks/use-order";
 import { useBoardPrefs } from "@/hooks/use-board-prefs";
+import { useOrder, useSetOrder } from "@/hooks/use-order";
 import { useUrlFilters } from "@/hooks/use-url-filters";
 import { useUrlState } from "@/hooks/use-url-state";
-import { isBlocked, childrenCountMap } from "@/lib/beads-view";
-import { FilterBar } from "@/components/filter-bar";
-import { matchesFilters, labelOptionsFrom, assigneeOptionsFrom } from "@/lib/filters";
-import {
-  BOARD_COLUMNS as COLUMNS,
-  sortBoardCards,
-  type BoardSortMode,
-} from "@/lib/board-columns";
+import { childrenCountMap, isBlocked } from "@/lib/beads-view";
+import { type BoardSortMode, BOARD_COLUMNS as COLUMNS, sortBoardCards } from "@/lib/board-columns";
+import { assigneeOptionsFrom, labelOptionsFrom, matchesFilters } from "@/lib/filters";
+import type { Bead } from "@/lib/schema";
 import { BeadCardOverlay } from "./bead-card";
 import { Column } from "./column";
-import type { Bead } from "@/lib/schema";
 
 // Whatever is under the pointer wins. pointerWithin sorts its hits by the average distance
 // from the pointer to each rect's corners, so a card beats the much taller column that
@@ -50,8 +46,7 @@ export function Board() {
   const setOrder = useSetOrder(projectId);
   const { prefs: boardPrefs, setPrefs: setBoardPrefs } = useBoardPrefs();
   const orders = React.useMemo(() => orderData?.orders ?? {}, [orderData]);
-  const { filters, setFilters, showArchived, setShowArchived, clearFilters } =
-    useUrlFilters();
+  const { filters, setFilters, showArchived, setShowArchived, clearFilters } = useUrlFilters();
   const { searchParams, updateUrl } = useUrlState();
   // Derived from ALL beads (not the filtered set) so selecting one label
   // doesn't make the remaining options vanish from the dropdown.
@@ -76,9 +71,7 @@ export function Board() {
   // needn't tick) and kept out of render to satisfy the no-impure-call rule.
   const [now] = React.useState(() => Date.now());
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   // The card being dragged and the column under the pointer. The card renders in a
   // DragOverlay so it can travel across columns; in place it is confined to (and
@@ -191,7 +184,11 @@ export function Board() {
   // Advertise only a column that a drop would actually move the card into.
   const sourceColumnId = draggingId ? colOfBead.get(draggingId) : undefined;
   const dropColumn = COLUMNS.find(
-    (c) => c.id === overColumnId && c.id !== sourceColumnId && c.droppable && c.status &&
+    (c) =>
+      c.id === overColumnId &&
+      c.id !== sourceColumnId &&
+      c.droppable &&
+      c.status &&
       draggingBead?.status !== c.status,
   );
 
@@ -299,7 +296,10 @@ export function Board() {
                 animating the preview toward its old slot would read as a failed move. */}
             <DragOverlay dropAnimation={null}>
               {draggingBead ? (
-                <BeadCardOverlay bead={draggingBead} childCount={childCounts.get(draggingBead.id) ?? 0} />
+                <BeadCardOverlay
+                  bead={draggingBead}
+                  childCount={childCounts.get(draggingBead.id) ?? 0}
+                />
               ) : null}
             </DragOverlay>
           </DndContext>

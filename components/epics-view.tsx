@@ -1,17 +1,17 @@
 "use client";
 import * as React from "react";
-import { Icon, typeIconName } from "@/components/icons";
-import { OriginBadge, PriorityChip } from "@/components/board/bead-card";
 import { useApp } from "@/components/app-context";
+import { OriginBadge, PriorityChip } from "@/components/board/bead-card";
+import { Icon, typeIconName } from "@/components/icons";
 import { beadOrigin, originTitle } from "@/lib/attribution";
 import {
-  catColor,
-  statusLabel,
-  typeColor,
   avatarColor,
-  initials,
+  catColor,
   childrenOf,
   epicProgress,
+  initials,
+  statusLabel,
+  typeColor,
 } from "@/lib/beads-view";
 
 /** Chip styling shared with the list rows and drawer so labels read alike. */
@@ -50,15 +50,8 @@ export function EpicsView({
   focusEpic?: { id: string; nonce: number } | null;
   onFocusHandledAction?: () => void;
 }) {
-  const {
-    beads,
-    humanAllowlist,
-    openCreate,
-    openDetail,
-    selectedBeadId,
-    selectBead,
-    readOnly,
-  } = useApp();
+  const { beads, humanAllowlist, openCreate, openDetail, selectedBeadId, selectBead, readOnly } =
+    useApp();
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
   const [hideClosed, setHideClosed] = React.useState(true);
   const flashedElement = React.useRef<HTMLElement | null>(null);
@@ -331,7 +324,7 @@ export function EpicsView({
                     })}
                     <button
                       disabled={readOnly}
-          onClick={() => openCreate({ parent: e.id })}
+                      onClick={() => openCreate({ parent: e.id })}
                       className="m-[2px] flex w-[calc(100%-4px)] items-center gap-[7px] rounded-[9px] p-[9px_12px] text-[12.5px] font-[550] text-[var(--brand)] hover:bg-[var(--surface)]"
                     >
                       <Icon name="plus" size={14} />

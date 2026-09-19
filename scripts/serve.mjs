@@ -1,13 +1,13 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Supervised production server (bead bgb). Runs `next start` and relaunches it
  * when the app requests a self-update restart (child exits with code 75). This is
  * what makes the one-click "Update now" button able to bring the server back on
  * the new build. Sets BMUS_SUPERVISED=1 so the app knows auto-restart is possible.
  *
- *   npm run build && npm run serve
+ *   bun run build && bun run serve
  *
- * Zero deps — Node stdlib only.
+ * Zero deps — Bun’s Node-compatible standard library.
  */
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
@@ -18,13 +18,12 @@ const require = createRequire(import.meta.url);
 
 function nextBin() {
   // Resolve the next CLI from the local install. Under non-standard layouts
-  // (pnpm symlink store, global/linked install, monorepo hoist) this can throw —
-  // fall back to running `next` from PATH (via npx) rather than crashing on boot.
+  // Resolve only installed dependencies; never download a CLI during startup.
   try {
     const pkg = require.resolve("next/package.json");
     return path.join(path.dirname(pkg), "dist", "bin", "next");
   } catch {
-    return null;
+    throw new Error("Next.js is not installed. Run bun install --frozen-lockfile first.");
   }
 }
 
@@ -38,12 +37,8 @@ let stopping = false;
 
 function start() {
   const bin = nextBin();
-  const cmd = override ? override[0] : bin ? process.execPath : "npx";
-  const args = override
-    ? override.slice(1)
-    : bin
-      ? [bin, "start", "-p", port, "-H", host]
-      : ["next", "start", "-p", port, "-H", host]; // bin unresolved → use PATH via npx
+  const cmd = override ? override[0] : process.execPath;
+  const args = override ? override.slice(1) : [bin, "start", "-p", port, "-H", host];
   child = spawn(cmd, args, {
     stdio: "inherit",
     env: { ...process.env, BMUS_SUPERVISED: "1", PORT: port, HOST: host },
@@ -64,10 +59,12 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
     stopping = true;
     if (!child) process.exit(0);
     // Wait for the child to actually exit before we do, so it isn't orphaned
-    // holding the port (which would make the next `npm run serve` hit EADDRINUSE).
+    // holding the port (which would make the next `bun run serve` hit EADDRINUSE).
     // Force-exit if it doesn't shut down promptly.
     child.once("exit", () => process.exit(0));
-    const t = setTimeout(() => process.exit(0), 5000);
+    // Kill the owned child, not just this supervisor: exiting first leaves an
+    // orphan holding the port and stalls systemd restarts.
+    const t = setTimeout(() => child?.kill("SIGKILL"), 5000);
     if (typeof t.unref === "function") t.unref();
     child.kill(sig);
   });

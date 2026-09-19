@@ -1,7 +1,7 @@
 import "server-only";
-import { type Bead, BLOCKING_DEP_TYPES } from "./schema";
-import { originOf, type Origin } from "./attribution";
+import { type Origin, originOf } from "./attribution";
 import type { RawInteraction } from "./interactions";
+import { type Bead, BLOCKING_DEP_TYPES } from "./schema";
 
 /**
  * Gamification stats engine. Everything is DERIVED from bd history — closes
@@ -108,17 +108,23 @@ export function computeGamification(
 
   // Closes (with timestamps) from the interaction log, else bead.closed_at.
   const closeEvents = events.filter(
-    (e) => e.kind === "field_change" && e.extra?.field === "status" && e.extra?.new_value === "closed" && e.issue_id,
+    (e) =>
+      e.kind === "field_change" &&
+      e.extra?.field === "status" &&
+      e.extra?.new_value === "closed" &&
+      e.issue_id,
   );
   const closes: { bead: Bead; actor?: string; at: number | null }[] = [];
   if (closeEvents.length > 0) {
     for (const e of closeEvents) {
       const bead = byId.get(e.issue_id!);
-      if (bead) closes.push({ bead, actor: e.actor, at: e.created_at ? Date.parse(e.created_at) : null });
+      if (bead)
+        closes.push({ bead, actor: e.actor, at: e.created_at ? Date.parse(e.created_at) : null });
     }
   } else {
     for (const b of beads) {
-      if (b.closed_at) closes.push({ bead: b, actor: b.assignee || b.created_by, at: Date.parse(b.closed_at) });
+      if (b.closed_at)
+        closes.push({ bead: b, actor: b.assignee || b.created_by, at: Date.parse(b.closed_at) });
     }
   }
 
@@ -128,7 +134,14 @@ export function computeGamification(
     const actor = c.actor || "unknown";
     const pr = Math.min(4, Math.max(0, c.bead.priority ?? 2));
     const xp = PRIORITY_XP[pr] + (blocking.get(c.bead.id) ?? 0) * UNBLOCK_BONUS;
-    const a = acc.get(actor) ?? { xp: 0, closed: 0, days: new Set<string>(), unblocker: false, epicSlayer: false, maxPerDay: 0 };
+    const a = acc.get(actor) ?? {
+      xp: 0,
+      closed: 0,
+      days: new Set<string>(),
+      unblocker: false,
+      epicSlayer: false,
+      maxPerDay: 0,
+    };
     a.xp += xp;
     a.closed += 1;
     if ((blocking.get(c.bead.id) ?? 0) > 0) a.unblocker = true;
@@ -172,11 +185,36 @@ export function computeGamification(
     longestStreak: 0,
   };
   const badges: Badge[] = [
-    { key: "first", label: "First Blood", description: "Close your first bead", earned: mineStat.closed >= 1 },
-    { key: "unblocker", label: "Unblocker", description: "Close a bead that was blocking others", earned: !!mineAcc?.unblocker },
-    { key: "epic", label: "Epic Slayer", description: "Close an epic", earned: !!mineAcc?.epicSlayer },
-    { key: "combo", label: "Combo", description: "Close 3+ beads in a single day", earned: (mineAcc?.maxPerDay ?? 0) >= 3 },
-    { key: "onfire", label: "On Fire", description: "Keep a 3-day closing streak", earned: mineStat.currentStreak >= 3 },
+    {
+      key: "first",
+      label: "First Blood",
+      description: "Close your first bead",
+      earned: mineStat.closed >= 1,
+    },
+    {
+      key: "unblocker",
+      label: "Unblocker",
+      description: "Close a bead that was blocking others",
+      earned: !!mineAcc?.unblocker,
+    },
+    {
+      key: "epic",
+      label: "Epic Slayer",
+      description: "Close an epic",
+      earned: !!mineAcc?.epicSlayer,
+    },
+    {
+      key: "combo",
+      label: "Combo",
+      description: "Close 3+ beads in a single day",
+      earned: (mineAcc?.maxPerDay ?? 0) >= 3,
+    },
+    {
+      key: "onfire",
+      label: "On Fire",
+      description: "Keep a 3-day closing streak",
+      earned: mineStat.currentStreak >= 3,
+    },
   ];
 
   return {

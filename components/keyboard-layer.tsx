@@ -36,15 +36,18 @@ export function KeyboardLayer({
     nonce: number;
   }>({ open: false, page: "root", beadId: null, nonce: 0 });
 
-  const openPalette = React.useCallback((page: PalettePage = "root", beadId?: string) => {
-    if (readOnly && (page === "status" || page === "priority")) return;
-    setPaletteRequest((current) => ({
-      open: page === "root" && !beadId && current.open ? false : true,
-      page,
-      beadId: beadId ?? null,
-      nonce: (paletteNonce.current += 1),
-    }));
-  }, [readOnly]);
+  const openPalette = React.useCallback(
+    (page: PalettePage = "root", beadId?: string) => {
+      if (readOnly && (page === "status" || page === "priority")) return;
+      setPaletteRequest((current) => ({
+        open: page === "root" && !beadId && current.open ? false : true,
+        page,
+        beadId: beadId ?? null,
+        nonce: (paletteNonce.current += 1),
+      }));
+    },
+    [readOnly],
+  );
   const closeAll = React.useCallback(() => {
     setPaletteRequest((current) => ({ ...current, open: false }));
     setHelpOpen(false);
@@ -85,9 +88,7 @@ export function KeyboardLayer({
       <CommandPalette
         key={`${paletteRequest.nonce}-${readOnly ? "ro" : "rw"}`}
         open={paletteRequest.open}
-        onOpenChangeAction={(open) =>
-          setPaletteRequest((current) => ({ ...current, open }))
-        }
+        onOpenChangeAction={(open) => setPaletteRequest((current) => ({ ...current, open }))}
         onViewAction={setViewAction}
         initialPage={paletteRequest.page}
         initialBeadId={paletteRequest.beadId}

@@ -1,12 +1,12 @@
 "use client";
-import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
+import * as React from "react";
 import { toast } from "sonner";
-import { Icon } from "@/components/icons";
 import { useApp } from "@/components/app-context";
-import { api, type AssistResult } from "@/lib/api-client";
-import { useUpdateBead } from "@/hooks/use-beads";
 import { DescriptionContent } from "@/components/description-content";
+import { Icon } from "@/components/icons";
+import { useUpdateBead } from "@/hooks/use-beads";
+import { type AssistResult, api } from "@/lib/api-client";
 import type { Bead } from "@/lib/schema";
 
 /**
@@ -51,7 +51,10 @@ export function AiAssistPanel({ bead }: { bead: Bead }) {
       </button>
 
       {result && (
-        <div className="mt-2 rounded-[10px] border bg-[var(--surface-2)] p-3" style={{ borderColor: "var(--brand)" }}>
+        <div
+          className="mt-2 rounded-[10px] border bg-[var(--surface-2)] p-3"
+          style={{ borderColor: "var(--brand)" }}
+        >
           <div className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-[var(--brand)]">
             <Icon name="feature" size={14} /> AI suggestion
             <span className="flex-1" />
@@ -77,7 +80,10 @@ export function AiAssistPanel({ bead }: { bead: Bead }) {
             <div className="mt-2 flex flex-wrap items-center gap-[6px] text-[11px]">
               <span className="text-[var(--text-3)]">Suggested labels:</span>
               {result.labels.map((l) => (
-                <span key={l} className="rounded-md border border-border bg-[var(--surface)] px-[7px] py-px font-mono">
+                <span
+                  key={l}
+                  className="rounded-md border border-border bg-[var(--surface)] px-[7px] py-px font-mono"
+                >
                   {l}
                 </span>
               ))}

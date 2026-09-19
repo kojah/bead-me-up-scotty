@@ -1,6 +1,6 @@
 "use client";
-import * as React from "react";
 import { usePathname } from "next/navigation";
+import * as React from "react";
 import { getTheme, type ThemeDef, type ThemeMode } from "@/lib/themes";
 
 /**

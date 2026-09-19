@@ -22,10 +22,30 @@ export const THEMES: ThemeDef[] = [
   { id: "dark", name: "Dark", mode: "dark", swatch: ["#0c0c0f", "#1d1d22", "#8b7cf8"] },
   { id: "dracula", name: "Dracula", mode: "dark", swatch: ["#282a36", "#44475a", "#bd93f9"] },
   { id: "nord", name: "Nord", mode: "dark", swatch: ["#2e3440", "#3b4252", "#88c0d0"] },
-  { id: "solarized-dark", name: "Solarized Dark", mode: "dark", swatch: ["#002b36", "#073642", "#268bd2"] },
-  { id: "gruvbox-dark", name: "Gruvbox Dark", mode: "dark", swatch: ["#282828", "#3c3836", "#fabd2f"] },
-  { id: "tokyo-night", name: "Tokyo Night", mode: "dark", swatch: ["#1a1b26", "#24283b", "#7aa2f7"] },
-  { id: "catppuccin-mocha", name: "Catppuccin Mocha", mode: "dark", swatch: ["#1e1e2e", "#313244", "#cba6f7"] },
+  {
+    id: "solarized-dark",
+    name: "Solarized Dark",
+    mode: "dark",
+    swatch: ["#002b36", "#073642", "#268bd2"],
+  },
+  {
+    id: "gruvbox-dark",
+    name: "Gruvbox Dark",
+    mode: "dark",
+    swatch: ["#282828", "#3c3836", "#fabd2f"],
+  },
+  {
+    id: "tokyo-night",
+    name: "Tokyo Night",
+    mode: "dark",
+    swatch: ["#1a1b26", "#24283b", "#7aa2f7"],
+  },
+  {
+    id: "catppuccin-mocha",
+    name: "Catppuccin Mocha",
+    mode: "dark",
+    swatch: ["#1e1e2e", "#313244", "#cba6f7"],
+  },
   { id: "rose-pine", name: "Rosé Pine", mode: "dark", swatch: ["#191724", "#26233a", "#c4a7e7"] },
 ];
 

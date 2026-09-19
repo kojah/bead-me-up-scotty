@@ -3,15 +3,15 @@ import * as React from "react";
 import { Icon } from "@/components/icons";
 import {
   bold,
-  italic,
-  inlineCode,
-  heading,
   bullet,
   checklist,
-  quote,
-  link,
   codeBlock,
+  heading,
+  inlineCode,
+  italic,
+  link,
   type MarkdownTransform,
+  quote,
 } from "@/lib/markdown-edit";
 
 /**
@@ -36,12 +36,25 @@ export function applyTransform(
 
 type Item =
   | { kind: "sep" }
-  | { kind: "btn"; title: string; fn: MarkdownTransform; icon?: string; glyph?: string; glyphClass?: string };
+  | {
+      kind: "btn";
+      title: string;
+      fn: MarkdownTransform;
+      icon?: string;
+      glyph?: string;
+      glyphClass?: string;
+    };
 
 const ITEMS: Item[] = [
   { kind: "btn", title: "Bold (⌘B)", fn: bold, glyph: "B", glyphClass: "font-bold" },
   { kind: "btn", title: "Italic (⌘I)", fn: italic, glyph: "I", glyphClass: "italic font-serif" },
-  { kind: "btn", title: "Inline code", fn: inlineCode, glyph: "</>", glyphClass: "font-mono text-[10px]" },
+  {
+    kind: "btn",
+    title: "Inline code",
+    fn: inlineCode,
+    glyph: "</>",
+    glyphClass: "font-mono text-[10px]",
+  },
   { kind: "sep" },
   { kind: "btn", title: "Heading", fn: heading, glyph: "H", glyphClass: "font-semibold" },
   { kind: "btn", title: "Bullet list", fn: bullet, icon: "list" },
@@ -49,7 +62,13 @@ const ITEMS: Item[] = [
   { kind: "btn", title: "Quote", fn: quote, glyph: "❝", glyphClass: "text-[13px]" },
   { kind: "sep" },
   { kind: "btn", title: "Link (⌘K)", fn: link, icon: "link" },
-  { kind: "btn", title: "Code block", fn: codeBlock, glyph: "{ }", glyphClass: "font-mono text-[10px]" },
+  {
+    kind: "btn",
+    title: "Code block",
+    fn: codeBlock,
+    glyph: "{ }",
+    glyphClass: "font-mono text-[10px]",
+  },
 ];
 
 export function MarkdownToolbar({

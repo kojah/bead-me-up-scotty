@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isReadOnly, VIEWER_MODE_COOKIE } from "@/lib/config";
 import { fail } from "@/lib/api";
+import { isReadOnly, VIEWER_MODE_COOKIE } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "no-store", Vary: "Cookie" };
@@ -25,10 +25,14 @@ export async function PUT(req: Request) {
     const { readOnly } = input.parse(await req.json());
     const res = NextResponse.json({ readOnly }, { headers });
     res.cookies.set(VIEWER_MODE_COOKIE, readOnly ? "read-only" : "editing", {
-      httpOnly: true, sameSite: "strict", path: "/",
+      httpOnly: true,
+      sameSite: "strict",
+      path: "/",
       secure: new URL(req.url).protocol === "https:",
       // No expires/maxAge: mode is session-scoped, unlike banner appearance.
     });
     return res;
-  } catch (e) { return fail(e); }
+  } catch (e) {
+    return fail(e);
+  }
 }

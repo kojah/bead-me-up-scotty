@@ -9,5 +9,9 @@ function subscribe(callback: () => void) {
 }
 /** Matches the shared md layout breakpoint, with a stable server snapshot. */
 export function useMobile() {
-  return React.useSyncExternalStore(subscribe, () => window.matchMedia(QUERY).matches, () => false);
+  return React.useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(QUERY).matches,
+    () => false,
+  );
 }

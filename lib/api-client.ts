@@ -1,5 +1,5 @@
-import type { Bead, CreateInput, UpdateInput, DepType } from "./schema";
-import type { UpdateStatus, UpdateResult, UpdateChannel, UpdateTarget } from "./update-types";
+import type { Bead, CreateInput, DepType, UpdateInput } from "./schema";
+import type { UpdateChannel, UpdateResult, UpdateStatus, UpdateTarget } from "./update-types";
 
 export interface Meta {
   kind: "bd" | "demo";
@@ -70,7 +70,13 @@ export interface GamificationData {
   actors: ActorStat[];
   totalXp: number;
   totalClosed: number;
-  you: ActorStat & { level: number; intoLevel: number; span: number; progress: number; badges: Badge[] };
+  you: ActorStat & {
+    level: number;
+    intoLevel: number;
+    span: number;
+    progress: number;
+    badges: Badge[];
+  };
 }
 
 export interface ProjectInfo {
@@ -113,7 +119,7 @@ export interface FsResponse {
 }
 // Self-update wire types live in a shared, non-server-only module so the client
 // and lib/self-update.ts can't drift apart. Re-exported here for existing callers.
-export type { UpdateStatus, UpdateStep, UpdateResult } from "./update-types";
+export type { UpdateResult, UpdateStatus, UpdateStep } from "./update-types";
 
 /**
  * An error from the scotty API that preserves the server's machine-stable
@@ -141,12 +147,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     const b = body as { error?: string; code?: string; detail?: string };
-    throw new ApiError(
-      b.error || `Request failed (${res.status})`,
-      res.status,
-      b.code,
-      b.detail,
-    );
+    throw new ApiError(b.error || `Request failed (${res.status})`, res.status, b.code, b.detail);
   }
   return body as T;
 }
@@ -156,9 +157,11 @@ const base = (projectId: string) => `/api/p/${enc(projectId)}`;
 
 export const api = {
   viewerMode: () => request<{ readOnly: boolean }>("/api/viewer-mode", { cache: "no-store" }),
-  setViewerMode: (readOnly: boolean) => request<{ readOnly: boolean }>("/api/viewer-mode", {
-    method: "PUT", body: JSON.stringify({ readOnly }),
-  }),
+  setViewerMode: (readOnly: boolean) =>
+    request<{ readOnly: boolean }>("/api/viewer-mode", {
+      method: "PUT",
+      body: JSON.stringify({ readOnly }),
+    }),
   list: (projectId: string) => request<BeadsResponse>(`${base(projectId)}/beads`),
   get: (projectId: string, id: string) => request<Bead>(`${base(projectId)}/beads/${enc(id)}`),
   create: (projectId: string, input: CreateInput) =>
@@ -204,8 +207,7 @@ export const api = {
   insights: (projectId: string, days: number) =>
     request<InsightsData>(`${base(projectId)}/insights?days=${days}`),
 
-  gamification: (projectId: string) =>
-    request<GamificationData>(`${base(projectId)}/gamification`),
+  gamification: (projectId: string) => request<GamificationData>(`${base(projectId)}/gamification`),
 
   assist: (projectId: string, id: string) =>
     request<AssistResult>(`${base(projectId)}/beads/${enc(id)}/assist`, { method: "POST" }),
@@ -257,11 +259,7 @@ export const api = {
     /** Map an `attachment://<beadId>/<file>` ref to its serve URL. */
     urlFor: (projectId: string, ref: string) => {
       const rel = ref.replace(/^attachment:\/\//, "");
-      const encoded = rel
-        .split("/")
-        .filter(Boolean)
-        .map(encodeURIComponent)
-        .join("/");
+      const encoded = rel.split("/").filter(Boolean).map(encodeURIComponent).join("/");
       return `${base(projectId)}/attachments/${encoded}`;
     },
   },
@@ -289,17 +287,22 @@ export const api = {
         body: JSON.stringify({ action: "open", path }),
       }),
     deploy: (projectId: string, path: string) =>
-      request<{ deployed: boolean; url?: string; error?: string; hint?: string }>(`${base(projectId)}/publish`, {
-        method: "POST",
-        body: JSON.stringify({ action: "deploy", path }),
-      }),
+      request<{ deployed: boolean; url?: string; error?: string; hint?: string }>(
+        `${base(projectId)}/publish`,
+        {
+          method: "POST",
+          body: JSON.stringify({ action: "deploy", path }),
+        },
+      ),
   },
 
   // Self-update (bead bgb) — app-level, not project-scoped. Named `selfUpdate`
   // to avoid colliding with `update` (the per-bead PATCH method above).
   selfUpdate: {
-    check: (channel: UpdateChannel = "stable") => request<UpdateStatus>(`/api/update/check?channel=${channel}`),
-    run: (target: UpdateTarget) => request<UpdateResult>("/api/update/run", { method: "POST", body: JSON.stringify(target) }),
+    check: (channel: UpdateChannel = "stable") =>
+      request<UpdateStatus>(`/api/update/check?channel=${channel}`),
+    run: (target: UpdateTarget) =>
+      request<UpdateResult>("/api/update/run", { method: "POST", body: JSON.stringify(target) }),
   },
 
   saveConfig: (patch: Record<string, unknown>) =>
@@ -322,7 +325,6 @@ export const api = {
   },
 
   fs: {
-    browse: (path?: string) =>
-      request<FsResponse>(`/api/fs${path ? `?path=${enc(path)}` : ""}`),
+    browse: (path?: string) => request<FsResponse>(`/api/fs${path ? `?path=${enc(path)}` : ""}`),
   },
 };

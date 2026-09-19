@@ -1,37 +1,43 @@
 "use client";
+import { Menu } from "lucide-react";
+import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
-import { type BeadType } from "@/lib/schema";
-import Link from "next/link";
+import { AchievementsView } from "@/components/achievements-view";
+import { ActivityView } from "@/components/activity-view";
+import { AppProvider, type DetailAction } from "@/components/app-context";
+import { BeadDetailDrawer } from "@/components/bead-detail-drawer";
+import { Board } from "@/components/board/board";
+import { CreateBeadModal } from "@/components/create-bead-modal";
+import { EpicsView } from "@/components/epics-view";
+import { FocusView } from "@/components/focus-view";
+import { GraphView } from "@/components/graph-view";
+import { InsightsView } from "@/components/insights-view";
+import { KeyboardLayer } from "@/components/keyboard-layer";
+import { ListView } from "@/components/list-view";
+import { NeedsYouView } from "@/components/needs-you-view";
+import { NotificationWatcher } from "@/components/notification-watcher";
+import { ProjectSwitcher } from "@/components/project-switcher";
+import { PublishView } from "@/components/publish-view";
+import { ReadOnlyBanner } from "@/components/read-only-banner";
+import { SettingsView } from "@/components/settings-view";
+import { Sidebar } from "@/components/sidebar";
+import { useTheme } from "@/components/theme-provider";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useBeads } from "@/hooks/use-beads";
 import { useBeadsStream } from "@/hooks/use-beads-stream";
 import { useLastView } from "@/hooks/use-last-view";
-import { useTheme } from "@/components/theme-provider";
-import { makeIndex } from "@/lib/beads-view";
-import { AppProvider, type DetailAction } from "@/components/app-context";
-import { Sidebar } from "@/components/sidebar";
-import { Board } from "@/components/board/board";
-import { FocusView } from "@/components/focus-view";
-import { ListView } from "@/components/list-view";
-import { EpicsView } from "@/components/epics-view";
-import { GraphView } from "@/components/graph-view";
-import { InsightsView } from "@/components/insights-view";
-import { ActivityView } from "@/components/activity-view";
-import { NeedsYouView } from "@/components/needs-you-view";
-import { AchievementsView } from "@/components/achievements-view";
-import { PublishView } from "@/components/publish-view";
-import { SettingsView } from "@/components/settings-view";
-import { BeadDetailDrawer } from "@/components/bead-detail-drawer";
-import { CreateBeadModal } from "@/components/create-bead-modal";
-import { KeyboardLayer } from "@/components/keyboard-layer";
-import { NotificationWatcher } from "@/components/notification-watcher";
-import { ReadOnlyBanner } from "@/components/read-only-banner";
-import { useViewerMode } from "@/hooks/use-viewer-mode";
-import { useNotificationActivation } from "@/hooks/use-notifications";
 import { useMobile } from "@/hooks/use-mobile";
-import { ProjectSwitcher } from "@/components/project-switcher";
-import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { useNotificationActivation } from "@/hooks/use-notifications";
+import { useViewerMode } from "@/hooks/use-viewer-mode";
+import { makeIndex } from "@/lib/beads-view";
+import { type BeadType } from "@/lib/schema";
 
 export function AppShell({ projectId }: { projectId: string }) {
   const [view, setView] = useLastView();
@@ -93,28 +99,34 @@ export function AppShell({ projectId }: { projectId: string }) {
 
   // RESET. Every caller outside the drawer (board, list, epics, activity,
   // needs-you, palette, assist panel) means "start here", not "continue a trail".
-  const openDetail = React.useCallback((id: string, action: DetailAction = "view") => {
-    selectBead(id);
-    setOpenStack([id]);
-    setDetailRequest({
-      id,
-      action: readOnly ? "view" : action,
-      nonce: (detailNonce.current += 1),
-    });
-  }, [readOnly]);
+  const openDetail = React.useCallback(
+    (id: string, action: DetailAction = "view") => {
+      selectBead(id);
+      setOpenStack([id]);
+      setDetailRequest({
+        id,
+        action: readOnly ? "view" : action,
+        nonce: (detailNonce.current += 1),
+      });
+    },
+    [readOnly],
+  );
   useNotificationActivation(projectId, openDetail);
   // PUSH. Drawer-internal navigation only, so back can return.
   const MAX_TRAIL = 25;
-  const pushDetail = React.useCallback((id: string) => {
-    if (openStack[openStack.length - 1] === id) return;
-    selectBead(id);
-    setOpenStack((s) => {
-      if (s[s.length - 1] === id) return s; // re-clicking the current bead is a no-op
-      const next = [...s, id];
-      return next.length > MAX_TRAIL ? next.slice(next.length - MAX_TRAIL) : next;
-    });
-    setDetailRequest({ id, action: "view", nonce: (detailNonce.current += 1) });
-  }, [openStack]);
+  const pushDetail = React.useCallback(
+    (id: string) => {
+      if (openStack[openStack.length - 1] === id) return;
+      selectBead(id);
+      setOpenStack((s) => {
+        if (s[s.length - 1] === id) return s; // re-clicking the current bead is a no-op
+        const next = [...s, id];
+        return next.length > MAX_TRAIL ? next.slice(next.length - MAX_TRAIL) : next;
+      });
+      setDetailRequest({ id, action: "view", nonce: (detailNonce.current += 1) });
+    },
+    [openStack],
+  );
   const closeDetail = React.useCallback(() => {
     setOpenStack([]);
     setDetailRequest(null);
@@ -134,6 +146,7 @@ export function AppShell({ projectId }: { projectId: string }) {
     return () => window.removeEventListener("popstate", restore);
   }, [rawOpenId]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: A changed invalid raw ID must also clear the URL when openId remains null.
   React.useEffect(() => {
     const url = new URL(window.location.href);
     if (openId) url.searchParams.set("bead", openId);
@@ -209,68 +222,85 @@ export function AppShell({ projectId }: { projectId: string }) {
     >
       <div className="app-shell flex h-dvh flex-col overflow-hidden bg-background text-foreground text-sm">
         <ReadOnlyBanner />
-        {mobile && <header className="mobile-app-header flex shrink-0 items-center gap-3 border-b border-border bg-[var(--surface)] px-3 py-2">
-          <Sheet open={navigationOpen} onOpenChange={setNavigationOpen}>
-            <SheetTrigger className="control-button" aria-label="Open navigation"><Menu size={20} /></SheetTrigger>
-            <SheetContent side="left" className="w-[min(320px,90vw)] gap-0 p-0">
-              <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <SheetDescription className="sr-only">Switch views and projects.</SheetDescription>
-              <Sidebar view={view} onView={next => { setView(next); setNavigationOpen(false); }}
-                kind={data?.meta?.kind} projectId={projectId} live={live} className="h-full w-full border-0" />
-            </SheetContent>
-          </Sheet>
-          <div className="min-w-0 flex-1"><ProjectSwitcher projectId={projectId} kind={data?.meta?.kind} live={live} /></div>
-        </header>}
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-        {!mobile && <Sidebar
-          view={view}
-          onView={setView}
-          kind={data?.meta?.kind}
-          projectId={projectId}
-          live={live}
-        />}
-        <main className="relative flex min-w-0 flex-1 flex-col">
-          {errorMessage && view !== "settings" ? (
-            <div className="flex flex-1 items-center justify-center p-8">
-              <div className="max-w-md rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-center">
-                <p className="text-sm font-medium text-destructive">Couldn’t open this project</p>
-                <p className="mt-2 text-sm text-muted-foreground">{errorMessage}</p>
-                <Link
-                  href="/"
-                  className="mt-4 inline-block rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
-                >
-                  ← Back to projects
-                </Link>
-              </div>
+        {mobile && (
+          <header className="mobile-app-header flex shrink-0 items-center gap-3 border-b border-border bg-[var(--surface)] px-3 py-2">
+            <Sheet open={navigationOpen} onOpenChange={setNavigationOpen}>
+              <SheetTrigger className="control-button" aria-label="Open navigation">
+                <Menu size={20} />
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[min(320px,90vw)] gap-0 p-0">
+                <SheetTitle className="sr-only">Navigation</SheetTitle>
+                <SheetDescription className="sr-only">Switch views and projects.</SheetDescription>
+                <Sidebar
+                  view={view}
+                  onView={(next) => {
+                    setView(next);
+                    setNavigationOpen(false);
+                  }}
+                  kind={data?.meta?.kind}
+                  projectId={projectId}
+                  live={live}
+                  className="h-full w-full border-0"
+                />
+              </SheetContent>
+            </Sheet>
+            <div className="min-w-0 flex-1">
+              <ProjectSwitcher projectId={projectId} kind={data?.meta?.kind} live={live} />
             </div>
-          ) : (
-            <>
-              {view === "board" && <Board />}
-              {view === "list" && <ListView />}
-              {view === "epics" && (
-                <EpicsView focusEpic={focusEpic} onFocusHandledAction={clearFocusEpic} />
-              )}
-              {view === "focus" && <FocusView />}
-              {view === "graph" && <GraphView />}
-              {view === "insights" && <InsightsView />}
-              {view === "activity" && <ActivityView />}
-              {view === "needsyou" && <NeedsYouView />}
-              {view === "achievements" && <AchievementsView />}
-              {view === "publish" && <PublishView />}
-              {view === "settings" && <SettingsView />}
-            </>
+          </header>
+        )}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          {!mobile && (
+            <Sidebar
+              view={view}
+              onView={setView}
+              kind={data?.meta?.kind}
+              projectId={projectId}
+              live={live}
+            />
           )}
+          <main className="relative flex min-w-0 flex-1 flex-col">
+            {errorMessage && view !== "settings" ? (
+              <div className="flex flex-1 items-center justify-center p-8">
+                <div className="max-w-md rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-center">
+                  <p className="text-sm font-medium text-destructive">Couldn’t open this project</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{errorMessage}</p>
+                  <Link
+                    href="/"
+                    className="mt-4 inline-block rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+                  >
+                    ← Back to projects
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                {view === "board" && <Board />}
+                {view === "list" && <ListView />}
+                {view === "epics" && (
+                  <EpicsView focusEpic={focusEpic} onFocusHandledAction={clearFocusEpic} />
+                )}
+                {view === "focus" && <FocusView />}
+                {view === "graph" && <GraphView />}
+                {view === "insights" && <InsightsView />}
+                {view === "activity" && <ActivityView />}
+                {view === "needsyou" && <NeedsYouView />}
+                {view === "achievements" && <AchievementsView />}
+                {view === "publish" && <PublishView />}
+                {view === "settings" && <SettingsView />}
+              </>
+            )}
 
-          <BeadDetailDrawer
-            openId={openId}
-            initialAction={detailRequest?.id === openId ? detailRequest.action : "view"}
-            actionNonce={detailRequest?.id === openId ? detailRequest.nonce : 0}
-            canGoBack={openStack.length > 1}
-            backTo={openStack.length > 1 ? openStack[openStack.length - 2] : null}
-            onBack={backDetail}
-            onClose={closeDetail}
-          />
-        </main>
+            <BeadDetailDrawer
+              openId={openId}
+              initialAction={detailRequest?.id === openId ? detailRequest.action : "view"}
+              actionNonce={detailRequest?.id === openId ? detailRequest.nonce : 0}
+              canGoBack={openStack.length > 1}
+              backTo={openStack.length > 1 ? openStack[openStack.length - 2] : null}
+              onBack={backDetail}
+              onClose={closeDetail}
+            />
+          </main>
         </div>
       </div>
 

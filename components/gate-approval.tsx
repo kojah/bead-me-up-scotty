@@ -1,11 +1,11 @@
 "use client";
-import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import * as React from "react";
 import { useApp } from "@/components/app-context";
-import { Icon } from "@/components/icons";
 import { toastError } from "@/components/error-toast";
+import { Icon } from "@/components/icons";
+import { activityKey, beadsKey } from "@/hooks/use-beads";
 import { api } from "@/lib/api-client";
-import { beadsKey, activityKey } from "@/hooks/use-beads";
 
 /** Shared by both human-gate surfaces; approval records an explicit decision. */
 export function GateApproval({ id }: { id: string }) {
@@ -26,7 +26,9 @@ export function GateApproval({ id }: { id: string }) {
       ]);
     },
     onError: toastError,
-    onSettled: () => { submitting.current = false; },
+    onSettled: () => {
+      submitting.current = false;
+    },
   });
   const approve = () => {
     if (readOnly || submitting.current) return;
@@ -64,7 +66,7 @@ export function GateApproval({ id }: { id: string }) {
           aria-label="Approval note"
           placeholder="Optional approval note"
           value={note}
-          onChange={event => setNote(event.target.value)}
+          onChange={(event) => setNote(event.target.value)}
           disabled={readOnly || approval.isPending}
           maxLength={8000}
           rows={2}

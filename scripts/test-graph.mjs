@@ -6,14 +6,24 @@ import { chromium } from "playwright";
 const base = process.env.SCOTTY_TEST_URL;
 assert.ok(base, "Set SCOTTY_TEST_URL to an isolated app server");
 const bead = (id, extra = {}) => ({
-  id, title: id, issue_type: "task", status: "open", priority: 2,
-  created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-01T00:00:00Z",
-  labels: [], dependencies: [], ...extra,
+  id,
+  title: id,
+  issue_type: "task",
+  status: "open",
+  priority: 2,
+  created_at: "2026-09-01T00:00:00Z",
+  updated_at: "2026-09-01T00:00:00Z",
+  labels: [],
+  dependencies: [],
+  ...extra,
 });
 const dep = (id, target, type = "blocks") => ({ issue_id: id, depends_on_id: target, type });
 const beads = [
-  bead("new-a"), bead("new-b"), bead("finished", { status: "closed" }),
-  bead("linked-a", { dependencies: [dep("linked-a", "linked-b")] }), bead("linked-b"),
+  bead("new-a"),
+  bead("new-b"),
+  bead("finished", { status: "closed" }),
+  bead("linked-a", { dependencies: [dep("linked-a", "linked-b")] }),
+  bead("linked-b"),
   bead("epic", { issue_type: "epic" }),
   bead("nested", { issue_type: "epic", dependencies: [dep("nested", "epic", "parent-child")] }),
   bead("child", { dependencies: [dep("child", "nested", "parent-child")] }),
@@ -36,10 +46,18 @@ try {
       return route.fulfill({ json: source });
     }
     if (pathname.endsWith("/beads")) {
-      return route.fulfill({ json: { beads, meta: {
-        kind: "demo", humanActor: "reviewer", humanAllowlist: ["reviewer"],
-        pollIntervalMs: 300000, readOnly: false,
-      } } });
+      return route.fulfill({
+        json: {
+          beads,
+          meta: {
+            kind: "demo",
+            humanActor: "reviewer",
+            humanAllowlist: ["reviewer"],
+            pollIntervalMs: 300000,
+            readOnly: false,
+          },
+        },
+      });
     }
     if (pathname.endsWith("/beads/stream")) return route.abort();
     const item = beads.find((b) => pathname.endsWith(`/beads/${b.id}`));
@@ -48,10 +66,18 @@ try {
   await page.goto(`${base}/p/demo`);
   await page.getByRole("button", { name: "Graph", exact: true }).click();
   await page.locator(".react-flow__node").first().waitFor();
-  const ids = () => page.locator(".react-flow__node").evaluateAll((nodes) =>
-    nodes.map((n) => n.getAttribute("data-id")).sort());
-  assert.deepEqual(await ids(), beads.filter((b) => b.id !== "archived").map((b) => b.id).sort(),
-    "Default graph must include closed and unlinked beads exactly once");
+  const ids = () =>
+    page
+      .locator(".react-flow__node")
+      .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-id")).sort());
+  assert.deepEqual(
+    await ids(),
+    beads
+      .filter((b) => b.id !== "archived")
+      .map((b) => b.id)
+      .sort(),
+    "Default graph must include closed and unlinked beads exactly once",
+  );
   const filter = page.getByRole("checkbox", { name: "Live dependencies only" });
   await filter.check();
   await page.locator('.react-flow__node[data-id="finished"]').waitFor({ state: "detached" });
@@ -68,8 +94,11 @@ try {
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 20 });
   await page.mouse.up();
   await page.waitForFunction(() => document.querySelectorAll(".react-flow__edge").length === 4);
-  assert.deepEqual(connection, { depends_on_id: "new-b", type: "blocks" },
-    "Previously unlinked tasks must still support drag-to-link");
+  assert.deepEqual(
+    connection,
+    { depends_on_id: "new-b", type: "blocks" },
+    "Previously unlinked tasks must still support drag-to-link",
+  );
   await page.locator('.react-flow__node[data-id="finished"]').click();
   await page.getByTitle("Close", { exact: true }).waitFor();
   await page.getByTitle("Close", { exact: true }).click();
@@ -88,29 +117,49 @@ try {
   await page.getByRole("button", { name: "Graph", exact: true }).click();
   await page.locator('.react-flow__node[data-id="loose-39"]').waitFor();
   assert.equal((await ids()).length, 40, "Larger graphs must retain every task");
-  const positions = await page.locator(".react-flow__node").evaluateAll((nodes) => nodes.map((n) => {
-    const matrix = new DOMMatrix(getComputedStyle(n).transform);
-    return { x: matrix.m41, y: matrix.m42 };
-  }));
-  assert.ok(new Set(positions.map((p) => p.x)).size > 1, "Loose tasks must wrap into multiple columns");
-  assert.ok(Math.max(...positions.map((p) => p.y)) < 3000, "Avoid an excessively tall loose-task column");
+  const positions = await page.locator(".react-flow__node").evaluateAll((nodes) =>
+    nodes.map((n) => {
+      const matrix = new DOMMatrix(getComputedStyle(n).transform);
+      return { x: matrix.m41, y: matrix.m42 };
+    }),
+  );
+  assert.ok(
+    new Set(positions.map((p) => p.x)).size > 1,
+    "Loose tasks must wrap into multiple columns",
+  );
+  assert.ok(
+    Math.max(...positions.map((p) => p.y)) < 3000,
+    "Avoid an excessively tall loose-task column",
+  );
   // A tall epic needs a zoom below React Flow's default fit floor.
-  beads.splice(0, beads.length, bead("large-epic", { issue_type: "epic" }),
-    ...Array.from({ length: 220 }, (_, i) => bead(`large-${i}`, {
-      dependencies: [dep(`large-${i}`, "large-epic", "parent-child")],
-    })));
+  beads.splice(
+    0,
+    beads.length,
+    bead("large-epic", { issue_type: "epic" }),
+    ...Array.from({ length: 220 }, (_, i) =>
+      bead(`large-${i}`, {
+        dependencies: [dep(`large-${i}`, "large-epic", "parent-child")],
+      }),
+    ),
+  );
   await page.reload();
   await page.getByRole("button", { name: "Graph", exact: true }).click();
   await page.locator('.react-flow__node[data-id="large-219"]').waitFor();
-  const fits = () => page.evaluate(() => {
-    const frame = document.querySelector('.react-flow').getBoundingClientRect();
-    return [...document.querySelectorAll('.react-flow__node')].every(n => {
-      const r = n.getBoundingClientRect();
-      return r.left >= frame.left - 1 && r.right <= frame.right + 1 && r.top >= frame.top - 1 && r.bottom <= frame.bottom + 1;
+  const fits = () =>
+    page.evaluate(() => {
+      const frame = document.querySelector(".react-flow").getBoundingClientRect();
+      return [...document.querySelectorAll(".react-flow__node")].every((n) => {
+        const r = n.getBoundingClientRect();
+        return (
+          r.left >= frame.left - 1 &&
+          r.right <= frame.right + 1 &&
+          r.top >= frame.top - 1 &&
+          r.bottom <= frame.bottom + 1
+        );
+      });
     });
-  });
   await page.waitForFunction(() => {
-    const n = document.querySelector('.react-flow__viewport');
+    const n = document.querySelector(".react-flow__viewport");
     return n && new DOMMatrix(getComputedStyle(n).transform).a < 0.1;
   });
   assert.equal((await ids()).length, 221);
@@ -124,7 +173,9 @@ try {
   await page.waitForTimeout(300);
   assert.ok(await fits(), "Built-in fit control must fit large graphs too");
   assert.deepEqual(errors, []);
-  console.log("PASS: full graph, optional pruning, unique nested epics, drag-to-link, closed-task details, empty-filter recovery, and wrapped layout");
+  console.log(
+    "PASS: full graph, optional pruning, unique nested epics, drag-to-link, closed-task details, empty-filter recovery, and wrapped layout",
+  );
 } finally {
   await browser.close();
 }

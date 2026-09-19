@@ -15,14 +15,17 @@
     "next.config.ts"
   ],
   "engines": {
-    "node": ">=20"
+    "bun": ">=1.4.2"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "serve": "node scripts/serve.mjs",
-    "lint": "eslint"
+    "dev": "bun --bun next dev",
+    "build": "bun --bun next build",
+    "start": "bun --bun next start",
+    "serve": "bun scripts/serve.mjs",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check .",
+    "typecheck": "bun --bun tsc --noEmit"
   },
   "dependencies": {
     "@11ty/eleventy": "^3.1.6",
@@ -51,12 +54,11 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.14",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.4",
     "playwright": "^1.61.0",
     "shadcn": "^4.11.0",
     "tailwindcss": "^4",
@@ -68,14 +70,15 @@
   },
   "devEngines": {
     "runtime": {
-      "name": "node",
-      "version": ">=26.4",
-      "onFail": "warn"
+      "name": "bun",
+      "version": ">=1.4.2",
+      "onFail": "error"
     },
     "packageManager": {
-      "name": "npm",
-      "version": ">=11.9",
-      "onFail": "warn"
+      "name": "bun",
+      "version": ">=1.4.2",
+      "onFail": "error"
     }
-  }
+  },
+  "packageManager": "bun@1.4.2"
 }

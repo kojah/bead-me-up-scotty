@@ -11,18 +11,22 @@ export function BuildBadge() {
   return (
     <div className="flex items-center gap-1 px-1 text-[10.5px] leading-none text-[var(--text-3)]">
       <span>v{APP_VERSION}</span>
-      {BUILD_SHA && <><span>
-        Build {BUILD_NUMBER || "—"} <span className="text-[var(--text-3)]">·</span>
-      </span>
-      <a
-        href={commitUrl(BUILD_SHA)}
-        target="_blank"
-        rel="noopener noreferrer"
-        title="View this commit’s comments on GitHub"
-        className="font-mono text-[var(--text-3)] underline-offset-2 hover:text-[var(--text)] hover:underline"
-      >
-        {BUILD_SHA}
-      </a></>}
+      {BUILD_SHA && (
+        <>
+          <span>
+            Build {BUILD_NUMBER || "—"} <span className="text-[var(--text-3)]">·</span>
+          </span>
+          <a
+            href={commitUrl(BUILD_SHA)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View this commit’s comments on GitHub"
+            className="font-mono text-[var(--text-3)] underline-offset-2 hover:text-[var(--text)] hover:underline"
+          >
+            {BUILD_SHA}
+          </a>
+        </>
+      )}
     </div>
   );
 }

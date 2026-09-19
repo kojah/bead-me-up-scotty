@@ -1,10 +1,10 @@
 "use client";
 import * as React from "react";
 import { useApp } from "@/components/app-context";
-import { useActivity } from "@/hooks/use-beads";
 import { OriginBadge } from "@/components/board/bead-card";
 import { Icon } from "@/components/icons";
-import { avatarColor, initials, relTime, fmtDateTime } from "@/lib/beads-view";
+import { useActivity } from "@/hooks/use-beads";
+import { avatarColor, fmtDateTime, initials, relTime } from "@/lib/beads-view";
 
 /**
  * Mission Control — live activity feed. A newest-first stream of what humans and
@@ -56,9 +56,14 @@ export function ActivityView() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-[6px] gap-y-1 text-[13px]">
                       <span className="font-semibold">{it.actor}</span>
-                      <OriginBadge origin={it.origin} title={it.origin === "human" ? "Human" : "Agent"} />
+                      <OriginBadge
+                        origin={it.origin}
+                        title={it.origin === "human" ? "Human" : "Agent"}
+                      />
                       <span className="text-[var(--text-2)]">{it.action}</span>
-                      <span className="font-mono text-[11px] text-[var(--text-3)]">{it.issueId}</span>
+                      <span className="font-mono text-[11px] text-[var(--text-3)]">
+                        {it.issueId}
+                      </span>
                     </div>
                     <div className="truncate text-[12.5px] text-[var(--text-2)]">{it.title}</div>
                     {it.detail && (

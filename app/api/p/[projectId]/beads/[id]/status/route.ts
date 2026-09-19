@@ -1,8 +1,8 @@
-import { getStore } from "@/lib/store";
-import { getConfig } from "@/lib/config";
-import { ok, fail } from "@/lib/api";
 import { z } from "zod";
+import { fail, ok } from "@/lib/api";
+import { getConfig } from "@/lib/config";
 import { BEAD_STATUSES } from "@/lib/schema";
+import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,10 @@ const bodySchema = z.object({
   reason: z.string().max(10_000).optional(),
 });
 
-export async function POST(req: Request, { params }: { params: Promise<{ projectId: string; id: string }> }) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ projectId: string; id: string }> },
+) {
   try {
     const { projectId, id } = await params;
     const store = await getStore(projectId);

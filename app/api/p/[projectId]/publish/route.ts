@@ -1,10 +1,10 @@
 import "server-only";
 import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import fs from "node:fs";
+import { promisify } from "node:util";
 import { z } from "zod";
+import { fail, ok } from "@/lib/api";
 import { buildShowcase, type ShowcaseTemplate } from "@/lib/showcase/generate";
-import { ok, fail } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,7 +26,8 @@ const pathSchema = z.object({ action: z.enum(["open", "deploy"]), path: z.string
 
 /** Open a file/URL in the user's default browser (local single-user tool). */
 async function openLocal(target: string) {
-  const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
+  const cmd =
+    process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
   const args = process.platform === "win32" ? ["/c", "start", '""', target] : [target];
   await pExecFile(cmd, args).catch(() => {});
 }
@@ -38,14 +39,17 @@ export async function POST(req: Request, { params }: Ctx) {
 
     if (body.action === "open" || body.action === "deploy") {
       const { action, path: p } = pathSchema.parse(body);
-      if (!fs.existsSync(p)) return ok({ error: "Build not found — generate the site first.", code: "not_found" }, 400);
+      if (!fs.existsSync(p))
+        return ok({ error: "Build not found — generate the site first.", code: "not_found" }, 400);
       if (action === "open") {
         await openLocal(p);
         return ok({ opened: true });
       }
       // deploy: best-effort via the Vercel CLI (preview). Degrade with instructions.
       try {
-        const { stdout } = await pExecFile("vercel", ["deploy", p, "--yes"], { maxBuffer: 16 * 1024 * 1024 });
+        const { stdout } = await pExecFile("vercel", ["deploy", p, "--yes"], {
+          maxBuffer: 16 * 1024 * 1024,
+        });
         const url = (stdout.match(/https?:\/\/\S+/) || [])[0] || stdout.trim();
         return ok({ deployed: true, url });
       } catch (e) {

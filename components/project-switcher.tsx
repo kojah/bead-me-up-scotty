@@ -1,17 +1,17 @@
 "use client";
-import * as React from "react";
+import { Check, ChevronsUpDown, LayoutGrid, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Check, Plus, LayoutGrid, ChevronsUpDown } from "lucide-react";
+import * as React from "react";
+import { FolderBrowserModal } from "@/components/folder-browser-modal";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useProjects } from "@/hooks/use-projects";
-import { FolderBrowserModal } from "@/components/folder-browser-modal";
 
 export function ProjectSwitcher({
   projectId,
@@ -38,9 +38,7 @@ export function ProjectSwitcher({
   const dot = (
     <span
       title={isLive ? "Live — changes stream in instantly" : undefined}
-      className={
-        "h-[7px] w-[7px] flex-shrink-0 rounded-full" + (isLive ? " animate-pulse" : "")
-      }
+      className={"h-[7px] w-[7px] flex-shrink-0 rounded-full" + (isLive ? " animate-pulse" : "")}
       style={{
         background: isDemo ? "#d97706" : "#22c55e",
         boxShadow: `0 0 0 3px ${isDemo ? "#d9770622" : "#22c55e22"}`,

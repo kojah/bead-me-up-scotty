@@ -1,13 +1,13 @@
 "use client";
-import * as React from "react";
-import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { FlaskConical, FolderGit2, Loader2, Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, FlaskConical, FolderGit2, Loader2 } from "lucide-react";
+import { FolderBrowserModal } from "@/components/folder-browser-modal";
 import { Icon } from "@/components/icons";
 import { useTheme } from "@/components/theme-provider";
 import { useProjects } from "@/hooks/use-projects";
-import { FolderBrowserModal } from "@/components/folder-browser-modal";
 import { api, type ProjectInfo } from "@/lib/api-client";
 
 export function Launcher() {
@@ -86,13 +86,7 @@ export function Launcher() {
   );
 }
 
-function CardShell({
-  onClick,
-  children,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+function CardShell({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
     <div
       role="button"
@@ -160,7 +154,9 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
           title="Remove from list"
           onClick={(e) => {
             e.stopPropagation();
-            if (confirm(`Remove "${project.name}" from the list? This does not delete any files.`)) {
+            if (
+              confirm(`Remove "${project.name}" from the list? This does not delete any files.`)
+            ) {
               remove.mutate();
             }
           }}
@@ -169,7 +165,11 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
           <Trash2 size={14} />
         </button>
       </div>
-      <div className="truncate font-mono text-[11px] text-[var(--text-3)]" dir="rtl" title={project.path ?? ""}>
+      <div
+        className="truncate font-mono text-[11px] text-[var(--text-3)]"
+        dir="rtl"
+        title={project.path ?? ""}
+      >
         {project.path}
       </div>
     </CardShell>

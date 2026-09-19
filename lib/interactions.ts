@@ -1,8 +1,8 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
+import { type Origin, originOf } from "./attribution";
 import type { Bead } from "./schema";
-import { originOf, type Origin } from "./attribution";
 
 /**
  * Reader for beads' append-only interaction log

@@ -40,12 +40,20 @@ function wrapInline(marker: string): MarkdownTransform {
       selected.endsWith(marker)
     ) {
       const inner = selected.slice(marker.length, selected.length - marker.length);
-      return { value: value.slice(0, start) + inner + value.slice(end), start, end: start + inner.length };
+      return {
+        value: value.slice(0, start) + inner + value.slice(end),
+        start,
+        end: start + inner.length,
+      };
     }
 
     if (start === end) {
       const cursor = start + marker.length;
-      return { value: value.slice(0, start) + marker + marker + value.slice(end), start: cursor, end: cursor };
+      return {
+        value: value.slice(0, start) + marker + marker + value.slice(end),
+        start: cursor,
+        end: cursor,
+      };
     }
 
     return {
@@ -94,10 +102,18 @@ export const link: MarkdownTransform = ({ value, start, end }) => {
   if (selected) {
     const inserted = `[${selected}](url)`;
     const urlStart = start + selected.length + 3; // past `[selected](`
-    return { value: value.slice(0, start) + inserted + value.slice(end), start: urlStart, end: urlStart + 3 };
+    return {
+      value: value.slice(0, start) + inserted + value.slice(end),
+      start: urlStart,
+      end: urlStart + 3,
+    };
   }
   const inserted = "[](url)";
-  return { value: value.slice(0, start) + inserted + value.slice(end), start: start + 1, end: start + 1 };
+  return {
+    value: value.slice(0, start) + inserted + value.slice(end),
+    start: start + 1,
+    end: start + 1,
+  };
 };
 
 /**

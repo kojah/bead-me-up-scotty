@@ -1,9 +1,9 @@
 import "server-only";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
-import { getProject, DEMO_PROJECT, ConfigError } from "@/lib/config";
-import { ok, fail } from "@/lib/api";
+import { fail, ok } from "@/lib/api";
+import { ConfigError, DEMO_PROJECT, getProject } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,10 @@ function attachmentsDir(projectId: string): string {
 
 /** Sanitize a single path segment so it can never escape the attachments dir. */
 function safeSegment(s: string, fallback: string): string {
-  const cleaned = path.basename(s).replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^\.+/, "");
+  const cleaned = path
+    .basename(s)
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .replace(/^\.+/, "");
   return cleaned || fallback;
 }
 
@@ -48,10 +51,22 @@ export async function POST(req: Request, { params }: Ctx) {
       return ok({ error: "Missing beadId", code: "invalid_input" }, 400);
     }
     if (!file.type.startsWith("image/")) {
-      return ok({ error: `Only image files are allowed (got ${file.type || "unknown"})`, code: "invalid_input" }, 400);
+      return ok(
+        {
+          error: `Only image files are allowed (got ${file.type || "unknown"})`,
+          code: "invalid_input",
+        },
+        400,
+      );
     }
     if (file.size > MAX_BYTES) {
-      return ok({ error: `Image is too large (max ${MAX_BYTES / (1024 * 1024)} MB)`, code: "invalid_input" }, 400);
+      return ok(
+        {
+          error: `Image is too large (max ${MAX_BYTES / (1024 * 1024)} MB)`,
+          code: "invalid_input",
+        },
+        400,
+      );
     }
 
     const beadId = safeSegment(beadIdRaw, "draft");

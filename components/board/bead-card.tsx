@@ -1,26 +1,26 @@
 "use client";
-import * as React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useMobile } from "@/hooks/use-mobile";
-import type { Bead } from "@/lib/schema";
-import { Icon, typeIconName } from "@/components/icons";
+import * as React from "react";
 import { useApp } from "@/components/app-context";
 import { CopyableId } from "@/components/copyable-id";
+import { Icon, typeIconName } from "@/components/icons";
+import { useMobile } from "@/hooks/use-mobile";
 import { beadOrigin, originTitle } from "@/lib/attribution";
 import {
-  catColor,
-  statusLabel,
-  prioColor,
-  prioLabel,
-  typeColor,
-  typeLabel,
   avatarColor,
+  catColor,
+  checklistProgress,
   initials,
   isBlocked,
   parentOf,
-  checklistProgress,
+  prioColor,
+  prioLabel,
+  statusLabel,
+  typeColor,
+  typeLabel,
 } from "@/lib/beads-view";
+import type { Bead } from "@/lib/schema";
 
 export function BeadCard({ bead, childCount = 0 }: { bead: Bead; childCount?: number }) {
   const { openDetail, readOnly, selectedBeadId, selectBead } = useApp();
@@ -36,10 +36,17 @@ export function BeadCard({ bead, childCount = 0 }: { bead: Bead; childCount?: nu
       ref={setNodeRef}
       {...listeners}
       {...(!draggable ? { role: "button", tabIndex: 0 } : attributes)}
-      {...(!draggable ? { onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
-        if (e.target !== e.currentTarget) return;
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(bead.id); }
-      } } : {})}
+      {...(!draggable
+        ? {
+            onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+              if (e.target !== e.currentTarget) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                openDetail(bead.id);
+              }
+            },
+          }
+        : {})}
       data-keyboard-bead-id={bead.id}
       aria-current={selectedBeadId === bead.id ? "true" : undefined}
       onFocus={() => selectBead(bead.id)}
@@ -80,7 +87,15 @@ export function BeadCardOverlay({ bead, childCount = 0 }: { bead: Bead; childCou
   );
 }
 
-function BeadCardFace({ bead, childCount, preview = false }: { bead: Bead; childCount: number; preview?: boolean }) {
+function BeadCardFace({
+  bead,
+  childCount,
+  preview = false,
+}: {
+  bead: Bead;
+  childCount: number;
+  preview?: boolean;
+}) {
   const { index, humanAllowlist } = useApp();
   const o = beadOrigin(bead, humanAllowlist);
   const parent = parentOf(bead, index);
@@ -99,7 +114,9 @@ function BeadCardFace({ bead, childCount, preview = false }: { bead: Bead; child
           title={statusLabel(bead.status)}
         />
         {preview ? (
-          <span className="font-mono text-[11.5px] tracking-[-.01em] text-[var(--text-3)]">{bead.id}</span>
+          <span className="font-mono text-[11.5px] tracking-[-.01em] text-[var(--text-3)]">
+            {bead.id}
+          </span>
         ) : (
           <CopyableId
             id={bead.id}

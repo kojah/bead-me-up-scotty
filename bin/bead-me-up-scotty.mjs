@@ -1,4 +1,8 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import http from "node:http";
+import { createRequire } from "node:module";
 /**
  * Global launcher for Bead Me Up, Scotty.
  *
@@ -7,16 +11,12 @@
  * it's ready, then opens the browser. If you run it from a directory that
  * contains a `.beads` repo, it opens straight to that project's board.
  *
- * Zero dependencies — Node stdlib only. Works regardless of the directory it's
+ * Zero dependencies — Bun’s Node-compatible standard library. Works regardless of the directory it's
  * launched from (resolves the package root from this file's location, not cwd).
  */
 import net from "node:net";
-import http from "node:http";
-import fs from "node:fs";
 import path from "node:path";
-import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { createRequire } from "node:module";
 
 // The directory the user ran the command from (used for cwd auto-open).
 const invocationCwd = process.cwd();
@@ -116,9 +116,7 @@ function resolveNextBin() {
     const pkg = require.resolve("next/package.json");
     return path.join(path.dirname(pkg), "dist", "bin", "next");
   } catch {
-    console.error(
-      "Could not find the 'next' package. Run `npm install` in the project first.",
-    );
+    console.error("Could not find the 'next' package. Run `bun install` in the project first.");
     process.exit(1);
   }
 }
@@ -182,7 +180,10 @@ async function targetPath(host, port) {
           port,
           path: "/api/projects",
           method: "POST",
-          headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(body),
+          },
         },
         (res) => {
           let data = "";
@@ -222,8 +223,8 @@ async function main() {
   if (!fs.existsSync(path.join(ROOT, ".next", "BUILD_ID"))) {
     console.error(
       "No production build found.\n" +
-        "Run `npm run build` in the project directory, then reinstall " +
-        "(`npm link` or `npm install -g .`).",
+        "Run `bun run build` in the project directory, then reinstall " +
+        "(`bun link`).",
     );
     process.exit(1);
   }

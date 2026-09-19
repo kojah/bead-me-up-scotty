@@ -3,7 +3,7 @@
 # That's why the runner stage uses Debian slim instead of Alpine (musl).
 # Release filenames use Docker's TARGETARCH values (amd64/arm64) verbatim.
 ARG BD_VERSION=1.1.0
-ARG NODE_VERSION=26.4.0
+ARG BUN_VERSION=1.4.2
 FROM alpine:3.22 AS bd
 ARG BD_VERSION
 ARG TARGETARCH
@@ -16,17 +16,17 @@ RUN tar -xzf /tmp/bd.tar.gz -C /tmp && mv /tmp/bd /usr/local/bin/bd
 # Next's standalone output tracing does not include it. Install it with its
 # full dependency tree here and copy it into the runner below.
 # Keep the version in sync with package.json.
-FROM node:${NODE_VERSION}-alpine AS eleventy
+FROM oven/bun:${BUN_VERSION}-debian AS eleventy
 WORKDIR /eleventy
-RUN npm install --no-save @11ty/eleventy@3.1.6
+RUN bun add --exact @11ty/eleventy@3.1.6
 
 # ── Builder: install deps and build the Next.js app ──────────────────────────
-FROM node:${NODE_VERSION}-alpine AS builder
+FROM oven/bun:${BUN_VERSION}-debian AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 COPY . .
 
@@ -40,11 +40,11 @@ ARG BUILD_SHA=""
 # keep the default output.
 ENV NEXT_STANDALONE=1
 
-RUN npm run build
+RUN bun run build
 
 # ── Runner: minimal image with standalone output + bd ───────────────────────
 # Debian slim (not Alpine) because the prebuilt bd binary is glibc-linked.
-FROM node:${NODE_VERSION}-slim AS runner
+FROM oven/bun:${BUN_VERSION}-debian AS runner
 
 WORKDIR /app
 
@@ -85,4 +85,4 @@ USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]

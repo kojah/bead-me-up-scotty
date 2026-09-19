@@ -1,5 +1,5 @@
-import { BEAD_STATUSES, BEAD_TYPES, type Bead } from "./schema";
 import { beadOrigin } from "./attribution";
+import { BEAD_STATUSES, BEAD_TYPES, type Bead } from "./schema";
 
 /**
  * Shared bead filter model used by both the Board and List views. Every facet is
@@ -26,15 +26,7 @@ export const emptyFilters: Filters = {
   search: "",
 };
 
-const FILTER_PARAMS = [
-  "status",
-  "type",
-  "priority",
-  "origin",
-  "label",
-  "assignee",
-  "q",
-] as const;
+const FILTER_PARAMS = ["status", "type", "priority", "origin", "label", "assignee", "q"] as const;
 
 type SearchParamsReader = Pick<URLSearchParams, "get" | "getAll">;
 
@@ -55,15 +47,14 @@ export function filtersFromSearchParams(params: SearchParamsReader): Filters {
   return {
     status: boundedValues(params, "status", BEAD_STATUSES),
     type: boundedValues(params, "type", BEAD_TYPES),
-    priority: [...new Set(
-      distinctValues(params, "priority")
-        .filter((value) => /^[0-4]$/.test(value))
-        .map(Number)
-        .filter(
-          (priority) =>
-            Number.isInteger(priority) && priority >= 0 && priority <= 4,
-        ),
-    )],
+    priority: [
+      ...new Set(
+        distinctValues(params, "priority")
+          .filter((value) => /^[0-4]$/.test(value))
+          .map(Number)
+          .filter((priority) => Number.isInteger(priority) && priority >= 0 && priority <= 4),
+      ),
+    ],
     origin: boundedValues(params, "origin", ["human", "agent"]),
     labels: distinctValues(params, "label"),
     // Unlike other string facets, empty explicitly means "Unassigned".
@@ -73,10 +64,7 @@ export function filtersFromSearchParams(params: SearchParamsReader): Filters {
 }
 
 /** Replace only filter parameters, preserving every unrelated query parameter. */
-export function writeFiltersToSearchParams(
-  params: URLSearchParams,
-  filters: Filters,
-): void {
+export function writeFiltersToSearchParams(params: URLSearchParams, filters: Filters): void {
   for (const name of FILTER_PARAMS) params.delete(name);
   for (const status of filters.status) params.append("status", status);
   for (const type of filters.type) params.append("type", type);

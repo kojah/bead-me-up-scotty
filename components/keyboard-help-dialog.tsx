@@ -9,9 +9,7 @@ export function ShortcutKeys({ keys, sequence }: { keys: string[]; sequence?: bo
       {keys.map((key, index) => (
         <span key={`${key}-${index}`} className="contents">
           {index > 0 && (
-            <span className="text-[10px] text-[var(--text-3)]">
-              {sequence ? "then" : "+"}
-            </span>
+            <span className="text-[10px] text-[var(--text-3)]">{sequence ? "then" : "+"}</span>
           )}
           <kbd className="min-w-7 rounded-md border border-border bg-[var(--surface-2)] px-2 py-1 text-center font-mono text-[11px] font-semibold text-[var(--text-2)] shadow-[var(--shadow)]">
             {key}
@@ -35,8 +33,8 @@ export function KeyboardHelpDialog({
         <div className="border-b border-border px-6 py-5">
           <DialogTitle className="text-lg font-semibold">Keyboard shortcuts</DialogTitle>
           <DialogDescription className="mt-1 text-[12.5px] text-[var(--text-3)]">
-            Vim-style navigation is disabled while typing. View and repository shortcuts are
-            two-key sequences.
+            Vim-style navigation is disabled while typing. View and repository shortcuts are two-key
+            sequences.
           </DialogDescription>
         </div>
         <div className="bd-scroll grid min-h-0 grid-cols-1 gap-6 overflow-y-auto px-6 py-5 md:grid-cols-2">

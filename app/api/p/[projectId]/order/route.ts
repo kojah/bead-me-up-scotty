@@ -1,6 +1,6 @@
 import { z } from "zod";
+import { fail, ok } from "@/lib/api";
 import { getColumnOrders, setColumnOrder } from "@/lib/config";
-import { ok, fail } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 

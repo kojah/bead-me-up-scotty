@@ -7,14 +7,26 @@ const base = process.env.SCOTTY_TEST_URL;
 assert.ok(base, "Set SCOTTY_TEST_URL to the running demo server");
 
 const bead = (id, title, extra = {}) => ({
-  id, title, status: "open", issue_type: "task", priority: 2, labels: [], dependencies: [],
-  created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-01T00:00:00Z", ...extra,
+  id,
+  title,
+  status: "open",
+  issue_type: "task",
+  priority: 2,
+  labels: [],
+  dependencies: [],
+  created_at: "2026-09-01T00:00:00Z",
+  updated_at: "2026-09-01T00:00:00Z",
+  ...extra,
 });
 const beads = [
   bead("parent", "Parent bead", { issue_type: "epic" }),
-  bead("child", "Child bead", { dependencies: [{ type: "parent-child", depends_on_id: "parent" }] }),
+  bead("child", "Child bead", {
+    dependencies: [{ type: "parent-child", depends_on_id: "parent" }],
+  }),
   bead("dependency", "Dependency bead"),
-  bead("blocked", "Blocked bead", { dependencies: [{ type: "blocks", depends_on_id: "dependency" }] }),
+  bead("blocked", "Blocked bead", {
+    dependencies: [{ type: "blocks", depends_on_id: "dependency" }],
+  }),
 ];
 
 const browser = await chromium.launch();
@@ -29,7 +41,11 @@ try {
     const copied = [];
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
-      value: { writeText: async (text) => { copied.push(text); } },
+      value: {
+        writeText: async (text) => {
+          copied.push(text);
+        },
+      },
     });
     window.__copiedLinks = copied;
   });
@@ -40,8 +56,19 @@ try {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith("/beads/stream")) return route.abort();
     if (path.endsWith("/beads")) {
-      if (failBeadsLoad) return route.fulfill({ status: 500, json: { error: "fixture data load failed" } });
-      return route.fulfill({ json: { beads, meta: { kind: "demo", humanActor: "reviewer", humanAllowlist: ["reviewer"], pollIntervalMs: 250 } } });
+      if (failBeadsLoad)
+        return route.fulfill({ status: 500, json: { error: "fixture data load failed" } });
+      return route.fulfill({
+        json: {
+          beads,
+          meta: {
+            kind: "demo",
+            humanActor: "reviewer",
+            humanAllowlist: ["reviewer"],
+            pollIntervalMs: 250,
+          },
+        },
+      });
     }
     return route.fulfill({ json: {} });
   });
@@ -50,10 +77,18 @@ try {
   await page.goto(`${base}/p/demo?bead=child&custom=keep#anchor`);
   await page.getByRole("dialog").getByText("Child bead", { exact: true }).waitFor();
   assert.equal(new URL(page.url()).searchParams.get("bead"), "child");
-  assert.equal(await page.getByRole("heading", { name: "Focus", exact: true }).count(), 0, "a query-opened drawer must not opt into Focus");
+  assert.equal(
+    await page.getByRole("heading", { name: "Focus", exact: true }).count(),
+    0,
+    "a query-opened drawer must not opt into Focus",
+  );
   await page.reload();
   await page.getByRole("dialog").getByText("Child bead", { exact: true }).waitFor();
-  assert.equal(page.url(), `${base}/p/demo?bead=child&custom=keep#anchor`, "reload retains the exact share URL");
+  assert.equal(
+    page.url(),
+    `${base}/p/demo?bead=child&custom=keep#anchor`,
+    "reload retains the exact share URL",
+  );
 
   // Parent and dependency navigation update the visible bead query; drawer Back restores it.
   await page.getByRole("dialog").getByText("Parent bead", { exact: true }).click();
@@ -94,18 +129,35 @@ try {
   assert.equal(missingUrl.searchParams.get("custom"), "still");
   assert.equal(missingUrl.hash, "#anchor");
   await page.waitForTimeout(800);
-  assert.equal(await page.getByText("Bead missing not found in this project", { exact: true }).count(), 1, "polling must not duplicate the missing-bead toast");
+  assert.equal(
+    await page.getByText("Bead missing not found in this project", { exact: true }).count(),
+    1,
+    "polling must not duplicate the missing-bead toast",
+  );
 
   // A failed initial list fetch is an error, not evidence that an id is missing.
   failBeadsLoad = true;
   await page.goto(`${base}/p/demo?bead=unloaded&custom=keep#anchor`);
   await page.getByText(/fixture data load failed|Failed to load|Error/i).waitFor();
-  assert.equal(await page.getByText("Bead unloaded not found in this project", { exact: true }).count(), 0);
-  assert.equal(new URL(page.url()).searchParams.get("bead"), "unloaded", "a failed load must leave the link intact");
+  assert.equal(
+    await page.getByText("Bead unloaded not found in this project", { exact: true }).count(),
+    0,
+  );
+  assert.equal(
+    new URL(page.url()).searchParams.get("bead"),
+    "unloaded",
+    "a failed load must leave the link intact",
+  );
   assert.deepEqual(errors, []);
-  console.log("PASS: query drawer links, trail synchronization, read-only copy link, missing feedback, and failed-load guard");
+  console.log(
+    "PASS: query drawer links, trail synchronization, read-only copy link, missing feedback, and failed-load guard",
+  );
 } catch (error) {
-  console.error({ errors, url: page?.url(), body: page ? (await page.locator("body").innerText()).slice(0, 3000) : "" });
+  console.error({
+    errors,
+    url: page?.url(),
+    body: page ? (await page.locator("body").innerText()).slice(0, 3000) : "",
+  });
   throw error;
 } finally {
   await browser.close();

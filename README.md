@@ -132,8 +132,8 @@ These GitHub requests are independent of the optional usage-statistics setting.
 
 When a new version is available, click the sidebar notice to read its release notes.
 A clean main/detached Git checkout can install the exact advertised target with
-**Update now**. Dependencies are restored with `npm ci` and the app is rebuilt.
-The supervised `npm run serve` launcher restarts automatically; other launchers
+**Update now**. Dependencies are restored with `bun install --frozen-lockfile` and the app is rebuilt.
+The supervised `bun run serve` launcher restarts automatically; other launchers
 need a manual restart. Local changes or diverged history must be resolved first.
 Global copies, source downloads, and Docker installations receive the notice with
 manual update instructions. No update is installed automatically.
@@ -142,13 +142,13 @@ See [v0.2.0 release notes](docs/releases/v0.2.0.md) for the first versioned rele
 
 ## Run it
 
-**Prerequisites:** Node 20+ and npm. For live mode you also need the
+**Prerequisites:** Bun 1.4.2+. For live mode you also need the
 [`bd`](https://github.com/gastownhall/beads) binary on your `PATH` and a `.beads`
 repo (`bd init`). No `bd`? The app falls back to demo mode automatically.
 
 ```bash
-npm install
-npm run dev            # http://localhost:3000
+bun install
+bun run dev            # http://localhost:3000
 ```
 
 - **With real data:** run from (or point Settings at) a directory containing a
@@ -199,10 +199,10 @@ docker build -t bead-me-up-scotty .
 docker run -p 3000:3000 bead-me-up-scotty      # → http://localhost:3000
 ```
 
-> The build runs `npm ci`, which needs the committed `package-lock.json` for
+> The build runs `bun install --frozen-lockfile`, which needs the committed `bun.lock` for
 > reproducible installs. The lockfile is tracked in the repo (a `.gitignore`
 > negation keeps it that way even if your global gitignore excludes lockfiles),
-> so a clean clone builds without a prior `npm install`.
+> so a clean clone builds without a prior `bun install`.
 
 The image includes the `bd` CLI, so real data works out of the box — just
 mount your project directory and point `BEADS_REPO` at it:
@@ -243,39 +243,23 @@ Container limitations:
 Install once from a clone, then run `scotty` (or `bead-me-up-scotty`) from **any**
 directory. It starts the production server on a free port (default 3000) and opens
 your browser. Run it from a folder that has a `.beads` repo to jump straight to
-that project; otherwise you get the project picker. Requires Node 20+.
+that project; otherwise you get the project picker. Requires Bun 1.4.2+.
 
 Flags: `-p, --port <n>` · `--no-open` · `--help`.
 
-**Recommended — `npm link` (keep the clone):**
+**Recommended — `bun link` (keep the clone):**
 
 ```bash
 git clone <repo-url> bead-me-up-scotty
 cd bead-me-up-scotty
-npm install
-npm run build
-npm link
+bun install
+bun run build
+bun link
 scotty                 # from anywhere
 ```
 
 The global command is a symlink to the clone, so keep it on disk and re-run
-`npm run build` after pulling changes. Uninstall: `npm rm -g bead-me-up-scotty`.
-
-**Alternative — global copy (clone is deletable):**
-
-```bash
-git clone <repo-url> bead-me-up-scotty
-cd bead-me-up-scotty
-npm install
-rm -rf .next           # ensure a clean build (only the prod build is shipped)
-npm run build
-npm install -g .
-scotty                 # from anywhere; the clone can now be deleted
-```
-
-To update, rebuild and re-run `npm install -g .`. If `npm install -g .` hits a
-permissions error, use a user-owned npm prefix:
-`npm config set prefix ~/.npm-global` and add `~/.npm-global/bin` to your `PATH`.
+`bun run build` after pulling changes. Uninstall: `bun unlink`.
 
 ## Stack
 
@@ -315,9 +299,18 @@ components/           # sidebar, board (dnd), detail drawer, create modal, epics
 
 ## Verify
 
+Bun is the runtime and package manager; `bun.lock` is the only lockfile.
+Biome replaces ESLint and checks the supported migrated rules. Some React
+Compiler and Next-specific ESLint checks have no Biome equivalent; TypeScript
+and browser regression tests remain separate checks. Historical release notes
+describe their original Node/npm releases, not the current development setup.
+
+
 ```bash
-npm run build         # typecheck + production build
-npm run lint          # eslint
+bun run build         # typecheck + production build
+bun run check         # Biome lint, formatting and import checks
+bun run typecheck     # TypeScript
+bun run format        # apply formatting
 ```
 
 ## License
@@ -369,13 +362,13 @@ active **installations**, not people: multiple machines count separately, shared
 servers count once, and offline or opted-out installations are absent. Deleting the preference file restores the default setting; deleting the ID file
 resets the installation identity.
 
-Verify the capture and privacy rules with `node scripts/test-telemetry.mjs`
+Verify the capture and privacy rules with `bun scripts/test-telemetry.mjs`
 (Node 22.18+ for native TypeScript support). The tests use temporary local storage
 and a fake network transport; they do not send production events.
 
 For the Settings browser checks, start an isolated server with
-`XDG_CONFIG_HOME=/tmp/scotty-usage-test POSTHOG_KEY='' BEADS_DEMO=1 SCOTTY_READ_ONLY=1 npm run start -- --port 3197`,
-then run `SCOTTY_TEST_URL=http://localhost:3197 node scripts/test-telemetry-ui.mjs`.
+`XDG_CONFIG_HOME=/tmp/scotty-usage-test POSTHOG_KEY='' BEADS_DEMO=1 SCOTTY_READ_ONLY=1 bun run start -- --port 3197`,
+then run `SCOTTY_TEST_URL=http://localhost:3197 bun scripts/test-telemetry-ui.mjs`.
 The test refuses to run against an installation configured to send events.
 
 ## A small usage signal, and a thank you

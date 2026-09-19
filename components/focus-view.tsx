@@ -1,9 +1,16 @@
 "use client";
 import * as React from "react";
 import { useApp } from "@/components/app-context";
-import { Icon, typeIconName } from "@/components/icons";
 import { PriorityChip } from "@/components/board/bead-card";
-import { isBlocked, blockingDeps, relTime, fmtDateTime, typeColor, catColor } from "@/lib/beads-view";
+import { Icon, typeIconName } from "@/components/icons";
+import {
+  blockingDeps,
+  catColor,
+  fmtDateTime,
+  isBlocked,
+  relTime,
+  typeColor,
+} from "@/lib/beads-view";
 import type { Bead } from "@/lib/schema";
 
 /**
@@ -45,23 +52,34 @@ function assigneeKey(bead: Bead): string {
 }
 
 function assigneeGroups(columns: FocusColumn[]) {
-  const groups = new Map<string, { key: string; label: string; columns: FocusColumn[]; active: boolean }>();
+  const groups = new Map<
+    string,
+    { key: string; label: string; columns: FocusColumn[]; active: boolean }
+  >();
   for (const [columnIndex, column] of columns.entries()) {
     for (const bead of column.items) {
       const key = assigneeKey(bead);
       let group = groups.get(key);
       if (!group) {
-        group = { key, label: bead.assignee?.trim() || "No assignee",
-          columns: columns.map(c => ({ ...c, items: [] })), active: false };
+        group = {
+          key,
+          label: bead.assignee?.trim() || "No assignee",
+          columns: columns.map((c) => ({ ...c, items: [] })),
+          active: false,
+        };
         groups.set(key, group);
       }
       group.columns[columnIndex].items.push(bead);
       group.active ||= column.id === "flight";
     }
   }
-  return [...groups.values()].sort((a, b) =>
-    Number(a.key === "none") - Number(b.key === "none") ||
-    Number(b.active) - Number(a.active) || a.label.localeCompare(b.label) || a.key.localeCompare(b.key));
+  return [...groups.values()].sort(
+    (a, b) =>
+      Number(a.key === "none") - Number(b.key === "none") ||
+      Number(b.active) - Number(a.active) ||
+      a.label.localeCompare(b.label) ||
+      a.key.localeCompare(b.key),
+  );
 }
 
 function laneOf(b: Bead, prefix: string): string | null {
@@ -86,7 +104,11 @@ export function FocusView() {
     if (!prefix) return [];
     const s = new Set<string>();
     for (const b of active) {
-      if (!["in_progress", "hooked", "blocked", "open"].includes(b.status) && !(showRecent && b.status === "closed")) continue;
+      if (
+        !["in_progress", "hooked", "blocked", "open"].includes(b.status) &&
+        !(showRecent && b.status === "closed")
+      )
+        continue;
       const l = laneOf(b, prefix);
       if (l) s.add(l);
     }
@@ -122,14 +144,29 @@ export function FocusView() {
     [active, index, inLane],
   );
 
-  const recentlyFinished = active.filter(b => b.status === "closed" && inLane(b))
+  const recentlyFinished = active
+    .filter((b) => b.status === "closed" && inLane(b))
     .sort((a, b) => completionTime(b) - completionTime(a) || a.id.localeCompare(b.id));
   const recentItems = showAllRecent ? recentlyFinished : recentlyFinished.slice(0, RECENT_LIMIT);
   const columns: FocusColumn[] = [
     { id: "flight", title: "In flight", hint: "in progress or hooked", items: inFlight },
-    { id: "blocked", title: "Blocked", hint: "waiting on a dependency or marked blocked", items: blocked },
+    {
+      id: "blocked",
+      title: "Blocked",
+      hint: "waiting on a dependency or marked blocked",
+      items: blocked,
+    },
     { id: "next", title: "Next up", hint: "ready · P0/P1", items: nextUp },
-    ...(showRecent ? [{ id: "recent", title: "Recently finished", hint: "latest completions", items: recentItems }] : []),
+    ...(showRecent
+      ? [
+          {
+            id: "recent",
+            title: "Recently finished",
+            hint: "latest completions",
+            items: recentItems,
+          },
+        ]
+      : []),
   ];
   const groups = groupBy === "assignee" ? assigneeGroups(columns) : [];
 
@@ -146,14 +183,23 @@ export function FocusView() {
         <span className="flex-1" />
         <label className="flex items-center gap-2 text-[12px] text-[var(--text-2)]">
           Group by
-          <select value={groupBy} onChange={e => setGroupBy(e.target.value === "assignee" ? "assignee" : "none")}
-            className="h-8 rounded-[8px] border border-border bg-[var(--surface-2)] px-2 text-[var(--text)]">
+          <select
+            value={groupBy}
+            onChange={(e) => setGroupBy(e.target.value === "assignee" ? "assignee" : "none")}
+            className="h-8 rounded-[8px] border border-border bg-[var(--surface-2)] px-2 text-[var(--text)]"
+          >
             <option value="none">None</option>
             <option value="assignee">Assignee</option>
           </select>
         </label>
-        <button aria-pressed={showRecent} onClick={() => { setShowRecent(!showRecent); setShowAllRecent(false); }}
-          className="h-8 rounded-[8px] border border-border px-3 text-[12px] aria-pressed:border-[var(--brand)] aria-pressed:bg-[var(--brand-weak)] aria-pressed:text-[var(--brand)]">
+        <button
+          aria-pressed={showRecent}
+          onClick={() => {
+            setShowRecent(!showRecent);
+            setShowAllRecent(false);
+          }}
+          className="h-8 rounded-[8px] border border-border px-3 text-[12px] aria-pressed:border-[var(--brand)] aria-pressed:bg-[var(--brand-weak)] aria-pressed:text-[var(--brand)]"
+        >
           Recently finished
         </button>
         {prefix && lanes.length > 0 && (
@@ -178,36 +224,70 @@ export function FocusView() {
 
       {showRecent && (
         <div className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b border-border px-[22px] py-2 text-[12px] text-[var(--text-2)]">
-          <span aria-live="polite">Showing {recentItems.length} of {recentlyFinished.length} completed beads</span>
+          <span aria-live="polite">
+            Showing {recentItems.length} of {recentlyFinished.length} completed beads
+          </span>
           {recentlyFinished.length > RECENT_LIMIT && (
-            <button onClick={() => setShowAllRecent(!showAllRecent)} className="rounded px-2 py-1 font-medium text-[var(--brand)] hover:bg-[var(--brand-weak)]">
-              {showAllRecent ? `Show latest ${RECENT_LIMIT}` : `Show all ${recentlyFinished.length} completed`}
+            <button
+              onClick={() => setShowAllRecent(!showAllRecent)}
+              className="rounded px-2 py-1 font-medium text-[var(--brand)] hover:bg-[var(--brand-weak)]"
+            >
+              {showAllRecent
+                ? `Show latest ${RECENT_LIMIT}`
+                : `Show all ${recentlyFinished.length} completed`}
             </button>
           )}
-          <span className="text-[var(--text-3)]">Current lane filter applies. Active and blocked work is always shown in full.</span>
+          <span className="text-[var(--text-3)]">
+            Current lane filter applies. Active and blocked work is always shown in full.
+          </span>
         </div>
       )}
       {groupBy === "none" ? (
         <div className="bd-scroll min-h-0 flex-1 overflow-x-auto overflow-y-hidden p-[18px_22px]">
           <div className="flex h-full min-h-0 gap-4">
-            {columns.map(c => <FocusColumnView key={c.id} column={c} />)}
+            {columns.map((c) => (
+              <FocusColumnView key={c.id} column={c} />
+            ))}
           </div>
         </div>
       ) : (
         <div className="bd-scroll min-h-0 flex-1 overflow-auto p-[18px_22px]">
-          {groups.length === 0 ? <p className="p-4 text-[13px] text-[var(--text-3)]">No matching work. Try another lane or include recently finished work.</p> : (
+          {groups.length === 0 ? (
+            <p className="p-4 text-[13px] text-[var(--text-3)]">
+              No matching work. Try another lane or include recently finished work.
+            </p>
+          ) : (
             <div className="min-w-max">
-              <div className="sticky top-0 z-10 mb-2 flex gap-4 bg-[var(--bg)] py-2" aria-hidden="true">
-                <div className="w-[160px] shrink-0 text-[12px] font-medium text-[var(--text-3)]">Assignee</div>
-                {columns.map(c => <div key={c.id} className="w-[280px] shrink-0 text-[13px] font-semibold">{c.title} <span className="font-normal text-[var(--text-3)]">· {c.items.length}</span></div>)}
+              <div
+                className="sticky top-0 z-10 mb-2 flex gap-4 bg-[var(--bg)] py-2"
+                aria-hidden="true"
+              >
+                <div className="w-[160px] shrink-0 text-[12px] font-medium text-[var(--text-3)]">
+                  Assignee
+                </div>
+                {columns.map((c) => (
+                  <div key={c.id} className="w-[280px] shrink-0 text-[13px] font-semibold">
+                    {c.title}{" "}
+                    <span className="font-normal text-[var(--text-3)]">· {c.items.length}</span>
+                  </div>
+                ))}
               </div>
-              {groups.map(group => (
-                <section key={group.key} aria-label={`Assignee: ${group.label}`} className="flex gap-4 border-t border-border py-4">
+              {groups.map((group) => (
+                <section
+                  key={group.key}
+                  aria-label={`Assignee: ${group.label}`}
+                  className="flex gap-4 border-t border-border py-4"
+                >
                   <div className="w-[160px] shrink-0">
                     <h2 className="break-words text-[13px] font-semibold">{group.label}</h2>
-                    <p className="mt-1 text-[11px] text-[var(--text-3)]">{group.key === "none" ? "Not assigned" : "Assigned work"} · {group.columns.reduce((n, c) => n + c.items.length, 0)}</p>
+                    <p className="mt-1 text-[11px] text-[var(--text-3)]">
+                      {group.key === "none" ? "Not assigned" : "Assigned work"} ·{" "}
+                      {group.columns.reduce((n, c) => n + c.items.length, 0)}
+                    </p>
                   </div>
-                  {group.columns.map(c => <FocusColumnView key={c.id} column={c} grouped />)}
+                  {group.columns.map((c) => (
+                    <FocusColumnView key={c.id} column={c} grouped />
+                  ))}
                 </section>
               ))}
             </div>
@@ -220,17 +300,30 @@ export function FocusView() {
 
 function FocusColumnView({ column, grouped = false }: { column: FocusColumn; grouped?: boolean }) {
   return (
-    <section data-focus-column={column.id} aria-label={grouped ? column.title : undefined}
-      className={grouped ? "w-[280px] shrink-0" : "flex h-full min-h-0 w-[320px] shrink-0 flex-col"}>
-      {!grouped && <div className="mb-2 flex flex-wrap items-baseline gap-2 px-1">
-        <h2 className="m-0 text-[13px] font-[650] text-[var(--text)]">{column.title}</h2>
-        <span className="text-[11px] text-[var(--text-3)]">{column.items.length} · {column.hint}</span>
-      </div>}
-      <div className={`rounded-[12px] border border-border bg-[var(--surface-2)] p-2 ${grouped ? "min-h-[70px]" : "bd-scroll min-h-0 flex-1 overflow-y-auto"}`}>
-        {column.items.length === 0 ? <div className="p-4 text-center text-[12px] text-[var(--text-3)]">Nothing here.</div> : (
-          <div className="flex flex-col gap-2">{column.items.map(b => (
-            <FocusCard key={b.id} bead={b} showBlockers={column.id === "blocked"} />
-          ))}</div>
+    <section
+      data-focus-column={column.id}
+      aria-label={grouped ? column.title : undefined}
+      className={grouped ? "w-[280px] shrink-0" : "flex h-full min-h-0 w-[320px] shrink-0 flex-col"}
+    >
+      {!grouped && (
+        <div className="mb-2 flex flex-wrap items-baseline gap-2 px-1">
+          <h2 className="m-0 text-[13px] font-[650] text-[var(--text)]">{column.title}</h2>
+          <span className="text-[11px] text-[var(--text-3)]">
+            {column.items.length} · {column.hint}
+          </span>
+        </div>
+      )}
+      <div
+        className={`rounded-[12px] border border-border bg-[var(--surface-2)] p-2 ${grouped ? "min-h-[70px]" : "bd-scroll min-h-0 flex-1 overflow-y-auto"}`}
+      >
+        {column.items.length === 0 ? (
+          <div className="p-4 text-center text-[12px] text-[var(--text-3)]">Nothing here.</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {column.items.map((b) => (
+              <FocusCard key={b.id} bead={b} showBlockers={column.id === "blocked"} />
+            ))}
+          </div>
         )}
       </div>
     </section>
@@ -292,7 +385,10 @@ function FocusCard({ bead, showBlockers }: { bead: Bead; showBlockers?: boolean 
       }`}
     >
       <div className="mb-[5px] flex items-center gap-[7px]">
-        <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: catColor(bead.status) }} />
+        <span
+          className="h-2 w-2 flex-shrink-0 rounded-full"
+          style={{ background: catColor(bead.status) }}
+        />
         <span className="font-mono text-[10.5px] text-[var(--text-3)]">{bead.id}</span>
         <span className="flex-1" />
         <PriorityChip p={bead.priority} />

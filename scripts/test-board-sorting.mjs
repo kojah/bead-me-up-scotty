@@ -53,7 +53,18 @@ try {
       orders[body.columnId] = body.ids;
       return route.fulfill({ json: { orders } });
     }
-    if (path.endsWith("/beads")) return route.fulfill({ json: { beads, meta: { kind: "demo", humanActor: "reviewer", humanAllowlist: ["reviewer"], pollIntervalMs: 300000 } } });
+    if (path.endsWith("/beads"))
+      return route.fulfill({
+        json: {
+          beads,
+          meta: {
+            kind: "demo",
+            humanActor: "reviewer",
+            humanAllowlist: ["reviewer"],
+            pollIntervalMs: 300000,
+          },
+        },
+      });
     if (path.endsWith("/status")) {
       const body = request.postDataJSON();
       const id = path.split("/").at(-2);
@@ -62,17 +73,26 @@ try {
       writes.push({ kind: "status", id, body });
       return route.fulfill({ json: target ?? {} });
     }
-    return route.fulfill({ json: beads.find((candidate) => path.endsWith(`/beads/${candidate.id}`)) ?? {} });
+    return route.fulfill({
+      json: beads.find((candidate) => path.endsWith(`/beads/${candidate.id}`)) ?? {},
+    });
   });
 
   const sort = () => page.getByLabel("Sort board cards", { exact: true });
   const card = (id) => page.locator(`[data-keyboard-bead-id="${id}"]`);
-  const column = (name) => page.getByText(name, { exact: true }).locator("xpath=ancestor::section[1]");
-  const readyIds = () => column("Ready").locator("article").evaluateAll((cards) => cards.map((card) => card.dataset.keyboardBeadId));
+  const column = (name) =>
+    page.getByText(name, { exact: true }).locator("xpath=ancestor::section[1]");
+  const readyIds = () =>
+    column("Ready")
+      .locator("article")
+      .evaluateAll((cards) => cards.map((card) => card.dataset.keyboardBeadId));
   const expectReady = async (ids, message) => assert.deepEqual(await readyIds(), ids, message);
   const drag = async (sourceId, targetId) => {
     const source = card(sourceId);
-    const target = targetId === "in_progress" ? column("In Progress").locator("article").first() : card(targetId);
+    const target =
+      targetId === "in_progress"
+        ? column("In Progress").locator("article").first()
+        : card(targetId);
     await source.scrollIntoViewIfNeeded();
     await target.scrollIntoViewIfNeeded();
     const from = await source.boundingBox();
@@ -95,18 +115,30 @@ try {
   await page.getByRole("heading", { name: "Board", exact: true }).waitFor();
   await card("manual-a").waitFor();
   assert.equal(await sort().inputValue(), "manual", "unknown saved mode falls back to manual");
-  await expectReady(["manual-a", "manual-z", "p0-old", "z-tie", "a-tie", "p1-new", "p2-new", "moving"], "manual is the default and honors saved order; same-priority unranked fallback keeps fixture order");
+  await expectReady(
+    ["manual-a", "manual-z", "p0-old", "z-tie", "a-tie", "p1-new", "p2-new", "moving"],
+    "manual is the default and honors saved order; same-priority unranked fallback keeps fixture order",
+  );
 
   await sort().selectOption("priority");
-  await expectReady(["p0-old", "p1-new", "a-tie", "z-tie", "p2-new", "moving", "manual-a", "manual-z"], "priority sorts ascending, then most-recent update, then ID for exact ties");
+  await expectReady(
+    ["p0-old", "p1-new", "a-tie", "z-tie", "p2-new", "moving", "manual-a", "manual-z"],
+    "priority sorts ascending, then most-recent update, then ID for exact ties",
+  );
   await page.reload();
   await sort().waitFor();
   await card("p0-old").waitFor();
   assert.equal(await sort().inputValue(), "priority", "selected sort mode survives reload");
-  await expectReady(["p0-old", "p1-new", "a-tie", "z-tie", "p2-new", "moving", "manual-a", "manual-z"], "manual order is retained while an automatic mode is selected");
+  await expectReady(
+    ["p0-old", "p1-new", "a-tie", "z-tie", "p2-new", "moving", "manual-a", "manual-z"],
+    "manual order is retained while an automatic mode is selected",
+  );
 
   await sort().selectOption("updated");
-  await expectReady(["p1-new", "p2-new", "a-tie", "z-tie", "moving", "manual-a", "manual-z", "p0-old"], "recently updated is descending, with priority and ID tie breakers");
+  await expectReady(
+    ["p1-new", "p2-new", "a-tie", "z-tie", "moving", "manual-a", "manual-z", "p0-old"],
+    "recently updated is descending, with priority and ID tie breakers",
+  );
 
   // The live isolated server starts read-only. A drag must not produce either sort or status writes.
   const readOnlyWrites = writes.length;
@@ -115,7 +147,9 @@ try {
   assert.equal(writes.length, readOnlyWrites, "read-only board blocks drag writes");
 
   // Enable editing only for this isolated demo browser session, then verify automated modes permit status moves without persisting an order.
-  const unlock = await context.request.put(`${base}/api/viewer-mode`, { data: { readOnly: false } });
+  const unlock = await context.request.put(`${base}/api/viewer-mode`, {
+    data: { readOnly: false },
+  });
   assert.equal(unlock.status(), 200, "isolated demo can be unlocked for mutation assertions");
   await page.reload();
   await sort().waitFor();
@@ -123,12 +157,23 @@ try {
   const priorityInternalWrites = writes.length;
   await drag("p0-old", "p1-new");
   await page.waitForTimeout(250);
-  assert.equal(writes.length, priorityInternalWrites, "priority within-column drag does not write an order or status");
+  assert.equal(
+    writes.length,
+    priorityInternalWrites,
+    "priority within-column drag does not write an order or status",
+  );
   const priorityWrites = writes.length;
-  const priorityStatus = page.waitForResponse((response) => response.url().endsWith("/beads/moving/status") && response.request().method() === "POST");
+  const priorityStatus = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/beads/moving/status") && response.request().method() === "POST",
+  );
   await drag("moving", "in-progress");
   await priorityStatus;
-  assert.deepEqual(writes.slice(priorityWrites).map((write) => write.kind), ["status"], "priority cross-column drag writes status only");
+  assert.deepEqual(
+    writes.slice(priorityWrites).map((write) => write.kind),
+    ["status"],
+    "priority cross-column drag writes status only",
+  );
   assert.equal(writes.at(-1).body.status, "in_progress");
 
   // Restore the fixture card to Ready and test the other automatic mode separately.
@@ -139,29 +184,58 @@ try {
   const updatedInternalWrites = writes.length;
   await drag("p0-old", "p1-new");
   await page.waitForTimeout(250);
-  assert.equal(writes.length, updatedInternalWrites, "updated within-column drag does not write an order or status");
+  assert.equal(
+    writes.length,
+    updatedInternalWrites,
+    "updated within-column drag does not write an order or status",
+  );
   const updatedWrites = writes.length;
-  const updatedStatus = page.waitForResponse((response) => response.url().endsWith("/beads/moving/status") && response.request().method() === "POST");
+  const updatedStatus = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/beads/moving/status") && response.request().method() === "POST",
+  );
   await drag("moving", "in-progress");
   await updatedStatus;
-  assert.deepEqual(writes.slice(updatedWrites).map((write) => write.kind), ["status"], "updated cross-column drag writes status only");
+  assert.deepEqual(
+    writes.slice(updatedWrites).map((write) => write.kind),
+    ["status"],
+    "updated cross-column drag writes status only",
+  );
 
   // Returning to Manual exposes the preserved saved ordering and is the sole mode that persists an in-column reorder.
   beads.find((candidate) => candidate.id === "moving").status = "open";
   await page.reload();
   await sort().waitFor();
   await sort().selectOption("manual");
-  await expectReady(["manual-a", "manual-z", "p0-old", "z-tie", "a-tie", "p1-new", "p2-new", "moving"], "manual order remains intact after changing automatic modes");
+  await expectReady(
+    ["manual-a", "manual-z", "p0-old", "z-tie", "a-tie", "p1-new", "p2-new", "moving"],
+    "manual order remains intact after changing automatic modes",
+  );
   const manualWrites = writes.length;
-  const orderWrite = page.waitForResponse((response) => response.url().endsWith("/order") && response.request().method() === "PUT");
+  const orderWrite = page.waitForResponse(
+    (response) => response.url().endsWith("/order") && response.request().method() === "PUT",
+  );
   await drag("manual-z", "manual-a");
   await orderWrite;
-  assert.deepEqual(writes.slice(manualWrites).map((write) => write.kind), ["order"], "only manual within-column dragging persists an order");
-  assert.deepEqual(writes.at(-1).body, { columnId: "ready", ids: ["manual-z", "manual-a", "p0-old", "z-tie", "a-tie", "p1-new", "p2-new", "moving"] });
+  assert.deepEqual(
+    writes.slice(manualWrites).map((write) => write.kind),
+    ["order"],
+    "only manual within-column dragging persists an order",
+  );
+  assert.deepEqual(writes.at(-1).body, {
+    columnId: "ready",
+    ids: ["manual-z", "manual-a", "p0-old", "z-tie", "a-tie", "p1-new", "p2-new", "moving"],
+  });
   assert.deepEqual(errors, []);
-  console.log("PASS: board sort defaults, saved/manual ordering, automatic deterministic sorting, persisted preferences, and drag write guards");
+  console.log(
+    "PASS: board sort defaults, saved/manual ordering, automatic deterministic sorting, persisted preferences, and drag write guards",
+  );
 } catch (error) {
-  console.error({ writes, url: page?.url(), body: page ? (await page.locator("body").innerText()).slice(0, 2500) : "" });
+  console.error({
+    writes,
+    url: page?.url(),
+    body: page ? (await page.locator("body").innerText()).slice(0, 2500) : "",
+  });
   throw error;
 } finally {
   await browser.close();

@@ -34,9 +34,7 @@ export async function GET(req: Request, { params }: Ctx) {
       };
 
       send(": connected\n\n");
-      const unsub = subscribeBeadsChange(projectId, () =>
-        send("event: change\ndata: 1\n\n"),
-      );
+      const unsub = subscribeBeadsChange(projectId, () => send("event: change\ndata: 1\n\n"));
       const heartbeat = setInterval(() => send(": ping\n\n"), HEARTBEAT_MS);
 
       let unregister = () => {};

@@ -1,20 +1,19 @@
 "use client";
-import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as React from "react";
 import { toast } from "sonner";
-import { Icon } from "@/components/icons";
-import { useTheme } from "@/components/theme-provider";
-import { THEMES } from "@/lib/themes";
 import { useApp } from "@/components/app-context";
-import { api, type DoctorResponse } from "@/lib/api-client";
-import { useNotificationPrefs, type NotifPrefs } from "@/hooks/use-notifications";
+import { Icon } from "@/components/icons";
+import { KeyboardHelpDialog, ShortcutKeys } from "@/components/keyboard-help-dialog";
+import { ViewerModeSetting } from "@/components/read-only-banner";
+import { useTheme } from "@/components/theme-provider";
+import { UsageStatisticsSetting } from "@/components/usage-statistics";
 import { useBoardPrefs } from "@/hooks/use-board-prefs";
 import { useDefaultFocus } from "@/hooks/use-default-view";
-import { ViewerModeSetting } from "@/components/read-only-banner";
+import { type NotifPrefs, useNotificationPrefs } from "@/hooks/use-notifications";
+import { api, type DoctorResponse } from "@/lib/api-client";
 import { KEYBOARD_SHORTCUT_GROUPS } from "@/lib/keyboard-shortcuts";
-import { KeyboardHelpDialog, ShortcutKeys } from "@/components/keyboard-help-dialog";
-
-import { UsageStatisticsSetting } from "@/components/usage-statistics";
+import { THEMES } from "@/lib/themes";
 
 const inputClass =
   "h-[38px] rounded-[9px] border border-border bg-[var(--surface-2)] px-3 text-[12.5px] text-[var(--text)] outline-none focus:border-[var(--brand)]";
@@ -37,7 +36,13 @@ export function SettingsView() {
         </span>
       </header>
       <div className="bd-scroll min-h-0 flex-1 overflow-y-auto p-[24px_22px]">
-        <div className="mx-auto mb-[18px] flex max-w-[620px] flex-col gap-[18px]"><ViewerModeSetting /><DefaultViewSetting /><Card title="Usage statistics"><UsageStatisticsSetting /></Card></div>
+        <div className="mx-auto mb-[18px] flex max-w-[620px] flex-col gap-[18px]">
+          <ViewerModeSetting />
+          <DefaultViewSetting />
+          <Card title="Usage statistics">
+            <UsageStatisticsSetting />
+          </Card>
+        </div>
         {data ? (
           <SettingsForm key={key} data={data} />
         ) : (
@@ -54,12 +59,14 @@ function DefaultViewSetting() {
     <Card title="Default view">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <div id="default-focus-label" className="text-[13px]">Use Focus as the default view</div>
+          <div id="default-focus-label" className="text-[13px]">
+            Use Focus as the default view
+          </div>
           <p id="default-focus-description" className="m-0 mt-1 text-[11.5px] text-[var(--text-3)]">
-            Off opens projects in Board. Turn on to open in Focus instead, showing
-            current work, blockers, and high-priority next steps. Links to a specific
-            view open that view, including on reload. Switching views does not change this setting.
-            Saved automatically for all projects in this browser.
+            Off opens projects in Board. Turn on to open in Focus instead, showing current work,
+            blockers, and high-priority next steps. Links to a specific view open that view,
+            including on reload. Switching views does not change this setting. Saved automatically
+            for all projects in this browser.
           </p>
         </div>
         <button
@@ -68,8 +75,11 @@ function DefaultViewSetting() {
           aria-labelledby="default-focus-label"
           aria-describedby="default-focus-description"
           onClick={() => {
-            try { save(!enabled); }
-            catch { toast.error("Could not save the default view. Browser storage may be unavailable."); }
+            try {
+              save(!enabled);
+            } catch {
+              toast.error("Could not save the default view. Browser storage may be unavailable.");
+            }
           }}
           className="flex h-[34px] shrink-0 items-center gap-[7px] rounded-[9px] border border-border bg-[var(--surface-2)] px-[13px] text-[12.5px] hover:bg-[var(--surface-3)]"
         >
@@ -90,7 +100,9 @@ function SettingsForm({ data }: { data: DoctorResponse }) {
   // Fallback poll interval, edited in seconds. Clamped to the config API's
   // accepted range (1–300s = 1000–300000ms) before saving; falls back to the
   // current value when the field is left blank or non-numeric.
-  const [pollSec, setPollSec] = React.useState(String(Math.round(data.config.pollIntervalMs / 1000)));
+  const [pollSec, setPollSec] = React.useState(
+    String(Math.round(data.config.pollIntervalMs / 1000)),
+  );
   const clampSec = (s: string) => {
     const n = Math.round(Number(s));
     return Number.isFinite(n) && n > 0
@@ -215,8 +227,8 @@ function SettingsForm({ data }: { data: DoctorResponse }) {
           <div>
             <div className="text-[13px]">Theme</div>
             <div className="text-[11.5px] text-[var(--text-3)]">
-              Saved per project — each project remembers its own theme on this device.
-              Currently <span className="font-[550] text-[var(--text-2)]">{theme.name}</span>.
+              Saved per project — each project remembers its own theme on this device. Currently{" "}
+              <span className="font-[550] text-[var(--text-2)]">{theme.name}</span>.
             </div>
           </div>
           <div className="grid grid-cols-2 gap-[8px] sm:grid-cols-3">
@@ -369,8 +381,8 @@ function UpdatesCard() {
         <div>
           <div className="text-[13px]">Check for new versions</div>
           <div className="text-[11.5px] text-[var(--text-3)]">
-            Check GitHub every five minutes and show new versions in the sidebar.
-            This choice applies to this browser.
+            Check GitHub every five minutes and show new versions in the sidebar. This choice
+            applies to this browser.
           </div>
         </div>
         <button
@@ -386,16 +398,25 @@ function UpdatesCard() {
       </div>
       <label className="mt-4 flex items-center justify-between gap-4 text-[13px]">
         Update channel
-        <select aria-label="Update channel" value={prefs.updateChannel}
-          onChange={e => setPrefs({ ...prefs, updateChannel: e.target.value === "development" ? "development" : "stable" })}
-          className="rounded-lg border border-border bg-[var(--surface-2)] p-2">
+        <select
+          aria-label="Update channel"
+          value={prefs.updateChannel}
+          onChange={(e) =>
+            setPrefs({
+              ...prefs,
+              updateChannel: e.target.value === "development" ? "development" : "stable",
+            })
+          }
+          className="rounded-lg border border-border bg-[var(--surface-2)] p-2"
+        >
           <option value="stable">Stable releases (recommended)</option>
           <option value="development">Development (main)</option>
         </select>
       </label>
       <p className="mt-2 text-[11.5px] text-[var(--text-3)]">
         Stable follows published versions and includes release notes. Development follows the latest
-        commits on main and requires a Git checkout. Updates only install when you choose Update now.
+        commits on main and requires a Git checkout. Updates only install when you choose Update
+        now.
       </p>
     </Card>
   );
@@ -420,8 +441,8 @@ function GamificationCard() {
         <div>
           <div className="text-[13px]">Productivity XP &amp; levels</div>
           <div className="text-[11.5px] text-[var(--text-3)]">
-            Earn XP for closing beads (weighted by priority and how many they unblock);
-            a level/progress bar appears in the sidebar. Derived from bd history — opt-in.
+            Earn XP for closing beads (weighted by priority and how many they unblock); a
+            level/progress bar appears in the sidebar. Derived from bd history — opt-in.
           </div>
         </div>
         <button
@@ -459,7 +480,9 @@ function NotificationsCard() {
         className="h-4 w-4 cursor-pointer disabled:opacity-40"
         style={{ accentColor: "var(--brand)" }}
       />
-      <span className={`text-[13px] ${prefs.enabled ? "text-[var(--text-2)]" : "text-[var(--text-3)]"}`}>
+      <span
+        className={`text-[13px] ${prefs.enabled ? "text-[var(--text-2)]" : "text-[var(--text-3)]"}`}
+      >
         {label}
       </span>
     </label>

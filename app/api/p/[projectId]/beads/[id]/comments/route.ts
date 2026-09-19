@@ -1,11 +1,14 @@
-import { getStore } from "@/lib/store";
+import { fail, ok } from "@/lib/api";
 import { getConfig } from "@/lib/config";
 import { addCommentSchema } from "@/lib/schema";
-import { ok, fail } from "@/lib/api";
+import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request, { params }: { params: Promise<{ projectId: string; id: string }> }) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ projectId: string; id: string }> },
+) {
   try {
     const { projectId, id } = await params;
     const store = await getStore(projectId);

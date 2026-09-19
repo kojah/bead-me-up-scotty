@@ -1,21 +1,21 @@
 "use client";
 import * as React from "react";
-import { GateApproval } from "@/components/gate-approval";
 import { useApp } from "@/components/app-context";
-import { useRespondHuman, useDismissHuman } from "@/hooks/use-beads";
-import { Icon, typeIconName } from "@/components/icons";
 import { OriginBadge } from "@/components/board/bead-card";
+import { GateApproval } from "@/components/gate-approval";
+import { Icon, typeIconName } from "@/components/icons";
+import { useDismissHuman, useRespondHuman } from "@/hooks/use-beads";
+import { api } from "@/lib/api-client";
 import { beadOrigin } from "@/lib/attribution";
 import {
+  fmtDateTime,
+  gateBlocks,
   needsHuman,
   readyHumanGate,
-  gateBlocks,
-  typeColor,
   relTime,
-  fmtDateTime,
+  typeColor,
 } from "@/lib/beads-view";
 import { reviewLinks } from "@/lib/review-links";
-import { api } from "@/lib/api-client";
 import type { Bead } from "@/lib/schema";
 
 /**
@@ -30,10 +30,7 @@ import type { Bead } from "@/lib/schema";
 export function NeedsYouView() {
   const { beads, index } = useApp();
   const inbox = React.useMemo(() => beads.filter(needsHuman), [beads]);
-  const gates = React.useMemo(
-    () => beads.filter((b) => readyHumanGate(b, index)),
-    [beads, index],
-  );
+  const gates = React.useMemo(() => beads.filter((b) => readyHumanGate(b, index)), [beads, index]);
   const total = inbox.length + gates.length;
 
   return (
@@ -49,9 +46,9 @@ export function NeedsYouView() {
         {total === 0 ? (
           <div className="p-10 text-center text-[13px] text-[var(--text-3)]">
             🎉 Nothing needs you right now. Agents flag beads here with{" "}
-            <span className="font-mono">bd human</span>, and human-approval gates
-            (<span className="font-mono">bd gate create --type human</span>) show
-            up once their blockers clear.
+            <span className="font-mono">bd human</span>, and human-approval gates (
+            <span className="font-mono">bd gate create --type human</span>) show up once their
+            blockers clear.
           </div>
         ) : (
           <div className="mx-auto flex max-w-3xl flex-col gap-3">
@@ -71,23 +68,34 @@ export function NeedsYouView() {
 function ReviewLinks({ bead }: { bead: Bead }) {
   const { projectId } = useApp();
   const links = reviewLinks(bead);
-  if (!links.length) return (
-    <p className="mb-3 text-[12px] text-[var(--text-3)]">
-      No supporting links found. Review the bead details before deciding.
-    </p>
-  );
+  if (!links.length)
+    return (
+      <p className="mb-3 text-[12px] text-[var(--text-3)]">
+        No supporting links found. Review the bead details before deciding.
+      </p>
+    );
   return (
     <div className="mb-3">
-      <div className="mb-1 text-[11px] font-semibold text-[var(--text-3)]">Links &amp; attachments</div>
+      <div className="mb-1 text-[11px] font-semibold text-[var(--text-3)]">
+        Links &amp; attachments
+      </div>
       <div className="flex flex-wrap gap-[6px]">
-        {links.map(link => {
+        {links.map((link) => {
           const attachment = link.startsWith("attachment://");
           const href = attachment ? api.attachments.urlFor(projectId, link) : link;
-          const label = attachment || link.startsWith("/api/p/")
-            ? `Attachment: ${link.split("/").at(-1)}` : link.replace(/^https?:\/\//i, "");
+          const label =
+            attachment || link.startsWith("/api/p/")
+              ? `Attachment: ${link.split("/").at(-1)}`
+              : link.replace(/^https?:\/\//i, "");
           return (
-            <a key={link} href={href} target="_blank" rel="noopener noreferrer" title={href}
-              className="flex h-8 max-w-[300px] items-center gap-[6px] rounded-[9px] border border-border bg-[var(--surface-2)] px-[11px] text-[12px] text-[var(--brand)] hover:underline">
+            <a
+              key={link}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={href}
+              className="flex h-8 max-w-[300px] items-center gap-[6px] rounded-[9px] border border-border bg-[var(--surface-2)] px-[11px] text-[12px] text-[var(--brand)] hover:underline"
+            >
               <Icon name="link" size={13} className="flex-shrink-0" />
               <span className="truncate">{label}</span>
             </a>
@@ -193,7 +201,11 @@ function NeedsYouCard({ bead }: { bead: Bead }) {
       }`}
     >
       <div className="mb-1 flex items-center gap-2">
-        <Icon name={typeIconName(bead.issue_type)} size={14} style={{ color: typeColor(bead.issue_type) }} />
+        <Icon
+          name={typeIconName(bead.issue_type)}
+          size={14}
+          style={{ color: typeColor(bead.issue_type) }}
+        />
         <button
           onClick={() => openDetail(bead.id)}
           className="font-mono text-[11px] text-[var(--text-3)] hover:text-[var(--text)]"

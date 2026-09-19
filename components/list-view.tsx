@@ -1,45 +1,45 @@
 "use client";
-import * as React from "react";
 import {
+  closestCenter,
   DndContext,
+  type DragEndEvent,
   PointerSensor,
   useSensor,
   useSensors,
-  closestCenter,
-  type DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
   arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Icon, typeIconName } from "@/components/icons";
+import * as React from "react";
 import { useApp } from "@/components/app-context";
-import { PriorityChip, OriginBadge } from "@/components/board/bead-card";
+import { OriginBadge, PriorityChip } from "@/components/board/bead-card";
 import { CopyableId } from "@/components/copyable-id";
 import { FilterBar } from "@/components/filter-bar";
-import { useOrder, useSetOrder } from "@/hooks/use-order";
+import { Icon, typeIconName } from "@/components/icons";
 import { useSetStatus } from "@/hooks/use-beads";
+import { useMobile } from "@/hooks/use-mobile";
+import { useOrder, useSetOrder } from "@/hooks/use-order";
 import { useUrlFilters } from "@/hooks/use-url-filters";
-import { matchesFilters, labelOptionsFrom, assigneeOptionsFrom } from "@/lib/filters";
-import { BOARD_COLUMNS, COLUMN_ORDER, colOf } from "@/lib/board-columns";
 import { beadOrigin, originTitle } from "@/lib/attribution";
 import {
-  catColor,
-  statusLabel,
-  typeColor,
   avatarColor,
+  catColor,
+  childrenCountMap,
+  fmtDateTime,
   initials,
   isBlocked,
   parentOf,
-  childrenCountMap,
   relTime,
-  fmtDateTime,
+  statusLabel,
+  typeColor,
 } from "@/lib/beads-view";
+import { BOARD_COLUMNS, COLUMN_ORDER, colOf } from "@/lib/board-columns";
+import { assigneeOptionsFrom, labelOptionsFrom, matchesFilters } from "@/lib/filters";
 import { type Bead } from "@/lib/schema";
-import { useMobile } from "@/hooks/use-mobile";
 
 /**
  * Priority assumed for a bead with no parent epic when breaking ties. Medium, so
@@ -55,15 +55,23 @@ function rankOf(order: string[] | undefined, id: string): number {
 }
 
 export function ListView() {
-  const { beads, index, humanAllowlist, openDetail, openCreate, openEpic, loading, projectId, readOnly } =
-    useApp();
+  const {
+    beads,
+    index,
+    humanAllowlist,
+    openDetail,
+    openCreate,
+    openEpic,
+    loading,
+    projectId,
+    readOnly,
+  } = useApp();
   const setStatus = useSetStatus();
   const { data: orderData } = useOrder(projectId);
   const setOrder = useSetOrder(projectId);
   const orders = React.useMemo(() => orderData?.orders ?? {}, [orderData]);
 
-  const { filters, setFilters, showArchived, setShowArchived, clearFilters } =
-    useUrlFilters();
+  const { filters, setFilters, showArchived, setShowArchived, clearFilters } = useUrlFilters();
   // Derived from ALL beads (not the filtered set) so selecting one label
   // doesn't make the remaining options vanish from the dropdown.
   const labelOptions = React.useMemo(() => labelOptionsFrom(beads), [beads]);

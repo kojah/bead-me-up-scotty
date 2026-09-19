@@ -1,6 +1,6 @@
 "use client";
-import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as React from "react";
 import { api } from "@/lib/api-client";
 
 const KEY = ["viewer-mode"];
@@ -12,7 +12,9 @@ export function useViewerMode() {
   React.useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;
     const channel = new BroadcastChannel(CHANNEL);
-    channel.onmessage = () => { void qc.invalidateQueries({ queryKey: KEY }); };
+    channel.onmessage = () => {
+      void qc.invalidateQueries({ queryKey: KEY });
+    };
     return () => channel.close();
   }, [qc]);
   const change = useMutation({

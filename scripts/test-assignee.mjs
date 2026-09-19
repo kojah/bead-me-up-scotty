@@ -25,7 +25,10 @@ const beads = [
   bead("carol-alpha", "Carol alpha task", { assignee: "Carol", labels: ["alpha"] }),
   bead("blank-alpha", "Blank alpha task", { assignee: "   ", labels: ["alpha"] }),
   bead("missing-beta", "Missing beta task", { labels: ["beta"] }),
-  bead("literal-sentinel", "Literal sentinel task", { assignee: "__unassigned__", labels: ["alpha"] }),
+  bead("literal-sentinel", "Literal sentinel task", {
+    assignee: "__unassigned__",
+    labels: ["alpha"],
+  }),
 ];
 
 const allIds = beads.map((b) => b.id).sort();
@@ -41,7 +44,10 @@ try {
     if (path.endsWith("/beads/stream")) return route.abort();
     if (path.endsWith("/beads")) {
       return route.fulfill({
-        json: { beads, meta: { kind: "demo", humanActor: "reviewer", humanAllowlist: ["reviewer"] } },
+        json: {
+          beads,
+          meta: { kind: "demo", humanActor: "reviewer", humanAllowlist: ["reviewer"] },
+        },
       });
     }
     return route.fulfill({ json: beads.find((b) => path.endsWith(`/beads/${b.id}`)) ?? {} });
@@ -55,9 +61,13 @@ try {
   const option = (name) => page.getByRole("menuitemcheckbox", { name, exact: true });
   const clearAll = () => page.getByTitle("Clear all filters", { exact: true });
   const cardIds = async (view) => {
-    const cards = view === "Board" ? page.locator("main section article") : page.locator("main [role=button]");
+    const cards =
+      view === "Board" ? page.locator("main section article") : page.locator("main [role=button]");
     const text = await cards.allTextContents();
-    return beads.filter((b) => text.some((card) => card.includes(b.id))).map((b) => b.id).sort();
+    return beads
+      .filter((b) => text.some((card) => card.includes(b.id)))
+      .map((b) => b.id)
+      .sort();
   };
   const expectIds = async (view, wanted, message) => {
     for (const id of wanted) await page.getByTitle(`Copy ${id}`, { exact: true }).waitFor();
@@ -75,10 +85,22 @@ try {
     await option("Alice").click();
     await option("Bob").click();
     // The unselected facets are still offered from the complete, unfiltered fixture set.
-    assert.equal(await option("Carol").count(), 1, `${view}: Carol remains selectable after filtering`);
-    assert.equal(await option("Unassigned").count(), 1, `${view}: Unassigned remains selectable after filtering`);
+    assert.equal(
+      await option("Carol").count(),
+      1,
+      `${view}: Carol remains selectable after filtering`,
+    );
+    assert.equal(
+      await option("Unassigned").count(),
+      1,
+      `${view}: Unassigned remains selectable after filtering`,
+    );
     await page.keyboard.press("Escape");
-    await expectIds(view, ["alice-alpha", "alice-beta", "bob-alpha"], "multiple assignees match as OR");
+    await expectIds(
+      view,
+      ["alice-alpha", "alice-beta", "bob-alpha"],
+      "multiple assignees match as OR",
+    );
 
     await labels().click();
     await option("alpha").click();
@@ -89,11 +111,19 @@ try {
     await expectIds(view, allIds, "clear-all restores every bead");
 
     await selectAssignees("Unassigned");
-    await expectIds(view, ["blank-alpha", "missing-beta"], "blank and missing assignees match Unassigned only");
+    await expectIds(
+      view,
+      ["blank-alpha", "missing-beta"],
+      "blank and missing assignees match Unassigned only",
+    );
     await clearAll().click();
 
     await selectAssignees("__unassigned__");
-    await expectIds(view, ["literal-sentinel"], "literal sentinel-like usernames remain independent");
+    await expectIds(
+      view,
+      ["literal-sentinel"],
+      "literal sentinel-like usernames remain independent",
+    );
     await clearAll().click();
   }
 
@@ -102,7 +132,9 @@ try {
   await page.getByRole("heading", { name: "List", exact: true }).waitFor();
   await exerciseView("List");
   assert.deepEqual(errors, []);
-  console.log("PASS: Board and List assignee facet OR matching, Unassigned normalization, facet intersection, stable options, clear-all, and sentinel-like usernames");
+  console.log(
+    "PASS: Board and List assignee facet OR matching, Unassigned normalization, facet intersection, stable options, clear-all, and sentinel-like usernames",
+  );
 } finally {
   await browser.close();
 }

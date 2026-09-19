@@ -1,8 +1,8 @@
-import { getStore } from "@/lib/store";
+import { z } from "zod";
+import { fail, ok } from "@/lib/api";
 import { getConfig } from "@/lib/config";
 import { addDepSchema } from "@/lib/schema";
-import { ok, fail } from "@/lib/api";
-import { z } from "zod";
+import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 

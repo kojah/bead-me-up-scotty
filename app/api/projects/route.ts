@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { listProjects, addProject, DEMO_PROJECT } from "@/lib/config";
-import type { ProjectEntry, DemoProject } from "@/lib/config";
-import { ok, fail } from "@/lib/api";
 import { z } from "zod";
+import { fail, ok } from "@/lib/api";
+import type { DemoProject, ProjectEntry } from "@/lib/config";
+import { addProject, DEMO_PROJECT, listProjects } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 

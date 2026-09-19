@@ -1,10 +1,10 @@
 "use client";
-import * as React from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import * as React from "react";
 import type { Bead } from "@/lib/schema";
-import { BeadCard } from "./bead-card";
 import { cn } from "@/lib/utils";
+import { BeadCard } from "./bead-card";
 
 export interface ColumnDef {
   id: string;
@@ -57,7 +57,10 @@ export function Column({
             : "outline-2 outline-transparent",
         )}
       >
-        <SortableContext items={cards.map((b) => b.id)} strategy={manualSort ? verticalListSortingStrategy : () => null}>
+        <SortableContext
+          items={cards.map((b) => b.id)}
+          strategy={manualSort ? verticalListSortingStrategy : () => null}
+        >
           {cards.map((b) => (
             <BeadCard key={b.id} bead={b} childCount={childCounts?.get(b.id) ?? 0} />
           ))}

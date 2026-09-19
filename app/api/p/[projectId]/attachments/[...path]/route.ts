@@ -1,8 +1,8 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { getProject, DEMO_PROJECT, ConfigError } from "@/lib/config";
 import { fail } from "@/lib/api";
+import { ConfigError, DEMO_PROJECT, getProject } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 

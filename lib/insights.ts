@@ -1,9 +1,9 @@
 import "server-only";
-import type { Bead } from "./schema";
-import { originOf, type Origin } from "./attribution";
-import type { RawInteraction } from "./interactions";
-import { BOARD_COLUMNS, colOf } from "./board-columns";
+import { type Origin, originOf } from "./attribution";
 import { makeIndex } from "./beads-view";
+import { BOARD_COLUMNS, colOf } from "./board-columns";
+import type { RawInteraction } from "./interactions";
+import type { Bead } from "./schema";
 
 /**
  * Flow metrics for the Insights dashboard, derived from the bead list plus the
@@ -143,8 +143,7 @@ export function computeInsights(
   const dur = { all: [] as number[], human: [] as number[], agent: [] as number[] };
   for (const c of closes) {
     if (c.at < start || c.at > now) continue;
-    const startT =
-      firstInProgress.get(c.bead.id) ?? ms(c.bead.started_at) ?? ms(c.bead.created_at);
+    const startT = firstInProgress.get(c.bead.id) ?? ms(c.bead.started_at) ?? ms(c.bead.created_at);
     if (startT === null || c.at <= startT) continue;
     const hours = (c.at - startT) / 3_600_000;
     dur.all.push(hours);
@@ -184,7 +183,11 @@ export function computeInsights(
     days,
     throughput: buckets.map((d) => tp.get(d)!),
     createdClosed: buckets.map((d) => cc.get(d)!),
-    cycle: { overall: cycleStat(dur.all), human: cycleStat(dur.human), agent: cycleStat(dur.agent) },
+    cycle: {
+      overall: cycleStat(dur.all),
+      human: cycleStat(dur.human),
+      agent: cycleStat(dur.agent),
+    },
     aging: aging.slice(0, 12),
     columns,
     hasEvents,

@@ -1,18 +1,18 @@
 import "server-only";
-import fs from "node:fs";
-import path from "node:path";
-import os from "node:os";
-import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { getStore } from "../store";
-import { getProject, listProjects, getConfig, DEMO_PROJECT } from "../config";
 import { beadOrigin } from "../attribution";
-import { statusLabel, typeLabel, prioLabel, fmtDate, relTime } from "../beads-view";
-import { readInteractions } from "../interactions";
+import { fmtDate, prioLabel, relTime, statusLabel, typeLabel } from "../beads-view";
+import { DEMO_PROJECT, getConfig, getProject, listProjects } from "../config";
 import { computeGamification } from "../gamification";
-import { buildReport, reportCss } from "./report";
+import { readInteractions } from "../interactions";
 import type { Bead } from "../schema";
+import { getStore } from "../store";
+import { buildReport, reportCss } from "./report";
 
 const pExecFile = promisify(execFile);
 
@@ -145,9 +145,14 @@ function viewModel(beads: Bead[], allow: string[]) {
 function publishBody(b: Bead): string {
   const desc = (b.description || "").replace(/!\[[^\]]*\]\(attachment:\/\/[^)\s]+\)/g, "").trim();
   const comments = (b.comments ?? [])
-    .map((c) => `> **${c.author || "someone"}** · ${relTime(c.created_at)}\n>\n> ${(c.text || "").replace(/\n/g, "\n> ")}`)
+    .map(
+      (c) =>
+        `> **${c.author || "someone"}** · ${relTime(c.created_at)}\n>\n> ${(c.text || "").replace(/\n/g, "\n> ")}`,
+    )
     .join("\n\n");
-  return [desc || "_No description._", comments && `\n\n---\n\n### Comments\n\n${comments}`].filter(Boolean).join("");
+  return [desc || "_No description._", comments && `\n\n---\n\n### Comments\n\n${comments}`]
+    .filter(Boolean)
+    .join("");
 }
 
 export async function buildShowcase(opts: ShowcaseOptions): Promise<ShowcaseResult> {
@@ -233,14 +238,29 @@ export async function buildShowcase(opts: ShowcaseOptions): Promise<ShowcaseResu
       `updated: ${JSON.stringify(relTime(b.updated_at || b.created_at))}`,
       "---",
     ].join("\n");
-    fs.writeFileSync(path.join(src, "beads", `${safeSlug(b.id)}.md`), `${fm}\n\n${publishBody(b)}\n`);
+    fs.writeFileSync(
+      path.join(src, "beads", `${safeSlug(b.id)}.md`),
+      `${fm}\n\n${publishBody(b)}\n`,
+    );
   }
 
   const out = path.join(base, "_site");
-  await pExecFile(process.execPath, [eleventyBin(), "--input", src, "--output", out, "--config", path.join(base, "eleventy.config.cjs")], {
-    cwd: base,
-    maxBuffer: 64 * 1024 * 1024,
-  });
+  await pExecFile(
+    process.execPath,
+    [
+      eleventyBin(),
+      "--input",
+      src,
+      "--output",
+      out,
+      "--config",
+      path.join(base, "eleventy.config.cjs"),
+    ],
+    {
+      cwd: base,
+      maxBuffer: 64 * 1024 * 1024,
+    },
+  );
 
   return { outDir: out, indexPath: path.join(out, "index.html"), count: beads.length };
 }
