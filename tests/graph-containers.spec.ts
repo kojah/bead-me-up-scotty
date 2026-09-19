@@ -45,6 +45,7 @@ test("graph containers", async ({ browser, baseURL }, testInfo) => {
   });
   const url = baseURL + "/p/demo?view=graph";
   await page.goto(url);
+  await page.getByRole("button", { name: "Full graph", exact: true }).click();
   const hide = page.getByRole("checkbox", { name: "Hide completed", exact: true });
   await hide.waitFor();
   expect(await hide.isChecked()).toBeTruthy();

@@ -68,7 +68,9 @@ for AI agents.
 - **Epics & progress** — epics with live `closed ÷ children` progress bars and
   expandable child lists; add a child straight into an epic.
 - **Dependencies & graph** — view/add/remove typed dependencies in the detail
-  drawer, plus an interactive React Flow dependency graph (drag node→node to link).
+  drawer. The default **Readable view** keeps cards at reading size, groups tasks
+  inside collapsible epics, and offers immediate task-dependency focus. Switch to
+  **Full graph** for the complete React Flow edge map (drag node→node to link).
 - **Comments** — author-stamped comment threads with a composer on every bead.
 - **Bead links** — open a bead directly with `/p/<project>?bead=<id>`. The address
   bar follows the open drawer; its **Copy link** button copies a shareable link,
@@ -271,9 +273,17 @@ project switcher; filters and graph options open in a bottom sheet. Bead details
 and creation use full-screen surfaces.
 
 Lists and boards scroll with touch. Drag-to-reorder is desktop-only; use bead
-details to change status on a phone. The dependency graph supports panning and
-pinch zoom, with an epic selector and **Fit epic** action. Card heights are
-measured after rendering so wrapped titles remain inside their epic containers.
+details to change status on a phone. **Readable view** uses vertical scrolling on
+mobile and opens one sibling epic at a time. **Focus dependencies** shows immediate
+prerequisites, the selected task, and dependents; completed prerequisites remain
+visible as context, missing targets are labeled, and non-blocking relationships
+stay separate. **Back to epic view** restores the expanded branch and scroll position.
+
+The presentation preference is saved locally. **Full graph** remains available
+for panning, pinch zoom, the epic selector, **Fit epic**, spotlight, and dependency
+creation. Card heights are measured after rendering so wrapped titles remain
+inside their epic containers. Readable cards are ordered by dependency layer
+where possible; adjacency does not invent a dependency between unrelated tasks.
 
 ### Technologies
 

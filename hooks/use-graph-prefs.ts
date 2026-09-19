@@ -32,3 +32,33 @@ export function useGraphPrefs() {
   }, []);
   return { hideCompleted, setHideCompleted };
 }
+
+export type GraphPresentation = "readable" | "canvas";
+const PRESENTATION_KEY = "bmus.graph.presentation";
+let presentationFallback: GraphPresentation | undefined;
+function presentationSnapshot(): GraphPresentation {
+  if (presentationFallback) return presentationFallback;
+  try {
+    return localStorage.getItem(PRESENTATION_KEY) === "canvas" ? "canvas" : "readable";
+  } catch {
+    return "readable";
+  }
+}
+
+export function useGraphPresentation() {
+  const presentation = React.useSyncExternalStore(
+    subscribe,
+    presentationSnapshot,
+    () => "readable" as const,
+  );
+  const setPresentation = React.useCallback((value: GraphPresentation) => {
+    try {
+      localStorage.setItem(PRESENTATION_KEY, value);
+      presentationFallback = undefined;
+    } catch {
+      presentationFallback = value;
+    }
+    window.dispatchEvent(new Event(EVENT));
+  }, []);
+  return { presentation, setPresentation };
+}

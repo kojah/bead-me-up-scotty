@@ -69,6 +69,7 @@ test("graph", async ({ browser, baseURL }) => {
   });
   await page.goto(`${base}/p/demo`);
   await page.getByRole("button", { name: "Graph", exact: true }).click();
+  await page.getByRole("button", { name: "Full graph", exact: true }).click();
   await page.locator(".react-flow__node").first().waitFor();
   await page.getByRole("checkbox", { name: "Hide completed", exact: true }).uncheck();
   await page.locator('.react-flow__node[data-id="finished"]').waitFor();
@@ -114,6 +115,7 @@ test("graph", async ({ browser, baseURL }) => {
   beads.splice(0, beads.length, bead("unlinked"), bead("completed", { status: "closed" }));
   await page.reload();
   await page.getByRole("button", { name: "Graph", exact: true }).click();
+  await page.getByRole("button", { name: "Full graph", exact: true }).click();
   await page.locator('.react-flow__node[data-id="unlinked"]').waitFor();
   await page.getByRole("checkbox", { name: "Live dependencies only" }).check();
   await page.getByRole("button", { name: "Show all beads", exact: true }).click();
@@ -123,6 +125,7 @@ test("graph", async ({ browser, baseURL }) => {
   beads.splice(0, beads.length, ...Array.from({ length: 40 }, (_, i) => bead(`loose-${i}`)));
   await page.reload();
   await page.getByRole("button", { name: "Graph", exact: true }).click();
+  await page.getByRole("button", { name: "Full graph", exact: true }).click();
   await page.locator('.react-flow__node[data-id="loose-39"]').waitFor();
   expect((await ids()).length, "Larger graphs must retain every task").toBe(40);
   const positions = await page.locator(".react-flow__node").evaluateAll((nodes) =>
@@ -152,6 +155,7 @@ test("graph", async ({ browser, baseURL }) => {
   );
   await page.reload();
   await page.getByRole("button", { name: "Graph", exact: true }).click();
+  await page.getByRole("button", { name: "Full graph", exact: true }).click();
   await page.locator('.react-flow__node[data-id="large-219"]').waitFor();
   const fits = () =>
     page.evaluate(() => {

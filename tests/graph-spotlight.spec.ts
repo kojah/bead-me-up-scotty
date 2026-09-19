@@ -73,6 +73,7 @@ test("graph spotlight", async ({ browser, baseURL }) => {
 
   await page.goto(`${base}/p/demo`);
   await page.getByRole("button", { name: "Graph", exact: true }).click();
+  await page.getByRole("button", { name: "Full graph", exact: true }).click();
   const node = (id: string) => page.locator(`.react-flow__node[data-id="${id}"]`);
   await node("a").waitFor();
   await page.getByRole("checkbox", { name: "Hide completed", exact: true }).uncheck();

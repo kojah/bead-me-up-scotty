@@ -175,6 +175,7 @@ for (const width of [360, 390, 430]) {
     await page.getByTitle("Close", { exact: true }).click();
     await detail.waitFor({ state: "hidden" });
     await navigate(page, "Graph");
+    await page.getByRole("button", { name: "Full graph", exact: true }).click();
     await page.locator('[data-epic-container="epic"]').waitFor();
     await page.getByLabel("Graph scope").selectOption("epic");
     await page.getByRole("button", { name: "Fit epic", exact: true }).click();
@@ -202,7 +203,12 @@ for (const width of [360, 390, 430]) {
     ).toBeTruthy();
     await noOverflow(page);
     const transform = await page.locator(".react-flow__viewport").getAttribute("style");
-    await swipe(page, { x: 200, y: 250 }, { x: 270, y: 285 });
+    const pane = required(await page.locator(".react-flow__pane").boundingBox());
+    await swipe(
+      page,
+      { x: pane.x + pane.width / 2, y: pane.y + 15 },
+      { x: pane.x + pane.width / 2 + 60, y: pane.y + 45 },
+    );
     expect(
       await page.locator(".react-flow__viewport").getAttribute("style"),
       "canvas pans by touch",

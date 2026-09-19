@@ -45,6 +45,7 @@ test("dependency paths avoid card interiors, including fan-in inside epics", asy
     return route.continue();
   });
   await page.goto("/p/demo?view=graph");
+  await page.getByRole("button", { name: "Full graph", exact: true }).click();
   await expect(page.locator(".react-flow__node-bead")).toHaveCount(4);
   await expect(page.locator(".react-flow__edge-path")).toHaveCount(5);
   await expect

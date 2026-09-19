@@ -86,6 +86,7 @@ test("graph epic", async ({ browser, baseURL }) => {
     const graph = async () => {
       await page.goto(`${base}/p/demo`);
       await page.getByRole("button", { name: "Graph", exact: true }).click();
+      await page.getByRole("button", { name: "Full graph", exact: true }).click();
       await node("solo").waitFor();
     };
     await graph();
