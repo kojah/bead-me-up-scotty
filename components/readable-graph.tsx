@@ -3,6 +3,7 @@ import * as React from "react";
 import { useApp } from "@/components/app-context";
 import { GraphTaskCard } from "@/components/graph-task-card";
 import { GraphTaskFocus } from "@/components/graph-task-focus";
+import { ReadableConnections } from "@/components/readable-connections";
 import { useGraphPrefs } from "@/hooks/use-graph-prefs";
 import { useMobile } from "@/hooks/use-mobile";
 import { graphScope } from "@/lib/graph-model";
@@ -19,7 +20,7 @@ type Props = {
 };
 type Model = ReturnType<typeof readableGraph>;
 const grid =
-  "grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] items-start gap-4";
+  "grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] items-start gap-8";
 
 export function ReadableGraph(props: Props) {
   const { beads, selectBead } = useApp();
@@ -126,20 +127,24 @@ export function ReadableGraph(props: Props) {
         ) : (
           <>
             <p className="mb-4 text-xs text-[var(--text-3)]">
-              Cards stay at reading size. Order follows dependencies where possible; adjacent cards
-              do not imply a link. Use Full graph for the complete edge map.
+              Arrows run from prerequisites to dependents. Epic borders mean membership, not a
+              dependency. Expand epics to reveal child-task connections.
             </p>
-            <ReadableItems items={model.children.get("") ?? []} {...tree} />
-            {model.outside.length > 0 && (
-              <section aria-label="Outside epic" className="mt-6">
-                <h2 className="mb-3 text-sm font-semibold">Outside epic · linked context</h2>
-                <div className={grid}>
-                  {model.outside.map((b) => (
-                    <GraphTaskCard key={b.id} bead={b} onFocus={focus} />
-                  ))}
-                </div>
-              </section>
-            )}
+            <ReadableConnections beads={scope.visible}>
+              <ReadableItems items={model.children.get("") ?? []} {...tree} />
+              {model.outside.length > 0 && (
+                <section aria-label="Outside epic" className="mt-6">
+                  <h2 data-connection-obstacle className="mb-6 text-sm font-semibold">
+                    Outside epic · linked context
+                  </h2>
+                  <div className={grid}>
+                    {model.outside.map((b) => (
+                      <GraphTaskCard key={b.id} bead={b} onFocus={focus} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </ReadableConnections>
             {scope.visible.length === 0 && (
               <div className="rounded-xl border border-border bg-[var(--surface)] p-6 text-sm">
                 <p>No beads to show{hideCompleted ? " with completed work hidden" : ""}.</p>
@@ -193,48 +198,47 @@ function EpicBranch({ bead, ...tree }: TreeProps & { bead: Bead }) {
       data-readable-epic={bead.id}
       className={`min-w-0 rounded-xl border border-border bg-[var(--surface-2)] ${open && tree.depth === 0 ? "col-span-full" : ""}`}
     >
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={contentId}
-        aria-label={`${open ? "Collapse" : "Expand"} epic ${bead.title}`}
-        onClick={() => tree.toggle(bead.id)}
-        className="flex min-h-11 w-full items-center gap-3 rounded-t-xl p-4 text-left hover:bg-[var(--surface-3)]"
+      <div
+        className="relative rounded-t-xl hover:bg-[var(--surface-3)]"
+        data-connection-obstacle
+        data-connection-node={bead.id}
       >
-        <span className="min-w-0 flex-1">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={contentId}
+          aria-label={`${open ? "Collapse" : "Expand"} epic ${bead.title}`}
+          onClick={() => tree.toggle(bead.id)}
+          className="absolute inset-0 rounded-t-xl focus-visible:outline-2 focus-visible:outline-[var(--brand)]"
+        >
+          <span aria-hidden="true" className="absolute right-4 top-4 text-xl text-[var(--text-3)]">
+            {open ? "−" : "+"}
+          </span>
+        </button>
+        <div className="pointer-events-none relative min-w-0 p-4 pr-12">
           <span className="block break-all font-mono text-xs text-[var(--text-3)]">
             Epic · {bead.id}
           </span>
-          <span className="my-1 block break-words text-sm font-semibold [overflow-wrap:anywhere]">
+          <button
+            type="button"
+            onClick={() => openDetail(bead.id)}
+            aria-label={`Open epic ${bead.title}`}
+            className="pointer-events-auto relative my-1 block min-h-11 break-words text-left text-sm font-semibold [overflow-wrap:anywhere] hover:underline"
+          >
             {bead.title}
-          </span>
+          </button>
           <span className="text-xs text-[var(--text-3)]">
             {progress.completed} / {progress.total} tasks complete
           </span>
-        </span>
-        <span aria-hidden="true" className="text-xl text-[var(--text-3)]">
-          {open ? "−" : "+"}
-        </span>
-      </button>
-      <div id={contentId} hidden={!open} className="border-t border-border p-3 md:p-4">
+        </div>
+      </div>
+      <div id={contentId} hidden={!open} className="border-t border-border p-6">
         {open && (
           <>
-            <div className="mb-4 flex flex-wrap gap-2">
-              <button type="button" className="control-button" onClick={() => openDetail(bead.id)}>
-                Epic details
-              </button>
-              <button
-                type="button"
-                className="control-button"
-                onClick={() => tree.onFocus(bead.id)}
-              >
-                Epic dependencies
-              </button>
-            </div>
             {children.length ? (
               <ReadableItems items={children} {...tree} depth={tree.depth + 1} />
             ) : (
-              <p className="text-sm text-[var(--text-3)]">
+              <p data-connection-obstacle className="text-sm text-[var(--text-3)]">
                 No child tasks match the current filter.
               </p>
             )}

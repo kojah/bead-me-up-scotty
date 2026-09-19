@@ -279,6 +279,14 @@ prerequisites, the selected task, and dependents; completed prerequisites remain
 visible as context, missing targets are labeled, and non-blocking relationships
 stay separate. **Back to epic view** restores the expanded branch and scroll position.
 
+Click an epic title to open its details; the rest of its header expands/collapses
+the container. Readable-view arrows connect prerequisites to dependents, routing
+around cards and titles. Epic-level links attach to the epic header boundary;
+child-task links attach only to the actual visible child, never to its ancestor.
+Expand collapsed epics to reveal those links. Completion filters also apply to
+the arrows. Membership and non-blocking relationships do not become dependency
+arrows; other relationship types remain available in task focus and Full graph.
+
 The presentation preference is saved locally. **Full graph** remains available
 for panning, pinch zoom, the epic selector, **Fit epic**, spotlight, and dependency
 creation. Card heights are measured after rendering so wrapped titles remain

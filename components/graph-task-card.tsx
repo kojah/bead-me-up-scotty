@@ -23,6 +23,8 @@ export function GraphTaskCard({
   return (
     <article
       data-readable-task={bead.id}
+      data-connection-node={bead.id}
+      data-connection-obstacle
       className={`min-w-0 rounded-xl border p-4 ${focused ? "border-[var(--brand)] bg-[var(--brand-weak)]" : "border-border bg-[var(--surface)]"}`}
     >
       <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-3)]">

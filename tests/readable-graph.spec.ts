@@ -89,8 +89,12 @@ for (const width of [390, 1440]) {
     await expect(
       page.getByRole("button", { name: "Collapse epic Study rollout", exact: true }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Expand epic Data preparation", exact: true }).click();
-    await page.getByRole("button", { name: "Expand epic Validation", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Expand epic Data preparation", exact: true })
+      .click({ position: { x: 8, y: 8 } });
+    await page
+      .getByRole("button", { name: "Expand epic Validation", exact: true })
+      .click({ position: { x: 8, y: 8 } });
     await expect(
       page.getByRole("button", {
         name: `${width < 768 ? "Expand" : "Collapse"} epic Data preparation`,
@@ -116,13 +120,24 @@ for (const width of [390, 1440]) {
       exact: true,
     });
     await focusButton.scrollIntoViewIfNeeded();
-    const overviewScroll = await page
-      .locator(".readable-graph-scroll")
-      .evaluate((e) => e.scrollTop);
+    // Browser click/keyboard activation can scroll a control into view. Capture
+    // the position at activation, which is what Back should restore.
+    await focusButton.evaluate((button) => {
+      button.addEventListener(
+        "click",
+        () => {
+          document.documentElement.dataset.overviewScroll = String(
+            document.querySelector(".readable-graph-scroll")?.scrollTop,
+          );
+        },
+        { capture: true, once: true },
+      );
+    });
     await page.screenshot({ path: testInfo.outputPath(`readable-epic-${width}.png`) });
     await work
       .getByRole("button", { name: "Focus dependencies for Run validation checks", exact: true })
       .click();
+    const overviewScroll = Number(await page.locator("html").getAttribute("data-overview-scroll"));
     await expect(
       page.getByRole("region", { name: "Task neighborhood", exact: true }),
     ).toBeVisible();
@@ -166,9 +181,11 @@ for (const width of [390, 1440]) {
         name: `${width < 768 ? "Expand" : "Collapse"} epic Data preparation`,
         exact: true,
       })
-      .click();
+      .click({ position: { x: 8, y: 8 } });
     if (width >= 768)
-      await page.getByRole("button", { name: "Expand epic Data preparation", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Expand epic Data preparation", exact: true })
+        .click({ position: { x: 8, y: 8 } });
     await expect(page.locator('[data-readable-task="prepared"]')).toBeVisible();
     await page.getByRole("button", { name: "Full graph", exact: true }).click();
     await expect(page.locator('.react-flow__node[data-id="work"]')).toBeAttached();
@@ -179,7 +196,9 @@ for (const width of [390, 1440]) {
       "true",
     );
     await page.getByRole("button", { name: "Readable view", exact: true }).click();
-    await page.getByRole("button", { name: "Expand epic Study rollout", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Expand epic Study rollout", exact: true })
+      .click({ position: { x: 8, y: 8 } });
     await page.getByRole("button", { name: "Collapse all", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "Expand epic Study rollout", exact: true }),
