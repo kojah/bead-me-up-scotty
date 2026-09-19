@@ -56,6 +56,8 @@ try {
   await page.getByRole("button", { name: "Graph", exact: true }).click();
   const node = (id) => page.locator(`.react-flow__node[data-id="${id}"]`);
   await node("a").waitFor();
+  await page.getByRole("checkbox", { name: "Hide completed", exact: true }).uncheck();
+  await node("closed-target").waitFor();
 
   const spotlight = page.getByRole("checkbox", { name: "Spotlight dependencies", exact: true });
   assert.equal(await spotlight.isChecked(), false, "Spotlight is off by default");
@@ -93,7 +95,9 @@ try {
   for (const id of ["a->b:blocks", "b->c:waits-for", "c->b:conditional-blocks", "d->a:blocks"]) {
     assert.ok((await edgeOpacity(id)) >= 0.99, `${id} is an active blocking edge and must stay highlighted`);
   }
-  for (const id of ["child->a:parent-child", "related->a:related", "c->closed-target:blocks"]) {
+  assert.equal(await page.locator('.react-flow__edge[data-id="child->a:parent-child"]').count(), 0,
+    'Hierarchy is represented by containment rather than dependency edges');
+  for (const id of ["related->a:related", "c->closed-target:blocks"]) {
     assert.ok((await edgeOpacity(id)) < 0.99, `${id} must be retained but dimmed outside the active blocking chain`);
   }
 

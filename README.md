@@ -279,6 +279,20 @@ permissions error, use a user-owned npm prefix:
 
 ## Stack
 
+### Responsive layout
+
+On phones, project links open the List view unless a view is explicitly linked
+or Focus is your chosen default. Navigation opens from the menu beside the
+project switcher; filters and graph options open in a bottom sheet. Bead details
+and creation use full-screen surfaces.
+
+Lists and boards scroll with touch. Drag-to-reorder is desktop-only; use bead
+details to change status on a phone. The dependency graph supports panning and
+pinch zoom, with an epic selector and **Fit epic** action. Card heights are
+measured after rendering so wrapped titles remain inside their epic containers.
+
+### Technologies
+
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · shadcn/ui ·
 TanStack Query (polling + optimistic DnD) · dnd-kit (board) · @xyflow/react
 (dependency graph) · Zod (validates `bd` output *and* forms).

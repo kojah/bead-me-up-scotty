@@ -147,14 +147,14 @@ export function BeadDetailDrawer({
     <Sheet open={!!openId && !!bead} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         showCloseButton={false}
-        style={{ width, maxWidth: "96vw" }}
-        className="flex gap-0 overflow-hidden border-l border-border bg-[var(--drawer)] p-0"
+        style={{ "--detail-width": `${width}px` } as React.CSSProperties}
+        className="bead-detail flex gap-0 overflow-hidden border-l border-border bg-[var(--drawer)] p-0"
       >
         {/* Left-edge resize handle (drawer is anchored right, so it grows leftward). */}
         <div
           onPointerDown={startResize}
           title="Drag to resize"
-          className="absolute left-0 top-0 z-20 h-full w-1.5 cursor-ew-resize hover:bg-[var(--brand)]/40"
+          className="absolute left-0 top-0 z-20 hidden h-full w-1.5 cursor-ew-resize hover:bg-[var(--brand)]/40 md:block"
         />
         <div className="bd-scroll min-w-0 flex-1 overflow-y-auto">
           {bead ? (
@@ -371,7 +371,7 @@ function DrawerBody({
     <>
       <SheetDescription className="sr-only">Bead details for {bead.id}</SheetDescription>
 
-      <div className="sticky top-0 z-[2] flex items-center gap-[10px] border-b border-border bg-[var(--drawer)] p-[15px_20px]">
+      <div className="detail-toolbar sticky top-0 z-[2] flex flex-wrap items-center gap-[10px] border-b border-border bg-[var(--drawer)] p-[15px_20px]">
         {/* Naming the destination rather than saying "Back" — you arrive here
             from a subtask and need to know what you're returning to (GH #15).
             No left-arrow icon exists; the drawer already rotates `chevron`. */}
@@ -381,7 +381,7 @@ function DrawerBody({
           </IconBtn>
         )}
         <span className="h-[9px] w-[9px] rounded-full" style={{ background: catColor(bead.status) }} />
-        <CopyableId id={bead.id} className="font-mono text-[13px] text-[var(--text-2)]" />
+        <CopyableId id={bead.id} className="min-w-0 max-w-[220px] truncate font-mono text-[13px] text-[var(--text-2)]" />
         <StatusChip status={bead.status} />
         <span className="flex-1" />
         <IconBtn title="Copy link" onClick={copyLink}>

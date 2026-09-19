@@ -2,6 +2,7 @@
 import * as React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useMobile } from "@/hooks/use-mobile";
 import type { Bead } from "@/lib/schema";
 import { Icon, typeIconName } from "@/components/icons";
 import { useApp } from "@/components/app-context";
@@ -23,17 +24,19 @@ import {
 
 export function BeadCard({ bead, childCount = 0 }: { bead: Bead; childCount?: number }) {
   const { openDetail, readOnly, selectedBeadId, selectBead } = useApp();
+  const mobile = useMobile();
+  const draggable = !readOnly && !mobile;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: bead.id,
-    disabled: readOnly,
+    disabled: !draggable,
   });
 
   return (
     <article
       ref={setNodeRef}
       {...listeners}
-      {...(readOnly ? { role: "button", tabIndex: 0 } : attributes)}
-      {...(readOnly ? { onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+      {...(!draggable ? { role: "button", tabIndex: 0 } : attributes)}
+      {...(!draggable ? { onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
         if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(bead.id); }
       } } : {})}
@@ -50,7 +53,7 @@ export function BeadCard({ bead, childCount = 0 }: { bead: Bead; childCount?: nu
         opacity: isDragging ? 0.4 : 1,
         zIndex: isDragging ? 10 : undefined,
       }}
-      className={`flex cursor-pointer touch-none flex-col gap-[9px] rounded-[11px] border bg-[var(--surface)] p-[12px_13px] shadow-[var(--shadow)] transition-[border-color] hover:border-2 hover:p-[11px_12px] focus-visible:outline-none ${
+      className={`flex cursor-pointer touch-auto md:touch-none flex-col gap-[9px] rounded-[11px] border bg-[var(--surface)] p-[12px_13px] shadow-[var(--shadow)] transition-[border-color] hover:border-2 hover:p-[11px_12px] focus-visible:outline-none ${
         selectedBeadId === bead.id
           ? "border-[var(--brand)] hover:border-[var(--text-3)] ring-2 ring-[var(--brand)]/30"
           : "border-border hover:border-[var(--text-3)]"

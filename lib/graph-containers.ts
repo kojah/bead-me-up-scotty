@@ -42,7 +42,7 @@ export function hideCompletedBeads(beads: Bead[]): Bead[] {
 }
 
 export function containerLayout(beads: Bead[], allBeads: Bead[], onOpen: (id: string) => void,
-  outsideIds = new Set<string>()): Node[] {
+  outsideIds = new Set<string>(), heights: ReadonlyMap<string, number> = new Map()): Node[] {
   const fullOwners = epicOwners(allBeads);
   const visibleIds = new Set(beads.map(b => b.id));
   const owners = new Map([...fullOwners].filter(([id, owner]) => visibleIds.has(id) && visibleIds.has(owner)));
@@ -62,7 +62,9 @@ export function containerLayout(beads: Bead[], allBeads: Bead[], onOpen: (id: st
     for (const b of members.filter(b => b.issue_type !== 'epic')) {
       const layer = layers.get(b.id) ?? 0;
       const y = colY.get(layer) ?? startY;
-      const height = 82 + Math.max(1, Math.ceil(b.title.length / 16)) * 18 + (outsideIds.has(b.id) ? 24 : 0);
+      // Only a first-render placeholder. ResizeObserver supplies actual card
+      // heights, independent of font metrics, title length, and wrapping.
+      const height = heights.get(b.id) ?? 120;
       boxes.set(b.id, { x: layer * 290, y, width: 170, height });
       colY.set(layer, y + height + 24);
       order.push(b);

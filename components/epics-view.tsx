@@ -123,7 +123,7 @@ export function EpicsView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-shrink-0 items-center gap-3 border-b border-border bg-[var(--surface)] p-[14px_22px]">
+      <header className="view-toolbar">
         <div className="flex-1">
           <h1 className="m-0 text-base font-[650] tracking-[-.01em]">Epics</h1>
           <span className="text-[11.5px] text-[var(--text-3)]">
@@ -197,7 +197,7 @@ export function EpicsView({
                     }
                   }}
                   title={isOpen ? "Hide children" : "Show children"}
-                  className={`flex cursor-pointer items-center gap-[14px] p-[16px_18px] focus-visible:outline-none ${
+                  className={`epic-summary flex cursor-pointer flex-wrap items-center gap-[14px] p-[16px_18px] focus-visible:outline-none ${
                     selectedBeadId === e.id ? "ring-2 ring-inset ring-[var(--brand)]" : ""
                   }`}
                 >
@@ -220,7 +220,7 @@ export function EpicsView({
                       {e.title}
                     </div>
                   </div>
-                  <div className="flex w-[200px] flex-shrink-0 flex-col items-end gap-[7px]">
+                  <div className="epic-progress flex w-full flex-shrink-0 flex-col items-end gap-[7px] md:w-[200px]">
                     <div className="flex items-baseline gap-[6px]">
                       <span className="font-mono text-[17px] font-[650] tracking-[-.02em]">
                         {pct}%

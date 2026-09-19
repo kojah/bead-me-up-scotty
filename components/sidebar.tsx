@@ -55,12 +55,14 @@ export function Sidebar({
   kind,
   projectId,
   live,
+  className,
 }: {
   view: View;
   onView: (v: View) => void;
   kind?: "bd" | "demo";
   projectId: string;
   live?: boolean;
+  className?: string;
 }) {
   const { mode, toggle } = useTheme();
   const { meta, beads, index } = useApp();
@@ -72,7 +74,7 @@ export function Sidebar({
   const game = useGamification(projectId, !!meta?.gamification);
 
   return (
-    <aside className="flex w-[228px] flex-shrink-0 flex-col border-r border-border bg-[var(--surface)] p-[18px_14px]">
+    <aside className={cn("flex w-[228px] flex-shrink-0 flex-col gap-2 overflow-y-auto border-r border-border bg-[var(--surface)] p-[18px_14px]", className)}>
       <div className="flex items-center gap-[10px] px-2 pb-[18px] pt-1">
         <div
           className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[9px] text-white"
@@ -88,12 +90,14 @@ export function Sidebar({
       <ProjectSwitcher projectId={projectId} kind={kind} live={live} />
 
 
-      <nav className="flex flex-col gap-[2px]">
+      <nav aria-label="Views" className="flex flex-col gap-[2px]">
         {NAV.filter((n) => n.key !== "achievements" || meta?.gamification).map((n) => {
           const active = view === n.key;
           return (
             <button
               key={n.key}
+              aria-label={n.label}
+              aria-current={active ? "page" : undefined}
               onClick={() => onView(n.key)}
               className={cn(
                 "flex w-full items-center gap-[10px] rounded-[9px] px-[10px] py-2 text-left text-[13.5px] transition-colors",

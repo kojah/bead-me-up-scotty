@@ -28,9 +28,15 @@ import { NotificationWatcher } from "@/components/notification-watcher";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { useViewerMode } from "@/hooks/use-viewer-mode";
 import { useNotificationActivation } from "@/hooks/use-notifications";
+import { useMobile } from "@/hooks/use-mobile";
+import { ProjectSwitcher } from "@/components/project-switcher";
+import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
 
 export function AppShell({ projectId }: { projectId: string }) {
   const [view, setView] = useLastView();
+  const mobile = useMobile();
+  const [navigationOpen, setNavigationOpen] = React.useState(false);
   const { toggle: toggleTheme } = useTheme();
   // Drawer navigation TRAIL, not a single id: clicking a subtask from its
   // parent used to replace the drawer outright, leaving no way back (GH #15).
@@ -201,16 +207,28 @@ export function AppShell({ projectId }: { projectId: string }) {
         openEpic,
       }}
     >
-      <div className="flex h-full flex-col overflow-hidden bg-background text-foreground text-sm">
+      <div className="app-shell flex h-dvh flex-col overflow-hidden bg-background text-foreground text-sm">
         <ReadOnlyBanner />
+        {mobile && <header className="mobile-app-header flex shrink-0 items-center gap-3 border-b border-border bg-[var(--surface)] px-3 py-2">
+          <Sheet open={navigationOpen} onOpenChange={setNavigationOpen}>
+            <SheetTrigger className="control-button" aria-label="Open navigation"><Menu size={20} /></SheetTrigger>
+            <SheetContent side="left" className="w-[min(320px,90vw)] gap-0 p-0">
+              <SheetTitle className="sr-only">Navigation</SheetTitle>
+              <SheetDescription className="sr-only">Switch views and projects.</SheetDescription>
+              <Sidebar view={view} onView={next => { setView(next); setNavigationOpen(false); }}
+                kind={data?.meta?.kind} projectId={projectId} live={live} className="h-full w-full border-0" />
+            </SheetContent>
+          </Sheet>
+          <div className="min-w-0 flex-1"><ProjectSwitcher projectId={projectId} kind={data?.meta?.kind} live={live} /></div>
+        </header>}
         <div className="flex min-h-0 flex-1 overflow-hidden">
-        <Sidebar
+        {!mobile && <Sidebar
           view={view}
           onView={setView}
           kind={data?.meta?.kind}
           projectId={projectId}
           live={live}
-        />
+        />}
         <main className="relative flex min-w-0 flex-1 flex-col">
           {errorMessage && view !== "settings" ? (
             <div className="flex flex-1 items-center justify-center p-8">

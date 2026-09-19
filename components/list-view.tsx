@@ -39,6 +39,7 @@ import {
   fmtDateTime,
 } from "@/lib/beads-view";
 import { type Bead } from "@/lib/schema";
+import { useMobile } from "@/hooks/use-mobile";
 
 /**
  * Priority assumed for a bead with no parent epic when breaking ties. Medium, so
@@ -150,11 +151,11 @@ export function ListView() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-shrink-0 items-center gap-3 border-b border-border bg-[var(--surface)] p-[14px_22px]">
+      <header className="view-toolbar">
         <div className="mr-1 flex flex-col gap-px">
           <h1 className="m-0 text-base font-[650] tracking-[-.01em]">List</h1>
           <span className="text-[11.5px] text-[var(--text-3)]">
-            {rows.length} beads · drag to set run-order
+            {rows.length} beads <span className="hidden md:inline">· drag to set run-order</span>
           </span>
         </div>
 
@@ -254,9 +255,10 @@ function Row({
   humanAllowlist: string[];
 }) {
   const { readOnly, selectedBeadId, selectBead } = useApp();
+  const mobile = useMobile();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: bead.id,
-    disabled: readOnly,
+    disabled: readOnly || mobile,
   });
   const o = beadOrigin(bead, humanAllowlist);
   const labels = (bead.labels ?? []).filter((l) => l !== "archived").slice(0, 2);
@@ -271,7 +273,7 @@ function Row({
     <div
       ref={setNodeRef}
       {...listeners}
-      {...(readOnly ? {} : attributes)}
+      {...(readOnly || mobile ? {} : attributes)}
       role="button"
       tabIndex={0}
       data-keyboard-bead-id={bead.id}
@@ -288,7 +290,7 @@ function Row({
         opacity: isDragging ? 0.4 : 1,
         zIndex: isDragging ? 10 : undefined,
       }}
-      className={`flex w-full cursor-pointer touch-none items-center gap-3 rounded-[10px] border bg-[var(--surface)] px-[13px] py-[9px] text-left transition-[border-color,box-shadow] hover:border-[var(--border-strong)] hover:shadow-[var(--shadow)] focus-visible:outline-none ${
+      className={`task-row flex w-full cursor-pointer touch-pan-y md:touch-none items-center gap-3 rounded-[10px] border bg-[var(--surface)] px-[13px] py-[9px] text-left transition-[border-color,box-shadow] hover:border-[var(--border-strong)] hover:shadow-[var(--shadow)] focus-visible:outline-none ${
         selectedBeadId === bead.id
           ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/30"
           : "border-border"
@@ -309,7 +311,7 @@ function Row({
         id={bead.id}
         className="w-[150px] flex-shrink-0 truncate font-mono text-[11.5px] text-[var(--text-3)]"
       />
-      <span className="min-w-0 flex-1 truncate text-[13.5px] font-[550] text-[var(--text)]">
+      <span className="task-title min-w-0 flex-1 truncate text-[13.5px] font-[550] text-[var(--text)]">
         {bead.title}
       </span>
       {labels.map((l) => (

@@ -25,6 +25,7 @@ export function CopyableId({ id, className }: { id: string; className?: string }
   return (
     <button
       type="button"
+      data-copyable-id
       onClick={copy}
       title={`Copy ${id}`}
       className={cn(

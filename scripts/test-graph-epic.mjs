@@ -70,7 +70,7 @@ try {
  const expected=beads.filter(b=>!['solo','archived','closed-epic','closed-child'].includes(b.id)).map(b=>b.id).sort();
  assert.deepEqual(await ids(),expected,'scope retains root, all nested descendants and external relationships exactly once');
  for(const id of ['outside','external-dependent','external-related'])await node(id).getByText('Outside epic',{exact:true}).waitFor();
- await page.getByRole('button',{name:'Center',exact:true}).click();await page.waitForTimeout(500);
+ await page.getByRole('button',{name:/^(Center|Fit epic)$/}).click();await page.waitForTimeout(500);
  const rectangles=await page.locator('.react-flow__node').evaluateAll(ns=>ns.map(n=>({id:n.dataset.id,...n.getBoundingClientRect().toJSON()})));
  for(let i=0;i<rectangles.length;i++)for(let j=i+1;j<rectangles.length;j++){
   const a=rectangles[i],b=rectangles[j];
@@ -103,7 +103,7 @@ try {
  await graph();await scope().selectOption('epic');await node('solo').waitFor({state:'detached'});
  const connect=async(sourceId,targetId)=>{
   const source=node(sourceId).locator('.react-flow__handle.source'),target=node(targetId).locator('.react-flow__handle.target');
-  await page.getByRole('button',{name:'Center',exact:true}).click();await page.waitForTimeout(500);
+  await page.getByRole('button',{name:/^(Center|Fit epic)$/}).click();await page.waitForTimeout(500);
   const a=await source.boundingBox(),b=await target.boundingBox();assert.ok(a&&b);
   const response=page.waitForResponse(r=>r.url().endsWith('/deps')&&r.request().method()==='POST');
   await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();

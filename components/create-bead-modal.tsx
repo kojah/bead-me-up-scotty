@@ -60,12 +60,12 @@ export function CreateBeadModal({
       <DialogContent
         showCloseButton={false}
         style={{ width, maxWidth: "96vw" }}
-        className="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-[var(--surface)] p-0 shadow-[var(--shadow-lg)]"
+        className="create-bead flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-[var(--surface)] p-0 shadow-[var(--shadow-lg)]"
       >
         <div
           onPointerDown={startResize}
           title="Drag to resize"
-          className="absolute right-0 top-0 z-20 h-full w-1.5 cursor-ew-resize hover:bg-[var(--brand)]/40"
+          className="absolute right-0 top-0 z-20 hidden h-full w-1.5 cursor-ew-resize hover:bg-[var(--brand)]/40 md:block"
         />
         {/* Conditionally mounted, so the form remounts on every open and the
             preset below is picked up fresh — no useEffect sync needed. */}

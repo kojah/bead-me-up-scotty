@@ -41,6 +41,8 @@ for(const n of nodes) if(n.parentId) {
 const cyclic=[b('a',{issue_type:'epic',dependencies:[dep('b')]}),b('b',{issue_type:'epic',dependencies:[dep('a')]})];
 assert.equal(epicOwners(cyclic).size,1,'cyclic hierarchy safely broken');
 assert.equal(containerLayout(cyclic,cyclic,()=>{}).length,2);
+const measured = containerLayout([b('one'), b('two')], [], ()=>{}, new Set(), new Map([['one', 700], ['two', 80]]));
+assert.equal(measured[1].position.y, 724, 'layout uses measured height plus gap, not title length');
 console.log('Container layout fixtures passed');
 if (!process.env.SCOTTY_TEST_URL) process.exit(0);
 const browser=await chromium.launch();

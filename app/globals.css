@@ -441,3 +441,85 @@ html[data-theme="rose-pine"] {
 .react-flow .react-flow__controls-button svg {
   fill: currentColor;
 }
+
+/* Shared responsive surfaces. Canvas/board scrolling stays inside its view. */
+.view-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.control-button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-weight: 550;
+}
+.bead-detail[data-slot="sheet-content"] {
+  width: var(--detail-width);
+  max-width: 96vw;
+}
+@media (max-width: 767px) {
+  .app-shell { padding-top: env(safe-area-inset-top); }
+  .mobile-app-header [data-slot="dropdown-menu-trigger"] { margin-bottom: 0; }
+  .view-toolbar { gap: 8px; padding: 12px; }
+  .view-toolbar > div:first-child { flex: 1 0 100%; }
+  .view-toolbar > .filter-search { flex: 1 1 140px; }
+  .app-shell main > div > .bd-scroll { padding: 12px; }
+  .app-shell main { min-height: 0; }
+  .control-button, .view-toolbar button, .view-toolbar select,
+  .mobile-controls button, .mobile-controls label,
+  .bead-detail button, nav[aria-label="Views"] button { min-height: 44px; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+  textarea, select { font-size: 16px !important; }
+  .mobile-controls input[type="checkbox"] { width: 20px; height: 20px; }
+  .bead-detail[data-slot="sheet-content"] {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    border: 0;
+  }
+  .bead-detail .bd-scroll { overflow-x: hidden; }
+  .detail-toolbar { gap: 6px; padding: 10px 12px; }
+  .detail-toolbar button { min-width: 44px; }
+  .detail-toolbar > [data-copyable-id] { flex: 1; min-width: 100px; }
+  .create-bead[data-slot="dialog-content"] {
+    inset: 0;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh;
+    max-height: 100dvh;
+    /* Centered-dialog keyframes carry a -50% translation; a full-screen
+       surface must not inherit that animation or its fill state. */
+    animation: none;
+    --tw-translate-x: 0px;
+    --tw-translate-y: 0px;
+    transform: none;
+    translate: none;
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  [data-slot="dialog-content"] { max-height: 92dvh; overflow-y: auto; }
+  .bead-detail .bd-md { overflow-wrap: anywhere; }
+  .bead-detail .bd-md table { display: block; overflow-x: auto; }
+  .task-row { display: grid; grid-template-columns: 9px 15px minmax(0, 1fr) auto; gap: 8px; }
+  .task-row > [data-copyable-id] { width: auto; min-width: 0; }
+  .task-row > .task-title { grid-column: 1 / -1; grid-row: 2; white-space: normal; overflow-wrap: anywhere; font-size: 15px; }
+  .epic-summary > div:nth-child(2) { min-width: 180px; }
+  .epic-progress { order: 1; }
+  .graph-legend { display: none; }
+  .react-flow .react-flow__controls-button { width: 44px; height: 44px; }
+}

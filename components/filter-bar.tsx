@@ -5,6 +5,7 @@ import { MultiSelectFilter, type FilterOption } from "@/components/multi-select-
 import { typeLabel, statusLabel, prioLabel } from "@/lib/beads-view";
 import { BEAD_TYPES, BEAD_STATUSES } from "@/lib/schema";
 import { type Filters, emptyFilters, toggleStr, toggleNum } from "@/lib/filters";
+import { ResponsiveControls } from "@/components/responsive-controls";
 
 /**
  * Search + multi-select facet filters, shared by the Board and List views so
@@ -54,10 +55,11 @@ export function FilterBar({
 
   return (
     <>
-      <div className="flex h-9 max-w-[280px] flex-1 items-center gap-[7px] rounded-[9px] border border-border bg-[var(--surface-2)] px-[11px]">
+      <div className="filter-search flex h-11 min-w-[140px] flex-1 items-center gap-[7px] rounded-[9px] border border-border bg-[var(--surface-2)] px-[11px] md:h-9 md:max-w-[280px]">
         <Icon name="search" size={15} className="flex-shrink-0 text-[var(--text-3)]" />
         <input
           data-search
+          aria-label="Search beads"
           value={filters.search}
           onChange={(e) => set({ search: e.target.value })}
           placeholder="Search beads…  (/)"
@@ -65,7 +67,7 @@ export function FilterBar({
         />
       </div>
 
-      <div className="flex items-center gap-[7px]">
+      <ResponsiveControls count={active}>
         <MultiSelectFilter
           label="Status"
           options={BEAD_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
@@ -138,7 +140,7 @@ export function FilterBar({
             <span>Clear · {active}</span>
           </button>
         )}
-      </div>
+      </ResponsiveControls>
     </>
   );
 }
