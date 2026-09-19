@@ -5,8 +5,8 @@
   "license": "MIT",
   "author": "Brendan <brendan@appstart.one>",
   "bin": {
-    "bead-me-up-scotty": "bin/bead-me-up-scotty.mjs",
-    "scotty": "bin/bead-me-up-scotty.mjs"
+    "bead-me-up-scotty": "bin/bead-me-up-scotty.ts",
+    "scotty": "bin/bead-me-up-scotty.ts"
   },
   "files": [
     "bin",
@@ -21,13 +21,13 @@
     "dev": "bun --bun next dev",
     "build": "bun --bun next build",
     "start": "bun --bun next start",
-    "serve": "bun scripts/serve.mjs",
+    "serve": "bun scripts/serve.ts",
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check .",
     "typecheck": "bun --bun tsc --noEmit",
     "test": "bun run test:unit && bun run test:e2e",
-    "test:unit": "bun scripts/test-blocking.mjs && bun scripts/test-dep-candidates.mjs && bun scripts/test-graph-containers.mjs && bun scripts/test-graph-routing.ts && bun scripts/test-telemetry.mjs && bun scripts/test-updates.mjs",
+    "test:unit": "bun test",
     "test:e2e": "bun --bun playwright test",
     "test:e2e:ui": "bun --bun playwright test --ui"
   },
@@ -61,6 +61,7 @@
     "@biomejs/biome": "2.5.14",
     "@playwright/test": "1.61.0",
     "@tailwindcss/postcss": "^4",
+    "@types/bun": "1.4.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

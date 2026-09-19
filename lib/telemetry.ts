@@ -12,7 +12,7 @@ type Options = {
   host: string;
   version: string;
   now?: () => Date;
-  send?: typeof fetch;
+  send?: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>;
 };
 
 /** Only this allowlisted event leaves the machine. No bead/config/request data is accepted. */

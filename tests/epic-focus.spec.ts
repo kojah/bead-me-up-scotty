@@ -1,0 +1,122 @@
+import { type Bead, beadSchema } from "../lib/schema";
+import { expect, test } from "./fixtures";
+
+test("epic focus", async ({ browser, baseURL }) => {
+  const base = baseURL;
+  expect(base, "Playwright baseURL must be configured").toBeTruthy();
+
+  const bead = (id: string, title: string, extra: Partial<Bead> = {}) =>
+    beadSchema.parse({
+      id,
+      title,
+      status: "open",
+      issue_type: "task",
+      priority: 2,
+      labels: [],
+      dependencies: [],
+      created_at: "2026-09-01T00:00:00Z",
+      updated_at: "2026-09-01T00:00:00Z",
+      ...extra,
+    });
+  const parent = (id: string, epicId: string) => ({
+    issue_id: id,
+    depends_on_id: epicId,
+    type: "parent-child",
+  });
+
+  const closedEpic = bead("closed-epic", "Closed epic", { issue_type: "epic", status: "closed" });
+  const openChild = bead("open-child", "Open child", {
+    dependencies: [parent("open-child", "closed-epic")],
+  });
+  const closedChild = bead("closed-child", "Closed child", {
+    status: "closed",
+    dependencies: [parent("closed-child", "closed-epic")],
+  });
+  const beads = [closedEpic, openChild, closedChild];
+
+  const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
+  const errors: string[] = [];
+  page.setDefaultTimeout(7000);
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/api/p/demo/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/beads/stream")) return route.abort();
+    if (path.endsWith("/beads")) {
+      return route.fulfill({
+        json: {
+          beads,
+          meta: { kind: "demo", humanActor: "reviewer", humanAllowlist: ["reviewer"] },
+        },
+      });
+    }
+    return route.fulfill({
+      json: beads.find((item) => path.endsWith(`/beads/${item.id}`)) ?? {},
+    });
+  });
+
+  const epic = () => page.locator('[data-epic-id="closed-epic"]');
+  const hideClosed = () => page.getByRole("button", { name: "Hide Closed", exact: true });
+  const openChildDetail = async () => {
+    await page.getByRole("button", { name: "Board", exact: true }).click();
+    await page.locator("article").filter({ hasText: "open-child" }).click();
+    await page.getByRole("dialog").waitFor();
+    expect(
+      await page.getByTitle("Edit title & description", { exact: true }).count(),
+      "read-only detail has no edit control",
+    ).toBe(0);
+    expect(
+      await page.getByTitle("Delete", { exact: true }).count(),
+      "read-only detail has no delete control",
+    ).toBe(0);
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Closed epic", exact: true })
+      .click();
+    await page.getByText("closed-epic", { exact: true }).last().waitFor();
+    expect(
+      await page.getByTitle("Back to open-child", { exact: true }).count(),
+      "drawer parent navigation keeps the back trail",
+    ).toBe(1);
+    await page.getByTitle("Close", { exact: true }).click();
+  };
+  const navigateFromList = async () => {
+    await page.getByRole("button", { name: "List", exact: true }).click();
+    await page
+      .locator('[role="button"]')
+      .filter({ hasText: "open-child" })
+      .getByTitle("closed-epic · Closed epic · P2", { exact: true })
+      .click();
+    await page.getByRole("heading", { name: "Epics", exact: true }).waitFor();
+  };
+
+  await page.goto(`${base}/p/demo`);
+  await page.getByRole("heading", { name: "Board", exact: true }).waitFor();
+  await openChildDetail();
+  await navigateFromList();
+  await epic().waitFor();
+  expect(
+    await epic().getByRole("button").first().getAttribute("aria-expanded"),
+    "focused closed epic expands to reveal children",
+  ).toBe("true");
+  expect(
+    await hideClosed().getAttribute("title"),
+    "navigating to a closed epic offers the Hide Closed action",
+  ).toBe("Hide closed epics and children");
+  await hideClosed().click();
+  await epic().waitFor({ state: "detached" });
+
+  await page.getByRole("button", { name: "List", exact: true }).click();
+  await page.getByRole("button", { name: /^Epics/ }).click();
+  await epic().waitFor({ state: "detached" });
+
+  await navigateFromList();
+  await epic().waitFor();
+  expect(
+    await hideClosed().getAttribute("title"),
+    "a later parent navigation creates a fresh focus request",
+  ).toBe("Hide closed epics and children");
+  expect(errors).toStrictEqual([]);
+  console.log(
+    "PASS: drawer parent trail, closed epic focus, authoritative hide-closed, no stale focus, repeat navigation, and read-only detail controls",
+  );
+});

@@ -1,21 +1,23 @@
 import { expect } from "@playwright/test";
-import { test } from "./fixtures.mjs";
+import { beadSchema } from "../lib/schema";
+import { test } from "./fixtures";
 
 test("dependency paths avoid card interiors, including fan-in inside epics", async ({
   page,
 }, testInfo) => {
-  const bead = (id: string, dependencies: string[] = []) => ({
-    id,
-    title: `Task ${id}`,
-    status: "open",
-    issue_type: "task",
-    priority: 2,
-    labels: [],
-    dependencies: [
-      { depends_on_id: "epic", type: "parent-child" },
-      ...dependencies.map((depends_on_id) => ({ depends_on_id, type: "blocks" })),
-    ],
-  });
+  const bead = (id: string, dependencies: string[] = []) =>
+    beadSchema.parse({
+      id,
+      title: `Task ${id}`,
+      status: "open",
+      issue_type: "task",
+      priority: 2,
+      labels: [],
+      dependencies: [
+        { depends_on_id: "epic", type: "parent-child" },
+        ...dependencies.map((depends_on_id) => ({ depends_on_id, type: "blocks" })),
+      ],
+    });
   const beads = [
     {
       id: "epic",
@@ -73,6 +75,6 @@ test("dependency paths avoid card interiors, including fan-in inside epics", asy
         });
       }),
     )
-    .toEqual([]);
+    .toStrictEqual([]);
   await page.screenshot({ path: testInfo.outputPath("routed-graph.png") });
 });

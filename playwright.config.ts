@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: ["**/*.spec.mjs", "**/*.spec.ts"],
+  testMatch: "**/*.spec.ts",
   // Legacy flows exercise the demo store and settings; serialize until every
   // flow has its own API fixture. Each test still gets fresh browser contexts.
   workers: 1,
@@ -19,7 +19,7 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "bun scripts/serve-e2e.mjs",
+    command: "bun scripts/serve-e2e.ts",
     url: "http://127.0.0.1:43188",
     reuseExistingServer: false,
     timeout: 30_000,

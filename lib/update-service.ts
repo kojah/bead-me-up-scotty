@@ -23,7 +23,7 @@ type Options = {
   repository: string;
   remote?: string;
   supervised?: boolean;
-  fetch?: typeof fetch;
+  fetch?: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>;
   run?: Runner;
 };
 const tagPattern = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
