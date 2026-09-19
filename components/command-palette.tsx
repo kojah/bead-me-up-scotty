@@ -95,12 +95,7 @@ function PaletteBody({
   const { data: projectsData } = useProjects();
   const projects = projectsData?.projects ?? [];
 
-  const safeInitialPage =
-    readOnly && (initialPage === "status" || initialPage === "priority")
-      ? initialBeadId
-        ? "bead"
-        : "root"
-      : initialPage;
+  const safeInitialPage = initialPalettePage(readOnly, initialPage, initialBeadId);
   const [page, setPage] = React.useState<PalettePage>(safeInitialPage);
   const [search, setSearch] = React.useState("");
   const [activeId, setActiveId] = React.useState<string | null>(initialBeadId);
@@ -160,19 +155,7 @@ function PaletteBody({
           autoFocus
           value={search}
           onValueChange={setSearch}
-          placeholder={
-            page === "bead"
-              ? `Action for ${activeBead?.id ?? ""}…`
-              : page === "status"
-                ? "Set status…"
-                : page === "priority"
-                  ? "Set priority…"
-                  : page === "projects"
-                    ? "Switch project…"
-                    : page === "theme"
-                      ? "Pick a theme…"
-                      : "Search beads or run a command…"
-          }
+          placeholder={palettePlaceholder(page, activeBead?.id)}
           className="h-12 flex-1 bg-transparent text-[14px] text-[var(--text)] outline-none placeholder:text-[var(--text-3)]"
         />
       </div>
@@ -450,4 +433,27 @@ function BeadItem({
       </span>
     </Command.Item>
   );
+}
+
+function palettePlaceholder(page: PalettePage, activeId?: string): string {
+  if (page === "bead") return `Action for ${activeId ?? ""}…`;
+  const labels: Partial<Record<PalettePage, string>> = {
+    status: "Set status…",
+    priority: "Set priority…",
+    projects: "Switch project…",
+    theme: "Pick a theme…",
+  };
+  return labels[page] ?? "Search beads or run a command…";
+}
+
+function initialPalettePage(
+  readOnly: boolean,
+  initialPage: PalettePage,
+  initialBeadId: string | null,
+): PalettePage {
+  return readOnly && (initialPage === "status" || initialPage === "priority")
+    ? initialBeadId
+      ? "bead"
+      : "root"
+    : initialPage;
 }

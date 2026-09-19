@@ -48,7 +48,7 @@ export function useImageDrop({
       const end = el?.selectionEnd ?? valueRef.current.length;
 
       const refs: string[] = [];
-      for (const f of images) {
+      async function uploadImage(f: File) {
         setUploads((n) => n + 1);
         try {
           const { ref, name } = await api.attachments.upload(projectId, beadId, f);
@@ -59,6 +59,7 @@ export function useImageDrop({
           setUploads((n) => n - 1);
         }
       }
+      for (const f of images) await uploadImage(f);
       if (refs.length === 0) return;
 
       const cur = valueRef.current;

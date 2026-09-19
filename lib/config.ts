@@ -168,20 +168,21 @@ function sanitizeProjects(input: unknown): ProjectEntry[] {
   if (!Array.isArray(input)) return [];
   const out: ProjectEntry[] = [];
   const seen = new Set<string>();
-  for (const it of input) {
-    if (!it || typeof it !== "object") continue;
+  function collectProject(it: unknown) {
+    if (!it || typeof it !== "object") return;
     const e = it as Record<string, unknown>;
-    if (typeof e.id !== "string" || typeof e.path !== "string") continue;
-    if (e.id === DEMO_PROJECT.id || seen.has(e.id)) continue;
+    if (typeof e.id !== "string" || typeof e.path !== "string") return;
+    if (e.id === DEMO_PROJECT.id || seen.has(e.id)) return;
     seen.add(e.id);
     out.push({
       id: e.id,
       path: e.path,
-      name: typeof e.name === "string" && e.name ? e.name : path.basename(e.path) || e.path,
+      name: projectName(e.name, e.path),
       addedAt: typeof e.addedAt === "string" ? e.addedAt : new Date().toISOString(),
       lastOpened: typeof e.lastOpened === "string" ? e.lastOpened : new Date().toISOString(),
     });
   }
+  input.forEach(collectProject);
   return out;
 }
 
@@ -223,10 +224,7 @@ export function getConfig(): AppConfig {
 
   const merged: AppConfig = {
     humanActor: onDisk?.humanActor || d.humanActor,
-    humanAllowlist:
-      onDisk?.humanAllowlist && onDisk.humanAllowlist.length
-        ? onDisk.humanAllowlist
-        : d.humanAllowlist,
+    humanAllowlist: onDisk?.humanAllowlist?.length ? onDisk.humanAllowlist : d.humanAllowlist,
     pollIntervalMs:
       typeof onDisk?.pollIntervalMs === "number" ? onDisk.pollIntervalMs : d.pollIntervalMs,
     projects: sanitizeProjects(onDisk?.projects),
@@ -348,4 +346,8 @@ export function setColumnOrder(
   cfg.orders = { ...cfg.orders, [projectId]: proj };
   persist(cfg);
   return proj;
+}
+
+function projectName(name: unknown, projectPath: string): string {
+  return typeof name === "string" && name ? name : path.basename(projectPath) || projectPath;
 }

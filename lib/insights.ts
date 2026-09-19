@@ -88,10 +88,10 @@ export function computeInsights(
   // From the interaction log: first in_progress per issue + close events.
   const firstInProgress = new Map<string, number>();
   const closeEvents: { issueId: string; at: number; actor?: string }[] = [];
-  for (const ev of events) {
-    if (ev.kind !== "field_change" || ev.extra?.field !== "status" || !ev.issue_id) continue;
+  function collectStatusEvent(ev: RawInteraction) {
+    if (ev.kind !== "field_change" || ev.extra?.field !== "status" || !ev.issue_id) return;
     const at = ms(ev.created_at);
-    if (at === null) continue;
+    if (at === null) return;
     if (ev.extra.new_value === "in_progress") {
       const prev = firstInProgress.get(ev.issue_id);
       if (prev === undefined || at < prev) firstInProgress.set(ev.issue_id, at);
@@ -99,28 +99,32 @@ export function computeInsights(
       closeEvents.push({ issueId: ev.issue_id, at, actor: ev.actor });
     }
   }
+  events.forEach(collectStatusEvent);
   const hasEvents = closeEvents.length > 0 || firstInProgress.size > 0;
 
   // Closes: from the log when present, else synthesized from bead.closed_at.
   type Close = { bead: Bead; at: number; origin: Origin };
   const closes: Close[] = [];
-  if (closeEvents.length > 0) {
-    for (const ce of closeEvents) {
-      const bead = index.get(ce.issueId);
-      if (!bead) continue;
-      closes.push({ bead, at: ce.at, origin: originOf(ce.actor, humanAllowlist) });
+  function collectCloses() {
+    if (closeEvents.length > 0) {
+      for (const ce of closeEvents) {
+        const bead = index.get(ce.issueId);
+        if (!bead) continue;
+        closes.push({ bead, at: ce.at, origin: originOf(ce.actor, humanAllowlist) });
+      }
+      return;
     }
-  } else {
     for (const b of beads) {
       const at = ms(b.closed_at);
       if (at === null) continue;
       closes.push({ bead: b, at, origin: originOf(b.assignee || b.created_by, humanAllowlist) });
     }
   }
+  collectCloses();
 
   // Throughput + closed counts.
-  for (const c of closes) {
-    if (c.at < start || c.at > now) continue;
+  function countClose(c: Close) {
+    if (c.at < start || c.at > now) return;
     const k = dayKey(c.at);
     const point = tp.get(k);
     if (point) {
@@ -131,6 +135,7 @@ export function computeInsights(
     const ccp = cc.get(k);
     if (ccp) ccp.closed++;
   }
+  closes.forEach(countClose);
   // Created counts.
   for (const b of beads) {
     const at = ms(b.created_at);
@@ -141,30 +146,37 @@ export function computeInsights(
 
   // Cycle time (in_progress → close), falling back to created → close.
   const dur = { all: [] as number[], human: [] as number[], agent: [] as number[] };
-  for (const c of closes) {
-    if (c.at < start || c.at > now) continue;
-    const startT = firstInProgress.get(c.bead.id) ?? ms(c.bead.started_at) ?? ms(c.bead.created_at);
-    if (startT === null || c.at <= startT) continue;
-    const hours = (c.at - startT) / 3_600_000;
-    dur.all.push(hours);
-    (c.origin === "human" ? dur.human : dur.agent).push(hours);
+  function collectCycleDurations() {
+    for (const c of closes) {
+      if (c.at < start || c.at > now) continue;
+      const startT =
+        firstInProgress.get(c.bead.id) ?? ms(c.bead.started_at) ?? ms(c.bead.created_at);
+      if (startT === null || c.at <= startT) continue;
+      const hours = (c.at - startT) / 3_600_000;
+      dur.all.push(hours);
+      (c.origin === "human" ? dur.human : dur.agent).push(hours);
+    }
   }
+  collectCycleDurations();
 
   // Aging WIP: still in progress, time since work started.
   const aging: AgingItem[] = [];
-  for (const b of beads) {
-    if (b.status !== "in_progress" && b.status !== "hooked") continue;
-    const startT =
-      firstInProgress.get(b.id) ?? ms(b.started_at) ?? ms(b.updated_at) ?? ms(b.created_at);
-    if (startT === null) continue;
-    aging.push({
-      id: b.id,
-      title: b.title,
-      days: Math.round(((now - startT) / DAY) * 10) / 10,
-      origin: originOf(b.assignee || b.created_by, humanAllowlist),
-    });
+  function collectAgingWork() {
+    for (const b of beads) {
+      if (b.status !== "in_progress" && b.status !== "hooked") continue;
+      const startT =
+        firstInProgress.get(b.id) ?? ms(b.started_at) ?? ms(b.updated_at) ?? ms(b.created_at);
+      if (startT === null) continue;
+      aging.push({
+        id: b.id,
+        title: b.title,
+        days: Math.round(((now - startT) / DAY) * 10) / 10,
+        origin: originOf(b.assignee || b.created_by, humanAllowlist),
+      });
+    }
+    aging.sort((a, b) => b.days - a.days);
   }
-  aging.sort((a, b) => b.days - a.days);
+  collectAgingWork();
 
   // Column counts (current snapshot) for WIP limits.
   const counts = new Map(BOARD_COLUMNS.map((c) => [c.id, 0]));

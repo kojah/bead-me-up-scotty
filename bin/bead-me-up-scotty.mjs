@@ -48,7 +48,7 @@ Options:
 `);
 }
 
-function parseArgs(argv) {
+function parseFlags(argv) {
   const opts = { open: true, help: false };
   let portExplicit = false;
   for (let i = 0; i < argv.length; i++) {
@@ -68,6 +68,11 @@ function parseArgs(argv) {
     }
   }
   opts.portExplicit = portExplicit;
+  return opts;
+}
+
+function parseArgs(argv) {
+  const opts = parseFlags(argv);
   if (opts.port === undefined) {
     const env = Number(process.env.PORT);
     opts.port = Number.isInteger(env) && env > 0 ? env : 3000;

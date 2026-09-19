@@ -53,7 +53,8 @@ async function setup(browser, width, readOnly = true) {
           ],
         },
       });
-    if (req.method() !== "GET") {
+    if (req.method() !== "GET") return respondToWrite();
+    function respondToWrite() {
       writes.push({ path, body: req.postDataJSON() });
       assert.equal(readOnly, false, "read-only interactions must not write");
       if (path.endsWith("/beads") && req.method() === "POST") {
@@ -63,22 +64,25 @@ async function setup(browser, width, readOnly = true) {
       }
       return route.fulfill({ json: {} });
     }
-    if (path.endsWith("/beads"))
-      return route.fulfill({
-        json: {
-          beads,
-          meta: {
-            kind: "demo",
-            humanActor: "tester",
-            humanAllowlist: ["tester"],
-            pollIntervalMs: 300000,
+    return respondToRead();
+    function respondToRead() {
+      if (path.endsWith("/beads"))
+        return route.fulfill({
+          json: {
+            beads,
+            meta: {
+              kind: "demo",
+              humanActor: "tester",
+              humanAllowlist: ["tester"],
+              pollIntervalMs: 300000,
+            },
           },
-        },
-      });
-    if (/\/beads\/[^/]+$/.test(path))
-      return route.fulfill({ json: beads.find((b) => path.endsWith("/" + b.id)) });
-    if (path.endsWith("/order")) return route.fulfill({ json: { orders: {} } });
-    return route.continue(); // Other read-only endpoints use the demo server.
+        });
+      if (/\/beads\/[^/]+$/.test(path))
+        return route.fulfill({ json: beads.find((b) => path.endsWith("/" + b.id)) });
+      if (path.endsWith("/order")) return route.fulfill({ json: { orders: {} } });
+      return route.continue(); // Other read-only endpoints use the demo server.
+    }
   });
   return { context, page, errors, writes };
 }

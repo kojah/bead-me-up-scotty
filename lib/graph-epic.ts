@@ -18,7 +18,7 @@ export function buildEpicGraphScope(beads: Bead[], epicId: string): EpicGraphSco
   }
 
   const children = new Map<string, string[]>();
-  for (const bead of byId.values()) {
+  function collectChildren(bead: Bead) {
     for (const dependency of bead.dependencies ?? []) {
       if (dependency.type !== "parent-child" || !byId.has(dependency.depends_on_id)) continue;
       const current = children.get(dependency.depends_on_id);
@@ -26,7 +26,7 @@ export function buildEpicGraphScope(beads: Bead[], epicId: string): EpicGraphSco
       else children.set(dependency.depends_on_id, [bead.id]);
     }
   }
-
+  [...byId.values()].forEach(collectChildren);
   const insideIds = new Set<string>();
   const pending: string[] = [];
   if (byId.has(epicId)) {
@@ -42,7 +42,7 @@ export function buildEpicGraphScope(beads: Bead[], epicId: string): EpicGraphSco
   }
 
   const outsideIds = new Set<string>();
-  for (const bead of byId.values()) {
+  function collectOutsideContext(bead: Bead) {
     for (const dependency of bead.dependencies ?? []) {
       if (!byId.has(dependency.depends_on_id)) continue;
       if (insideIds.has(bead.id) && !insideIds.has(dependency.depends_on_id)) {
@@ -53,7 +53,7 @@ export function buildEpicGraphScope(beads: Bead[], epicId: string): EpicGraphSco
       }
     }
   }
-
+  [...byId.values()].forEach(collectOutsideContext);
   const visibleIds = new Set([...insideIds, ...outsideIds]);
   return {
     beads: [...byId.values()].filter((bead) => visibleIds.has(bead.id)),
@@ -74,22 +74,24 @@ export function graphDependencyLayers(beads: Bead[]): Map<string, number> {
   const outgoing = new Map(ids.map((id) => [id, new Set<string>()]));
   const incoming = new Map(ids.map((id) => [id, new Set<string>()]));
 
-  for (const bead of beads) {
-    if (!present.has(bead.id)) continue;
-    for (const dependency of bead.dependencies ?? []) {
-      if (!blocking.has(dependency.type) || !present.has(dependency.depends_on_id)) continue;
-      // Dependency records are dependent -> prerequisite; layout adjacency is
-      // prerequisite -> dependent so increasing layers read left to right.
-      outgoing.get(dependency.depends_on_id)!.add(bead.id);
-      incoming.get(bead.id)!.add(dependency.depends_on_id);
+  function buildAdjacency() {
+    for (const bead of beads) {
+      if (!present.has(bead.id)) continue;
+      for (const dependency of bead.dependencies ?? []) {
+        if (!blocking.has(dependency.type) || !present.has(dependency.depends_on_id)) continue;
+        // Dependency records are dependent -> prerequisite; layout adjacency is
+        // prerequisite -> dependent so increasing layers read left to right.
+        outgoing.get(dependency.depends_on_id)!.add(bead.id);
+        incoming.get(bead.id)!.add(dependency.depends_on_id);
+      }
     }
   }
-
+  buildAdjacency();
   // Iterative Kosaraju avoids call-stack failure on deep real-world graphs.
   const visited = new Set<string>();
   const finishOrder: string[] = [];
-  for (const start of ids) {
-    if (visited.has(start)) continue;
+  function visitFrom(start: string) {
+    if (visited.has(start)) return;
     visited.add(start);
     const stack: Array<{ id: string; next: number; neighbors: string[] }> = [
       { id: start, next: 0, neighbors: [...outgoing.get(start)!].sort() },
@@ -108,11 +110,11 @@ export function graphDependencyLayers(beads: Bead[]): Map<string, number> {
     }
   }
 
+  ids.forEach(visitFrom);
   const componentOf = new Map<string, number>();
   const components: string[][] = [];
-  for (let i = finishOrder.length - 1; i >= 0; i -= 1) {
-    const start = finishOrder[i];
-    if (componentOf.has(start)) continue;
+  function collectComponent(start: string) {
+    if (componentOf.has(start)) return;
     const componentId = components.length;
     const members: string[] = [];
     const stack = [start];
@@ -130,21 +132,24 @@ export function graphDependencyLayers(beads: Bead[]): Map<string, number> {
     components.push(members);
   }
 
+  [...finishOrder].reverse().forEach(collectComponent);
   const componentEdges = new Map<number, Set<number>>();
   const indegree = new Array(components.length).fill(0) as number[];
   const componentLayers = new Array(components.length).fill(0) as number[];
   for (let i = 0; i < components.length; i += 1) componentEdges.set(i, new Set());
-  for (const [from, targets] of outgoing) {
-    const fromComponent = componentOf.get(from)!;
-    for (const target of targets) {
-      const toComponent = componentOf.get(target)!;
-      if (fromComponent === toComponent || componentEdges.get(fromComponent)!.has(toComponent))
-        continue;
-      componentEdges.get(fromComponent)!.add(toComponent);
-      indegree[toComponent] += 1;
+  function buildComponentEdges() {
+    for (const [from, targets] of outgoing) {
+      const fromComponent = componentOf.get(from)!;
+      for (const target of targets) {
+        const toComponent = componentOf.get(target)!;
+        if (fromComponent === toComponent || componentEdges.get(fromComponent)!.has(toComponent))
+          continue;
+        componentEdges.get(fromComponent)!.add(toComponent);
+        indegree[toComponent] += 1;
+      }
     }
   }
-
+  buildComponentEdges();
   const componentKey = (id: number) => components[id][0] ?? "";
   const ready = indegree
     .map((degree, id) => ({ degree, id }))

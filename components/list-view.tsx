@@ -107,15 +107,9 @@ export function ListView() {
         const order = col ? orders[col] : undefined;
         const ra = rankOf(order, a.id);
         const rb = rankOf(order, b.id);
-        if (ra !== rb) return ra - rb;
-        if (a.priority !== b.priority) return a.priority - b.priority;
-        // Tie-break on the parent epic's priority (gh-18): a medium task under a
-        // high epic outranks a medium task under a low one. Own priority always
-        // wins first, and manual drag rank above still wins over both.
-        const ea = parentOf(a, index)?.priority ?? DEFAULT_EPIC_PRIORITY;
-        const eb = parentOf(b, index)?.priority ?? DEFAULT_EPIC_PRIORITY;
-        if (ea !== eb) return ea - eb;
-        return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
+        const rankAndPriority = ra - rb || a.priority - b.priority;
+        if (rankAndPriority) return rankAndPriority;
+        return compareParentPriority(a, b, index);
       });
   }, [beads, filters, showArchived, humanAllowlist, colById, orders, index]);
 
@@ -141,22 +135,28 @@ export function ListView() {
     if (!activeCol || !overCol) return;
 
     if (overCol === activeCol) {
-      // Reorder within a column → write that column's shared order (Board sees it too).
-      const ids = rows.filter((b) => colById.get(b.id) === activeCol).map((b) => b.id);
-      const oldI = ids.indexOf(activeId);
-      const newI = ids.indexOf(overId);
-      if (oldI === -1 || newI === -1 || oldI === newI) return;
-      setOrder.mutate({ columnId: activeCol, ids: arrayMove(ids, oldI, newI) });
+      reorderColumn(activeId, overId, activeCol);
     } else {
-      // Across columns → status change (cross-column = status, like the Board).
-      const target = BOARD_COLUMNS.find((c) => c.id === overCol);
-      if (!target || !target.droppable || !target.status) return;
-      const bead = index.get(activeId);
-      if (!bead || bead.status === target.status) return;
-      setStatus.mutate({ id: activeId, status: target.status });
+      moveToColumn(activeId, overCol);
     }
   }
 
+  function moveToColumn(activeId: string, overCol: string) {
+    // Across columns → status change (cross-column = status, like the Board).
+    const target = BOARD_COLUMNS.find((c) => c.id === overCol);
+    if (!target || !target.droppable || !target.status) return;
+    const bead = index.get(activeId);
+    if (!bead || bead.status === target.status) return;
+    setStatus.mutate({ id: activeId, status: target.status });
+  }
+  function reorderColumn(activeId: string, overId: string, activeCol: string) {
+    // Reorder within a column → write that column's shared order (Board sees it too).
+    const ids = rows.filter((b) => colById.get(b.id) === activeCol).map((b) => b.id);
+    const oldI = ids.indexOf(activeId);
+    const newI = ids.indexOf(overId);
+    if (oldI === -1 || newI === -1 || oldI === newI) return;
+    setOrder.mutate({ columnId: activeCol, ids: arrayMove(ids, oldI, newI) });
+  }
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="view-toolbar">
@@ -345,25 +345,7 @@ function Row({
           ranking whose reason isn't on screen reads as a bug. Epics route to
           the Epics screen; any other parent opens its drawer, since the Epics
           screen renders epics only. */}
-      {parent && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (parent.issue_type === "epic") onOpenParent(parent.id);
-            else onOpenDetail(parent.id);
-          }}
-          title={`${parent.id} · ${parent.title} · P${parent.priority}`}
-          className="hidden max-w-[150px] flex-shrink-0 items-center gap-[4px] rounded-md border border-border bg-[var(--surface-2)] px-[6px] py-px text-[10.5px] text-[var(--text-3)] hover:border-[var(--brand)] hover:text-[var(--brand)] lg:flex"
-        >
-          <Icon
-            name={parent.issue_type === "epic" ? "target" : typeIconName(parent.issue_type)}
-            size={10}
-            className="flex-shrink-0"
-          />
-          <span className="truncate">{parent.title}</span>
-        </button>
-      )}
+      <RowParent parent={parent} onOpenParent={onOpenParent} onOpenDetail={onOpenDetail} />
       <span className="flex-shrink-0">
         <PriorityChip p={bead.priority} />
       </span>
@@ -388,5 +370,50 @@ function Row({
         {relTime(bead.updated_at)}
       </span>
     </div>
+  );
+}
+
+function compareParentPriority(a: Bead, b: Bead, index: Map<string, Bead>): number {
+  // Tie-break on the parent epic's priority (gh-18): a medium task under a
+  // high epic outranks a medium task under a low one. Own priority always
+  // wins first, and manual drag rank above still wins over both.
+  const ea = parentOf(a, index)?.priority ?? DEFAULT_EPIC_PRIORITY;
+  const eb = parentOf(b, index)?.priority ?? DEFAULT_EPIC_PRIORITY;
+  if (ea !== eb) return ea - eb;
+  return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
+}
+
+function RowParent({
+  parent,
+  onOpenParent,
+  onOpenDetail,
+}: {
+  parent: Bead | null;
+  onOpenParent: (id: string) => void;
+  onOpenDetail: (id: string) => void;
+}) {
+  return (
+    <>
+      {" "}
+      {parent && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (parent.issue_type === "epic") onOpenParent(parent.id);
+            else onOpenDetail(parent.id);
+          }}
+          title={`${parent.id} · ${parent.title} · P${parent.priority}`}
+          className="hidden max-w-[150px] flex-shrink-0 items-center gap-[4px] rounded-md border border-border bg-[var(--surface-2)] px-[6px] py-px text-[10.5px] text-[var(--text-3)] hover:border-[var(--brand)] hover:text-[var(--brand)] lg:flex"
+        >
+          <Icon
+            name={parent.issue_type === "epic" ? "target" : typeIconName(parent.issue_type)}
+            size={10}
+            className="flex-shrink-0"
+          />
+          <span className="truncate">{parent.title}</span>
+        </button>
+      )}
+    </>
   );
 }

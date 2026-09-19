@@ -98,13 +98,16 @@ export function computeGamification(
 
   // How many beads each bead was blocking (dependents waiting on it).
   const blocking = new Map<string, number>();
-  for (const b of beads) {
-    for (const d of b.dependencies ?? []) {
-      if ((BLOCKING_DEP_TYPES as readonly string[]).includes(d.type)) {
-        blocking.set(d.depends_on_id, (blocking.get(d.depends_on_id) ?? 0) + 1);
+  function countDependents() {
+    for (const b of beads) {
+      for (const d of b.dependencies ?? []) {
+        if ((BLOCKING_DEP_TYPES as readonly string[]).includes(d.type)) {
+          blocking.set(d.depends_on_id, (blocking.get(d.depends_on_id) ?? 0) + 1);
+        }
       }
     }
   }
+  countDependents();
 
   // Closes (with timestamps) from the interaction log, else bead.closed_at.
   const closeEvents = events.filter(
@@ -115,22 +118,29 @@ export function computeGamification(
       e.issue_id,
   );
   const closes: { bead: Bead; actor?: string; at: number | null }[] = [];
-  if (closeEvents.length > 0) {
-    for (const e of closeEvents) {
-      const bead = byId.get(e.issue_id!);
-      if (bead)
-        closes.push({ bead, actor: e.actor, at: e.created_at ? Date.parse(e.created_at) : null });
+  function collectCloses() {
+    if (closeEvents.length > 0) {
+      for (const e of closeEvents) {
+        const bead = byId.get(e.issue_id!);
+        if (bead)
+          closes.push({ bead, actor: e.actor, at: e.created_at ? Date.parse(e.created_at) : null });
+      }
+      return;
     }
-  } else {
+    collectFallbackCloses();
+  }
+
+  function collectFallbackCloses() {
     for (const b of beads) {
       if (b.closed_at)
         closes.push({ bead: b, actor: b.assignee || b.created_by, at: Date.parse(b.closed_at) });
     }
   }
+  collectCloses();
 
   const acc = new Map<string, Acc>();
   const dayCount = new Map<string, Map<string, number>>(); // actor → day → count
-  for (const c of closes) {
+  function accumulateClose(c: (typeof closes)[number]) {
     const actor = c.actor || "unknown";
     const pr = Math.min(4, Math.max(0, c.bead.priority ?? 2));
     const xp = PRIORITY_XP[pr] + (blocking.get(c.bead.id) ?? 0) * UNBLOCK_BONUS;
@@ -153,10 +163,11 @@ export function computeGamification(
       const n = (dc.get(k) ?? 0) + 1;
       dc.set(k, n);
       dayCount.set(actor, dc);
-      if (n > a.maxPerDay) a.maxPerDay = n;
+      a.maxPerDay = Math.max(a.maxPerDay, n);
     }
     acc.set(actor, a);
   }
+  closes.forEach(accumulateClose);
 
   const actors: ActorStat[] = [...acc.entries()]
     .map(([actor, a]) => {

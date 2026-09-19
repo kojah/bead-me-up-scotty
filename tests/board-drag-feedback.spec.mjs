@@ -39,7 +39,8 @@ test("board drag feedback", async ({ browser, baseURL }) => {
       const request = route.request();
       const path = new URL(request.url()).pathname;
       if (path.endsWith("/beads/stream")) return route.abort();
-      if (path.endsWith("/order")) {
+      if (path.endsWith("/order")) return respondToOrder();
+      function respondToOrder() {
         if (request.method() === "GET") return route.fulfill({ json: { orders: {} } });
         writes.push({ kind: "order", body: request.postDataJSON() });
         return route.fulfill({ json: { orders: {} } });

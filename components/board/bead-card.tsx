@@ -197,25 +197,7 @@ function BeadCardFace({
             neutral one with its own type icon. Previously every parent rendered
             as an "epic", which was already wrong and gets much more visible
             now that arbitrary subtasks exist. */}
-        {parent && (
-          <span
-            title={`${parent.id} · ${parent.title}`}
-            className={
-              parent.issue_type === "epic"
-                ? "inline-flex max-w-[96px] items-center gap-1 rounded-md bg-[var(--brand-weak)] px-[6px] py-px text-[10.5px] font-[550] text-[var(--brand)]"
-                : "inline-flex max-w-[96px] items-center gap-1 rounded-md border border-border bg-[var(--surface-2)] px-[6px] py-px text-[10.5px] font-[550] text-[var(--text-3)]"
-            }
-          >
-            <Icon
-              name={parent.issue_type === "epic" ? "target" : typeIconName(parent.issue_type)}
-              size={11}
-              className="flex-shrink-0"
-            />
-            <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-              {parent.title.replace(/\s*\([^)]*\)\s*/, "")}
-            </span>
-          </span>
-        )}
+        <ParentChip parent={parent} />
         {/* Subtask count — distinct from depCount, which deliberately excludes
             parent-child edges. Counted once per render by the board/list, not
             per card, to avoid an O(n^2) scan. */}
@@ -255,6 +237,8 @@ export function OriginBadge({
   withLabel?: boolean;
 }) {
   const human = origin === "human";
+  const color = human ? "var(--text-2)" : "var(--brand)";
+  const background = human ? "var(--surface-2)" : "var(--brand-weak)";
   return (
     <span
       title={title}
@@ -265,15 +249,15 @@ export function OriginBadge({
               padding: "3px 9px",
               fontSize: "11.5px",
               fontWeight: 550,
-              color: human ? "var(--text-2)" : "var(--brand)",
-              background: human ? "var(--surface-2)" : "var(--brand-weak)",
+              color,
+              background,
               border: `1px solid ${human ? "var(--border)" : "transparent"}`,
             }
           : {
               width: 20,
               height: 20,
-              color: human ? "var(--text-2)" : "var(--brand)",
-              background: human ? "var(--surface-2)" : "var(--brand-weak)",
+              color,
+              background,
               border: `1px solid ${human ? "var(--border)" : "var(--brand-weak)"}`,
             }
       }
@@ -281,5 +265,31 @@ export function OriginBadge({
       <Icon name={human ? "user" : "bot"} size={withLabel ? 13 : 12} />
       {withLabel && (human ? "Human" : "Agent")}
     </span>
+  );
+}
+
+function ParentChip({ parent }: { parent: Bead | null }) {
+  return (
+    <>
+      {parent && (
+        <span
+          title={`${parent.id} · ${parent.title}`}
+          className={
+            parent.issue_type === "epic"
+              ? "inline-flex max-w-[96px] items-center gap-1 rounded-md bg-[var(--brand-weak)] px-[6px] py-px text-[10.5px] font-[550] text-[var(--brand)]"
+              : "inline-flex max-w-[96px] items-center gap-1 rounded-md border border-border bg-[var(--surface-2)] px-[6px] py-px text-[10.5px] font-[550] text-[var(--text-3)]"
+          }
+        >
+          <Icon
+            name={parent.issue_type === "epic" ? "target" : typeIconName(parent.issue_type)}
+            size={11}
+            className="flex-shrink-0"
+          />
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+            {parent.title.replace(/\s*\([^)]*\)\s*/, "")}
+          </span>
+        </span>
+      )}
+    </>
   );
 }

@@ -7,35 +7,28 @@ import type { Bead } from "./schema";
 export function epicOwners(beads: Bead[]): Map<string, string> {
   const byId = new Map(beads.map((b) => [b.id, b]));
   const owners = new Map<string, string>();
-  for (const bead of [...byId.values()].sort((a, b) => a.id.localeCompare(b.id))) {
+  function assignOwner(bead: Bead) {
     const seen = new Set([bead.id]);
     const pending = [bead.id];
     while (pending.length) {
       const current = byId.get(pending.shift()!)!;
-      const parents = (current.dependencies ?? [])
-        .filter((d) => d.type === "parent-child")
-        .map((d) => d.depends_on_id)
-        .sort();
-      for (const id of parents) {
-        if (seen.has(id) || !byId.has(id)) continue;
+      const parents = parentIds(current);
+      function chooseParent(id: string): boolean {
+        if (seen.has(id) || !byId.has(id)) return false;
         seen.add(id);
         if (byId.get(id)!.issue_type !== "epic") {
           pending.push(id);
-          continue;
+          return false;
         }
-        let ancestor: string | undefined = id;
-        const path = new Set([bead.id]);
-        while (ancestor && !path.has(ancestor)) {
-          path.add(ancestor);
-          ancestor = owners.get(ancestor);
-        }
-        if (ancestor) continue;
+        if (wouldCycle(bead.id, id, owners)) return false;
         owners.set(bead.id, id);
         pending.length = 0;
-        break;
+        return true;
       }
+      parents.some(chooseParent);
     }
   }
+  [...byId.values()].sort((a, b) => a.id.localeCompare(b.id)).forEach(assignOwner);
   return owners;
 }
 
@@ -117,7 +110,7 @@ export function containerLayout(
       order.push(b);
     }
     let y = Math.max(dependencyStart, ...colY.values());
-    for (const epic of members.filter((b) => b.issue_type === "epic")) {
+    function placeEpic(epic: Bead) {
       order.push(epic); // React Flow requires parents before descendants.
       place(epic.id, y + 120);
       const childBoxes = (children.get(epic.id) ?? []).map((b) => boxes.get(b.id)!);
@@ -129,6 +122,7 @@ export function containerLayout(
       boxes.set(epic.id, { x, y, width: right - x, height: bottom - y });
       y = bottom + 48;
     }
+    members.filter((b) => b.issue_type === "epic").forEach(placeEpic);
     return y;
   }
   place("", 0);
@@ -152,8 +146,10 @@ export function containerLayout(
       parentId,
       position: { x: box.x - (parent?.x ?? 0), y: box.y - (parent?.y ?? 0) },
       draggable: false,
+      zIndex: 2,
       ...(epic ? { style: { width: box.width, height: box.height }, zIndex: -1 } : {}),
       data: {
+        graphBox: box,
         bead,
         onOpen,
         horizontal: true,
@@ -163,4 +159,23 @@ export function containerLayout(
       },
     };
   });
+}
+
+function wouldCycle(beadId: string, owner: string, owners: Map<string, string>): boolean {
+  let ancestor: string | undefined = owner;
+  const path = new Set([beadId]);
+  while (ancestor && !path.has(ancestor)) {
+    path.add(ancestor);
+    ancestor = owners.get(ancestor);
+  }
+  return Boolean(ancestor);
+}
+
+function parentIds(current: Bead): string[] {
+  const parents = (current.dependencies ?? [])
+    .filter((d) => d.type === "parent-child")
+    .map((d) => d.depends_on_id)
+    .sort();
+
+  return parents;
 }

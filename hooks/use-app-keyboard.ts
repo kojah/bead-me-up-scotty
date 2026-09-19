@@ -199,54 +199,79 @@ export function useAppKeyboardShortcuts(actions: KeyboardActions) {
   );
 
   React.useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
-      if (event.repeat) return;
-      if ((event.metaKey || event.ctrlKey) && !event.altKey && key === "k") {
+    function handleOverlayShortcut(event: KeyboardEvent, key: string): boolean {
+      if (isPaletteShortcut(event, key)) {
         const paletteOpen = !!document.querySelector("[cmdk-root]");
-        if (hasOpenOverlay() && !paletteOpen) return;
+        if (hasOpenOverlay() && !paletteOpen) return true;
         event.preventDefault();
         actions.openPalette();
-        return;
+        return true;
       }
       if (key === "Escape") {
         pendingChordAt.current = 0;
         if (!hasOpenOverlay()) actions.closeOverlays();
-        return;
+        return true;
       }
-      if (
-        isTyping(event.target) ||
-        isNativeControlActivation(event.target, key) ||
-        hasOpenOverlay() ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.altKey
-      ) {
-        return;
-      }
+
+      return false;
+    }
+    function handleChord(event: KeyboardEvent, key: string): boolean {
       if (pendingChordAt.current > Date.now()) {
         pendingChordAt.current = 0;
         if (runChord(key, actions, cycleProject)) {
           event.preventDefault();
-          return;
+          return true;
         }
       }
       if (key === "g") {
         event.preventDefault();
         pendingChordAt.current = Date.now() + CHORD_TIMEOUT_MS;
-        return;
+        return true;
       }
-      if (
-        runGlobalShortcut(key, actions) ||
-        runMovementShortcut(key, actions) ||
-        runIssueShortcut(key, actions)
-      ) {
-        event.preventDefault();
-      }
-    };
+
+      return false;
+    }
+    const handler = (event: KeyboardEvent) =>
+      dispatchShortcut(event, actions, handleOverlayShortcut, handleChord);
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [actions, cycleProject]);
+}
+
+function isPaletteShortcut(event: KeyboardEvent, key: string): boolean {
+  return (event.metaKey || event.ctrlKey) && !event.altKey && key === "k";
+}
+function shortcutSuppressed(event: KeyboardEvent, key: string): boolean {
+  return (
+    isTyping(event.target) ||
+    isNativeControlActivation(event.target, key) ||
+    hasOpenOverlay() ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.altKey
+  );
+}
+
+function dispatchShortcut(
+  event: KeyboardEvent,
+  actions: KeyboardActions,
+  handleOverlayShortcut: (event: KeyboardEvent, key: string) => boolean,
+  handleChord: (event: KeyboardEvent, key: string) => boolean,
+) {
+  if (event.defaultPrevented) return;
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (event.repeat) return;
+  if (handleOverlayShortcut(event, key)) return;
+  if (shortcutSuppressed(event, key)) {
+    return;
+  }
+  if (handleChord(event, key)) return;
+  if (
+    runGlobalShortcut(key, actions) ||
+    runMovementShortcut(key, actions) ||
+    runIssueShortcut(key, actions)
+  ) {
+    event.preventDefault();
+  }
 }

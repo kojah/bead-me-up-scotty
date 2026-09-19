@@ -1,7 +1,7 @@
 import { type Edge, MarkerType } from "@xyflow/react";
 import { epicOwners, hideCompletedBeads } from "./graph-containers";
 import { buildEpicGraphScope } from "./graph-epic";
-import type { Bead } from "./schema";
+import type { Bead, Dependency } from "./schema";
 
 const FLOW_BLOCKING = new Set(["blocks", "conditional-blocks", "waits-for"]);
 
@@ -16,24 +16,7 @@ export function graphEdges(beads: Bead[]): Edge[] {
       const id = `${bead.id}->${dependency.depends_on_id}:${dependency.type}`;
       if (edgeIds.has(id)) continue;
       edgeIds.add(id);
-      const blocking = FLOW_BLOCKING.has(dependency.type);
-      const related = dependency.type === "related" || dependency.type === "relates-to";
-      edges.push({
-        // IDs remain canonical dependent -> prerequisite in both modes so the
-        // PR43 spotlight can compare them directly with graphNeighborhood.
-        id,
-        source: dependency.depends_on_id,
-        target: bead.id,
-        animated: blocking,
-        markerEnd: related
-          ? undefined
-          : { type: MarkerType.ArrowClosed, color: blocking ? "#ef4444" : "var(--text-3)" },
-        style: {
-          stroke: blocking ? "#ef4444" : related ? "var(--brand)" : "var(--text-3)",
-          strokeWidth: blocking ? 2 : 1.6,
-          strokeDasharray: related ? "5 4" : undefined,
-        },
-      });
+      edges.push(dependencyEdge(bead.id, dependency));
     }
   }
   return edges;
@@ -87,4 +70,26 @@ export function graphScope(
     visible = scope.beads.filter((b) => keep.has(b.id));
   }
   return { all, visible, outsideIds: scope.outsideIds, considered: scope.beads.length };
+}
+
+function dependencyEdge(beadId: string, dependency: Dependency): Edge {
+  const id = `${beadId}->${dependency.depends_on_id}:${dependency.type}`;
+  const blocking = FLOW_BLOCKING.has(dependency.type);
+  const related = dependency.type === "related" || dependency.type === "relates-to";
+  return {
+    // IDs remain canonical dependent -> prerequisite in both modes so the
+    // PR43 spotlight can compare them directly with graphNeighborhood.
+    id,
+    source: dependency.depends_on_id,
+    target: beadId,
+    animated: blocking,
+    markerEnd: related
+      ? undefined
+      : { type: MarkerType.ArrowClosed, color: blocking ? "#ef4444" : "var(--text-3)" },
+    style: {
+      stroke: blocking ? "#ef4444" : related ? "var(--brand)" : "var(--text-3)",
+      strokeWidth: blocking ? 2 : 1.6,
+      strokeDasharray: related ? "5 4" : undefined,
+    },
+  };
 }

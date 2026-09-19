@@ -23,81 +23,92 @@ function hasBeads(p: string): boolean {
 
 export async function GET(req: Request) {
   try {
-    const url = new URL(req.url);
-    const home = os.homedir();
-    const root = process.env.BEADS_FS_ROOT ? path.resolve(process.env.BEADS_FS_ROOT) : null;
-    const rawRequested = url.searchParams.get("path");
-    // Expand a leading ~ so typed/pasted home-relative paths resolve.
-    const requested =
-      rawRequested === "~"
-        ? home
-        : rawRequested?.startsWith("~/")
-          ? path.join(home, rawRequested.slice(2))
-          : rawRequested;
-    const target = path.resolve(requested && requested.trim() ? requested : root || home);
-
-    if (root && target !== root && !target.startsWith(root + path.sep)) {
-      return ok({ error: "Path is outside the allowed root", code: "eacces" }, 403);
-    }
-
-    let stat: fs.Stats;
-    try {
-      stat = fs.statSync(target);
-    } catch (e) {
-      const code = (e as NodeJS.ErrnoException).code;
-      if (code === "ENOENT" || code === "ENOTDIR") {
-        return ok({ error: `Not found: ${target}`, code: "enoent" }, 400);
-      }
-      if (code === "EACCES") {
-        return ok({ error: `Permission denied: ${target}`, code: "eacces" }, 403);
-      }
-      throw e;
-    }
-    if (!stat.isDirectory()) {
-      return ok({ error: `Not a directory: ${target}`, code: "enotdir" }, 400);
-    }
-
-    let dirents: fs.Dirent[];
-    try {
-      dirents = fs.readdirSync(target, { withFileTypes: true });
-    } catch (e) {
-      const code = (e as NodeJS.ErrnoException).code;
-      if (code === "EACCES") {
-        return ok({ error: `Permission denied: ${target}`, code: "eacces" }, 403);
-      }
-      throw e;
-    }
-
-    const entries = dirents
-      .filter((d) => {
-        if (d.name.startsWith(".")) return false; // hide dotfolders
-        if (d.isDirectory()) return true;
-        if (d.isSymbolicLink()) {
-          try {
-            return fs.statSync(path.join(target, d.name)).isDirectory();
-          } catch {
-            return false;
-          }
-        }
-        return false;
-      })
-      .map((d) => {
-        const full = path.join(target, d.name);
-        return { name: d.name, path: full, hasBeads: hasBeads(full) };
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    const parent = path.dirname(target);
-    const parentAllowed = !root || target !== root;
-
-    return ok({
-      path: target,
-      parent: parent === target || !parentAllowed ? null : parent,
-      home: root || home,
-      hasBeads: hasBeads(target),
-      entries,
-    });
+    return browseDirectory(req);
   } catch (e) {
     return fail(e);
   }
+}
+
+function browseDirectory(req: Request) {
+  const url = new URL(req.url);
+  const home = os.homedir();
+  const root = process.env.BEADS_FS_ROOT ? path.resolve(process.env.BEADS_FS_ROOT) : null;
+  const rawRequested = url.searchParams.get("path");
+  // Expand a leading ~ so typed/pasted home-relative paths resolve.
+  const requested =
+    rawRequested === "~"
+      ? home
+      : rawRequested?.startsWith("~/")
+        ? path.join(home, rawRequested.slice(2))
+        : rawRequested;
+  const target = path.resolve(requested && requested.trim() ? requested : root || home);
+
+  if (root && target !== root && !target.startsWith(root + path.sep)) {
+    return ok({ error: "Path is outside the allowed root", code: "eacces" }, 403);
+  }
+
+  const result = readDirectory(target);
+  if (!Array.isArray(result)) return result;
+  const dirents = result;
+
+  const entries = dirents
+    .filter((d) => {
+      if (d.name.startsWith(".")) return false; // hide dotfolders
+      if (d.isDirectory()) return true;
+      if (d.isSymbolicLink()) {
+        try {
+          return fs.statSync(path.join(target, d.name)).isDirectory();
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    })
+    .map((d) => {
+      const full = path.join(target, d.name);
+      return { name: d.name, path: full, hasBeads: hasBeads(full) };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const parent = path.dirname(target);
+  const parentAllowed = !root || target !== root;
+
+  return ok({
+    path: target,
+    parent: parent === target || !parentAllowed ? null : parent,
+    home: root || home,
+    hasBeads: hasBeads(target),
+    entries,
+  });
+}
+
+function readDirectory(target: string) {
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(target);
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "ENOTDIR") {
+      return ok({ error: `Not found: ${target}`, code: "enoent" }, 400);
+    }
+    if (code === "EACCES") {
+      return ok({ error: `Permission denied: ${target}`, code: "eacces" }, 403);
+    }
+    throw e;
+  }
+  if (!stat.isDirectory()) {
+    return ok({ error: `Not a directory: ${target}`, code: "enotdir" }, 400);
+  }
+
+  let dirents: fs.Dirent[];
+  try {
+    dirents = fs.readdirSync(target, { withFileTypes: true });
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code === "EACCES") {
+      return ok({ error: `Permission denied: ${target}`, code: "eacces" }, 403);
+    }
+    throw e;
+  }
+  return dirents;
 }

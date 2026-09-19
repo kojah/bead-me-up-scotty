@@ -199,6 +199,26 @@ export function AppShell({ projectId }: { projectId: string }) {
     setCreate((current) => ({ ...current, open: false }));
   }, []);
 
+  function renderView() {
+    return (
+      <>
+        {view === "board" && <Board />}
+        {view === "list" && <ListView />}
+        {view === "epics" && (
+          <EpicsView focusEpic={focusEpic} onFocusHandledAction={clearFocusEpic} />
+        )}
+        {view === "focus" && <FocusView />}
+        {view === "graph" && <GraphView />}
+        {view === "insights" && <InsightsView />}
+        {view === "activity" && <ActivityView />}
+        {view === "needsyou" && <NeedsYouView />}
+        {view === "achievements" && <AchievementsView />}
+        {view === "publish" && <PublishView />}
+        {view === "settings" && <SettingsView />}
+      </>
+    );
+  }
+
   const errorMessage = error ? (error as Error).message : undefined;
 
   return (
@@ -274,21 +294,7 @@ export function AppShell({ projectId }: { projectId: string }) {
                 </div>
               </div>
             ) : (
-              <>
-                {view === "board" && <Board />}
-                {view === "list" && <ListView />}
-                {view === "epics" && (
-                  <EpicsView focusEpic={focusEpic} onFocusHandledAction={clearFocusEpic} />
-                )}
-                {view === "focus" && <FocusView />}
-                {view === "graph" && <GraphView />}
-                {view === "insights" && <InsightsView />}
-                {view === "activity" && <ActivityView />}
-                {view === "needsyou" && <NeedsYouView />}
-                {view === "achievements" && <AchievementsView />}
-                {view === "publish" && <PublishView />}
-                {view === "settings" && <SettingsView />}
-              </>
+              renderView()
             )}
 
             <BeadDetailDrawer

@@ -36,14 +36,7 @@ function D(
   parent: string | null,
   extra: Extra = {},
 ): Bead {
-  const dependencies: Dependency[] = [];
-  if (parent) dependencies.push({ issue_id: id, depends_on_id: parent, type: "parent-child" });
-  (extra.blocks ?? []).forEach((t) =>
-    dependencies.push({ issue_id: id, depends_on_id: t, type: "blocks" }),
-  );
-  (extra.related ?? []).forEach((t) =>
-    dependencies.push({ issue_id: id, depends_on_id: t, type: "related" }),
-  );
+  const dependencies = demoDependencies(id, parent, extra);
   return {
     id,
     title,
@@ -52,6 +45,26 @@ function D(
     priority,
     assignee: assignee || "",
     created_by,
+    ...demoFields(status, extra),
+    dependencies,
+    parent: parent ?? null,
+  };
+}
+
+function demoDependencies(id: string, parent: string | null, extra: Extra): Dependency[] {
+  const dependencies: Dependency[] = [];
+  if (parent) dependencies.push({ issue_id: id, depends_on_id: parent, type: "parent-child" });
+  (extra.blocks ?? []).forEach((t) =>
+    dependencies.push({ issue_id: id, depends_on_id: t, type: "blocks" }),
+  );
+  (extra.related ?? []).forEach((t) =>
+    dependencies.push({ issue_id: id, depends_on_id: t, type: "related" }),
+  );
+  return dependencies;
+}
+
+function demoFields(status: string, extra: Extra) {
+  return {
     description: extra.description ?? "",
     notes: extra.notes ?? "",
     design: extra.design ?? "",
@@ -63,9 +76,7 @@ function D(
     // "Closed", which `closeReasonOf` treats as no reason at all.
     close_reason: status === "closed" ? (extra.close_reason ?? "Closed") : null,
     labels: extra.labels ?? [],
-    dependencies,
     comments: extra.comments ?? [],
-    parent: parent ?? null,
   };
 }
 

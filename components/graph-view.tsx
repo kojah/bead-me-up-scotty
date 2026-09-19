@@ -1,8 +1,10 @@
 "use client";
 import {
   Background,
+  BaseEdge,
   type Connection,
   Controls,
+  type EdgeProps,
   Handle,
   type NodeProps,
   Position,
@@ -20,6 +22,7 @@ import { catColor, typeColor } from "@/lib/beads-view";
 import { containerLayout } from "@/lib/graph-containers";
 import { graphEdges, graphScope } from "@/lib/graph-model";
 import { graphNeighborhood } from "@/lib/graph-neighborhood";
+import { routeGraphEdges } from "@/lib/graph-routing";
 import type { Bead } from "@/lib/schema";
 
 type BeadNodeData = {
@@ -150,6 +153,18 @@ function EpicNode({ data }: NodeProps) {
 }
 
 const nodeTypes = { bead: BeadNode, epic: EpicNode };
+function RoutedEdge(props: EdgeProps) {
+  return (
+    <BaseEdge
+      id={props.id}
+      path={String(props.data?.path ?? "")}
+      style={{ ...props.style, pointerEvents: "none" }}
+      interactionWidth={0}
+      markerEnd={props.markerEnd}
+    />
+  );
+}
+const edgeTypes = { routed: RoutedEdge };
 
 export function GraphView() {
   const { beads, openDetail, readOnly } = useApp();
@@ -197,7 +212,10 @@ export function GraphView() {
     () => containerLayout(scope.visible, scope.all, activateNode, scope.outsideIds, heights),
     [scope, activateNode, heights],
   );
-  const edges = React.useMemo(() => graphEdges(scope.visible), [scope]);
+  const edges = React.useMemo(
+    () => routeGraphEdges(graphEdges(scope.visible), nodes),
+    [scope, nodes],
+  );
   const considered = scope.considered;
   // Fit after measured layout settles, never on spotlight/selection changes.
   // biome-ignore lint/correctness/useExhaustiveDependencies: Scope and measured sizes trigger an imperative fit after React Flow processes the layout.
@@ -251,17 +269,7 @@ export function GraphView() {
         <div className="flex-1">
           <h1 className="m-0 text-base font-[650] tracking-[-.01em]">Dependency graph</h1>
           <span className="hidden text-[11.5px] text-[var(--text-3)] md:inline">
-            {effectiveEpicId
-              ? spotlight
-                ? "Left → right: prerequisite → dependent · select to spotlight active blocking chains; double-click for details"
-                : readOnly
-                  ? "Left → right: prerequisite → dependent · select a bead to view its details"
-                  : "Left → right: prerequisite → dependent · drag a prerequisite onto its dependent"
-              : spotlight
-                ? "Select a bead to highlight active blocking chains; double-click for details"
-                : readOnly
-                  ? "Select a bead to view its details"
-                  : "Left → right: prerequisite → dependent · drag a prerequisite onto its dependent"}
+            {graphInstructions(!!effectiveEpicId, spotlight, readOnly)}
             {" · "}
             {nodes.length} beads shown
             {hidden > 0 && (
@@ -382,8 +390,10 @@ export function GraphView() {
                 if (spotlight) openDetail(node.id);
               }}
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               nodesConnectable={!readOnly}
               defaultEdgeOptions={{ zIndex: 1 }}
+              zIndexMode="manual"
               onConnect={onConnect}
               onInit={(inst) => {
                 rf.current = inst;
@@ -440,4 +450,22 @@ export function GraphView() {
       </div>
     </div>
   );
+}
+
+function graphInstructions(
+  effectiveEpicId: boolean,
+  spotlight: boolean,
+  readOnly: boolean,
+): string {
+  return effectiveEpicId
+    ? spotlight
+      ? "Left → right: prerequisite → dependent · select to spotlight active blocking chains; double-click for details"
+      : readOnly
+        ? "Left → right: prerequisite → dependent · select a bead to view its details"
+        : "Left → right: prerequisite → dependent · drag a prerequisite onto its dependent"
+    : spotlight
+      ? "Select a bead to highlight active blocking chains; double-click for details"
+      : readOnly
+        ? "Select a bead to view its details"
+        : "Left → right: prerequisite → dependent · drag a prerequisite onto its dependent";
 }

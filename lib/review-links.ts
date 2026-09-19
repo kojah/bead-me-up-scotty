@@ -12,21 +12,12 @@ export function reviewLinks(bead: Bead): string[] {
     .join("\n");
   const candidates = text.match(/(?:https?:\/\/|attachment:\/\/|\/api\/p\/)[^\s<>"']+/gi) ?? [];
   const links = new Set<string>();
-  for (const candidate of candidates) {
-    let link = candidate.replace(/[.,;!?]+$/, "");
-    // Remove Markdown/prose closing delimiters while retaining balanced URL parentheses.
-    for (const [open, close] of [
-      ["(", ")"],
-      ["[", "]"],
-    ]) {
-      while (link.endsWith(close) && link.split(close).length > link.split(open).length)
-        link = link.slice(0, -1);
-    }
-    link = link.replace(/[.,;!?]+$/, "");
+  function collectLink(candidate: string) {
+    const link = trimLink(candidate);
     if (link.startsWith("attachment://")) {
       const parts = link.slice("attachment://".length).split("/");
-      if (parts.length >= 2 && parts.every((p) => p && p !== "." && p !== "..")) links.add(link);
-      continue;
+      if (validAttachmentParts(parts)) links.add(link);
+      return;
     }
     try {
       const url = new URL(link, "https://scotty.invalid");
@@ -37,5 +28,25 @@ export function reviewLinks(bead: Bead): string[] {
       /* Ignore malformed text rather than rendering an unusable link. */
     }
   }
+  candidates.forEach(collectLink);
   return [...links];
+}
+
+function trimLink(candidate: string): string {
+  let link = candidate.replace(/[.,;!?]+$/, "");
+  // Remove Markdown/prose closing delimiters while retaining balanced URL parentheses.
+  for (const [open, close] of [
+    ["(", ")"],
+    ["[", "]"],
+  ]) {
+    while (link.endsWith(close) && link.split(close).length > link.split(open).length)
+      link = link.slice(0, -1);
+  }
+  link = link.replace(/[.,;!?]+$/, "");
+
+  return link;
+}
+
+function validAttachmentParts(parts: string[]): boolean {
+  return parts.length >= 2 && parts.every((p) => p && p !== "." && p !== "..");
 }

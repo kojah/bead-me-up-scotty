@@ -161,23 +161,30 @@ export function Board() {
     if (!overCol) return;
 
     if (overCol !== activeCol) {
-      // Cross-column → status change (existing behavior).
-      const target = COLUMNS.find((c) => c.id === overCol);
-      if (!target || !target.droppable || !target.status) return;
-      const bead = index.get(activeId);
-      if (!bead || bead.status === target.status) return;
-      setStatus.mutate({ id: activeId, status: target.status });
+      moveToColumn(activeId, overCol);
       return;
     }
 
     if (boardPrefs.sortMode !== "manual") return;
 
+    reorderColumn(activeId, overRaw, activeCol);
+  }
+
+  function reorderColumn(activeId: string, overRaw: string, activeCol: string) {
     // Within-column → reorder + persist the manual order.
     const ids = (columns.find((c) => c.col.id === activeCol)?.cards ?? []).map((b) => b.id);
     const oldIndex = ids.indexOf(activeId);
     const newIndex = overRaw === activeCol ? ids.length - 1 : ids.indexOf(overRaw);
     if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
     setOrder.mutate({ columnId: activeCol, ids: arrayMove(ids, oldIndex, newIndex) });
+  }
+  function moveToColumn(activeId: string, overCol: string) {
+    // Cross-column → status change (existing behavior).
+    const target = COLUMNS.find((c) => c.id === overCol);
+    if (!target || !target.droppable || !target.status) return;
+    const bead = index.get(activeId);
+    if (!bead || bead.status === target.status) return;
+    setStatus.mutate({ id: activeId, status: target.status });
   }
 
   const draggingBead = draggingId ? index.get(draggingId) : undefined;

@@ -159,15 +159,17 @@ export function useNotificationWatcher(projectId: string) {
 
     const prefs = loadPrefs();
     if (!prefs.enabled) return;
-    for (const it of items) {
-      if (it.at <= prevSeen) break; // items are newest-first
-      if (it.origin !== "agent") continue;
+    const boundary = items.findIndex((it) => it.at <= prevSeen);
+    const fresh = items.slice(0, boundary === -1 ? items.length : boundary);
+    function notifyAgentActivity(it: (typeof fresh)[number]) {
+      if (it.origin !== "agent") return;
       if (prefs.finished && it.action === "closed") {
         fire(`🤖 ${it.actor} finished ${it.issueId}`, it.title, projectId, it.issueId);
       } else if (prefs.blocked && it.action.startsWith("marked Blocked")) {
         fire(`⛔ ${it.issueId} is blocked`, it.title, projectId, it.issueId);
       }
     }
+    fresh.forEach(notifyAgentActivity);
   }, [items, projectId]);
 
   // New human-escalations, from the beads list.

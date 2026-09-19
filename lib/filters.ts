@@ -142,17 +142,14 @@ export function matchesFilters(b: Bead, f: Filters, humanAllowlist: string[]): b
   // OR within the facet, like every other facet above; AND across facets.
   if (f.labels.length && !f.labels.some((l) => (b.labels ?? []).includes(l))) return false;
   const q = f.search.trim().toLowerCase();
-  if (
-    q &&
-    !(
-      b.title.toLowerCase().includes(q) ||
-      b.id.toLowerCase().includes(q) ||
-      (b.assignee ?? "").toLowerCase().includes(q) ||
-      (b.labels ?? []).some((l) => l.toLowerCase().includes(q))
-    )
-  )
-    return false;
-  return true;
+  return matchesSearch(b, q);
+}
+
+function matchesSearch(b: Bead, query: string): boolean {
+  if (!query) return true;
+  return [b.title, b.id, b.assignee ?? "", ...(b.labels ?? [])].some((text) =>
+    text.toLowerCase().includes(query),
+  );
 }
 
 /** Immutable toggle of a value in a string array. */

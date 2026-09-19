@@ -56,32 +56,7 @@ export function UpdateIndicator() {
       >
         {selected && (
           <DialogContent className="max-w-[480px]">
-            <DialogTitle>
-              {selected.channel === "stable"
-                ? `Version ${selected.latestVersion} available`
-                : "Development update available"}
-            </DialogTitle>
-            <DialogDescription>
-              {selected.channel === "stable"
-                ? `You are running version ${selected.currentVersion}. This update installs version ${selected.latestVersion}.`
-                : `There are ${selected.behind} newer commits on main. This update installs the selected development build.`}
-            </DialogDescription>
-            <a
-              href={selected.releaseUrl || commitUrl(selected.remoteSha)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[13px] text-[var(--brand)] underline"
-            >
-              {selected.channel === "stable"
-                ? "Release notes and update instructions"
-                : "View selected development build"}
-            </a>
-            {!selected.canUpdate && (
-              <p className="text-[13px] leading-relaxed">
-                {selected.manualReason ||
-                  "Follow the release instructions to update this installation."}
-              </p>
-            )}
+            <UpdateDescription selected={selected} />
             {selected.canUpdate && !run.data && (
               <p className="text-[12px] leading-relaxed text-[var(--text-3)]">
                 Update now installs the selected source version, restores its dependencies, and
@@ -130,6 +105,39 @@ export function UpdateIndicator() {
           </DialogContent>
         )}
       </Dialog>
+    </>
+  );
+}
+
+function UpdateDescription({ selected }: { selected: UpdateStatus }) {
+  return (
+    <>
+      {" "}
+      <DialogTitle>
+        {selected.channel === "stable"
+          ? `Version ${selected.latestVersion} available`
+          : "Development update available"}
+      </DialogTitle>
+      <DialogDescription>
+        {selected.channel === "stable"
+          ? `You are running version ${selected.currentVersion}. This update installs version ${selected.latestVersion}.`
+          : `There are ${selected.behind} newer commits on main. This update installs the selected development build.`}
+      </DialogDescription>
+      <a
+        href={selected.releaseUrl || commitUrl(selected.remoteSha)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[13px] text-[var(--brand)] underline"
+      >
+        {selected.channel === "stable"
+          ? "Release notes and update instructions"
+          : "View selected development build"}
+      </a>
+      {!selected.canUpdate && (
+        <p className="text-[13px] leading-relaxed">
+          {selected.manualReason || "Follow the release instructions to update this installation."}
+        </p>
+      )}
     </>
   );
 }

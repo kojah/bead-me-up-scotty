@@ -30,6 +30,7 @@
     "rules": {
       "preset": "none",
       "complexity": {
+        "noExcessiveCognitiveComplexity": "error",
         "noUselessTypeConstraint": "error"
       },
       "correctness": {

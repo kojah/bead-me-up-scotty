@@ -67,7 +67,8 @@ test("approval", async ({ browser, baseURL }) => {
       const request = route.request();
       const path = new URL(request.url()).pathname;
       if (path.endsWith("/beads/stream")) return route.abort();
-      if (request.method() === "GET") {
+      if (request.method() === "GET") return respondToRead();
+      function respondToRead() {
         if (path.endsWith("/beads")) {
           return route.fulfill({
             json: {

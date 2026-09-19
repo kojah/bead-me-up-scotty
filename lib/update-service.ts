@@ -126,111 +126,134 @@ export function createUpdater(options: Options) {
       remoteSha: "",
     };
     try {
-      if (channel === "stable") {
-        const tag = await latest();
-        if (!tag) return base;
-        base.latestVersion = tag.replace(/^v/, "");
-        base.releaseUrl = `https://github.com/${repository}/releases/tag/${encodeURIComponent(tag)}`;
-        base.updateAvailable = newer(tag, version);
-        if (!base.updateAvailable) return base;
-        base.manualReason = await checkoutProblem();
-        if (!base.isGitRepo) return base;
-        base.localSha = await git("rev-parse", "HEAD");
-        base.remoteSha = await resolve(channel, tag);
-        base.target = { channel, tag, sha: base.remoteSha };
-      } else {
-        if (!base.isGitRepo)
-          return { ...base, manualReason: "Development updates require a Git checkout." };
-        base.localSha = await git("rev-parse", "HEAD");
-        base.remoteSha = await resolve(channel);
-        await git("fetch", "--quiet", "--no-tags", "--no-write-fetch-head", remote, base.remoteSha);
-        base.behind = Number(await git("rev-list", "--count", `HEAD..${base.remoteSha}`));
-        // HEAD can advance before a build fails. Keep the advertised update available
-        // until the running build catches up, including after a browser reload.
-        const buildBehind = !!options.buildSha && !base.localSha.startsWith(options.buildSha);
-        base.updateAvailable = base.behind > 0 || (buildBehind && base.localSha === base.remoteSha);
-        base.target = { channel, sha: base.remoteSha };
-        base.manualReason = await checkoutProblem();
-      }
-      base.canUpdate = base.updateAvailable && !base.manualReason;
-      return base;
+      return await checkChannel(base, channel);
     } catch (e) {
       return { ...base, canUpdate: false, error: (e as Error).message };
     }
+  }
+  async function checkChannel(base: UpdateStatus, channel: UpdateChannel): Promise<UpdateStatus> {
+    if (channel === "stable") {
+      const tag = await latest();
+      if (!tag) return base;
+      base.latestVersion = tag.replace(/^v/, "");
+      base.releaseUrl = `https://github.com/${repository}/releases/tag/${encodeURIComponent(tag)}`;
+      base.updateAvailable = newer(tag, version);
+      if (!base.updateAvailable) return base;
+      base.manualReason = await checkoutProblem();
+      if (!base.isGitRepo) return base;
+      base.localSha = await git("rev-parse", "HEAD");
+      base.remoteSha = await resolve(channel, tag);
+      base.target = { channel, tag, sha: base.remoteSha };
+    } else {
+      return checkDevelopment(base);
+    }
+    base.canUpdate = base.updateAvailable && !base.manualReason;
+    return base;
+  }
+  async function checkDevelopment(base: UpdateStatus): Promise<UpdateStatus> {
+    const channel = "development";
+    if (!base.isGitRepo)
+      return { ...base, manualReason: "Development updates require a Git checkout." };
+    base.localSha = await git("rev-parse", "HEAD");
+    base.remoteSha = await resolve(channel);
+    await git("fetch", "--quiet", "--no-tags", "--no-write-fetch-head", remote, base.remoteSha);
+    base.behind = Number(await git("rev-list", "--count", `HEAD..${base.remoteSha}`));
+    // HEAD can advance before a build fails. Keep the advertised update available
+    // until the running build catches up, including after a browser reload.
+    const buildBehind = !!options.buildSha && !base.localSha.startsWith(options.buildSha);
+    base.updateAvailable = base.behind > 0 || (buildBehind && base.localSha === base.remoteSha);
+    base.target = { channel, sha: base.remoteSha };
+    base.manualReason = await checkoutProblem();
+
+    base.canUpdate = base.updateAvailable && !base.manualReason;
+    return base;
   }
   async function update(target: UpdateTarget): Promise<UpdateResult> {
     if (updating) throw new Error("An update is already running.");
     updating = true;
     try {
-      if (
-        !target ||
-        !["stable", "development"].includes(target.channel) ||
-        !/^[a-f0-9]{40}$/.test(target.sha) ||
-        (target.channel === "stable" && (!target.tag || !tagPattern.test(target.tag)))
-      )
-        throw new Error("Invalid update target. Check for updates again.");
-      if (!isGit())
-        throw new Error(
-          "A Git checkout is required for in-app updates. See the release instructions.",
-        );
-      const problem = await checkoutProblem();
-      if (problem) throw new Error(problem);
-      if (target.channel === "stable") {
-        await releaseTag(target.tag);
-        if (!newer(target.tag!, version))
-          throw new Error("This release is not newer than the running version.");
-      }
-      const resolved = await resolve(target.channel, target.tag);
-      if (resolved !== target.sha)
-        throw new Error("The advertised update target changed. Check for updates again.");
-      await git("fetch", "--quiet", "--no-tags", "--no-write-fetch-head", remote, target.sha);
-      if (target.channel === "stable") {
-        const manifest = JSON.parse(await git("show", `${target.sha}:package.json`));
-        if (
-          manifest.name !== "bead-me-up-scotty" ||
-          manifest.version !== target.tag!.replace(/^v/, "")
-        )
-          throw new Error("Release tag and package version do not match.");
-      }
-      const fromSha = await git("rev-parse", "HEAD");
-      try {
-        await git("merge-base", "--is-ancestor", fromSha, target.sha);
-      } catch {
-        throw new Error(
-          "Your checkout has diverged from this update. A fast-forward is required; no local work was overwritten.",
-        );
-      }
-      // Recheck after network requests, before changing tracked files.
-      const recheck = await checkoutProblem();
-      if (recheck) throw new Error(recheck);
-      if ((await git("rev-parse", "HEAD")) !== fromSha)
-        throw new Error("The checkout changed while preparing the update. Try again.");
-      const steps: UpdateStep[] = [];
-      const run = async (name: string, command: string, args: string[]) => {
-        try {
-          const output = await runner(command, args, {
-            cwd,
-            timeout: 300_000,
-            maxBuffer: 64 * 1024 * 1024,
-          });
-          steps.push({ name, ok: true, output: `${output.stdout}${output.stderr}`.slice(-4000) });
-        } catch {
-          throw new Error(
-            `${name} failed. Source files may already be updated; fix the problem and retry, or rebuild manually.`,
-          );
-        }
-      };
-      await run("Install selected source version", "git", ["merge", "--ff-only", target.sha]);
-      const toSha = await git("rev-parse", "HEAD");
-      if (toSha !== target.sha) throw new Error("The checkout does not match the selected update.");
-      // Always install locked dependencies: this also repairs retries after a failed build/install.
-      await run("Install dependencies", "bun", ["install", "--frozen-lockfile"]);
-      await run("Build app", "bun", ["run", "build"]);
-      restartPending = !!options.supervised;
-      return { ok: true, steps, restarting: restartPending, fromSha, toSha };
+      return await performUpdate(target);
     } finally {
       if (!restartPending) updating = false;
     }
   }
+  async function validateTarget(target: UpdateTarget) {
+    assertUpdateTarget(target);
+    if (!isGit())
+      throw new Error(
+        "A Git checkout is required for in-app updates. See the release instructions.",
+      );
+    const problem = await checkoutProblem();
+    if (problem) throw new Error(problem);
+    if (target.channel === "stable") {
+      await releaseTag(target.tag);
+      if (!newer(target.tag!, version))
+        throw new Error("This release is not newer than the running version.");
+    }
+    const resolved = await resolve(target.channel, target.tag);
+    if (resolved !== target.sha)
+      throw new Error("The advertised update target changed. Check for updates again.");
+    await git("fetch", "--quiet", "--no-tags", "--no-write-fetch-head", remote, target.sha);
+    await verifyReleaseManifest(target);
+  }
+  async function verifyReleaseManifest(target: UpdateTarget) {
+    if (target.channel === "stable") {
+      const manifest = JSON.parse(await git("show", `${target.sha}:package.json`));
+      if (
+        manifest.name !== "bead-me-up-scotty" ||
+        manifest.version !== target.tag!.replace(/^v/, "")
+      )
+        throw new Error("Release tag and package version do not match.");
+    }
+  }
+  async function performUpdate(target: UpdateTarget): Promise<UpdateResult> {
+    await validateTarget(target);
+    const fromSha = await git("rev-parse", "HEAD");
+    try {
+      await git("merge-base", "--is-ancestor", fromSha, target.sha);
+    } catch {
+      throw new Error(
+        "Your checkout has diverged from this update. A fast-forward is required; no local work was overwritten.",
+      );
+    }
+    // Recheck after network requests, before changing tracked files.
+    const recheck = await checkoutProblem();
+    if (recheck) throw new Error(recheck);
+    if ((await git("rev-parse", "HEAD")) !== fromSha)
+      throw new Error("The checkout changed while preparing the update. Try again.");
+    const steps: UpdateStep[] = [];
+    const run = async (name: string, command: string, args: string[]) => {
+      try {
+        const output = await runner(command, args, {
+          cwd,
+          timeout: 300_000,
+          maxBuffer: 64 * 1024 * 1024,
+        });
+        steps.push({ name, ok: true, output: `${output.stdout}${output.stderr}`.slice(-4000) });
+      } catch {
+        throw new Error(
+          `${name} failed. Source files may already be updated; fix the problem and retry, or rebuild manually.`,
+        );
+      }
+    };
+    await run("Install selected source version", "git", ["merge", "--ff-only", target.sha]);
+    const toSha = await git("rev-parse", "HEAD");
+    if (toSha !== target.sha) throw new Error("The checkout does not match the selected update.");
+    // Always install locked dependencies: this also repairs retries after a failed build/install.
+    await run("Install dependencies", "bun", ["install", "--frozen-lockfile"]);
+    await run("Build app", "bun", ["run", "build"]);
+    restartPending = !!options.supervised;
+    return { ok: true, steps, restarting: restartPending, fromSha, toSha };
+  }
   return { check, update };
+}
+
+function assertUpdateTarget(target: UpdateTarget) {
+  if (
+    !target ||
+    !["stable", "development"].includes(target.channel) ||
+    !/^[a-f0-9]{40}$/.test(target.sha) ||
+    (target.channel === "stable" && (!target.tag || !tagPattern.test(target.tag)))
+  )
+    throw new Error("Invalid update target. Check for updates again.");
 }

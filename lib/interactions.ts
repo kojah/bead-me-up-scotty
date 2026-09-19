@@ -129,7 +129,7 @@ export function buildActivity(
   const hasEvents = items.length > 0;
 
   // 2. Creations + comments from the beads (+ closes when we have no log).
-  for (const b of beads) {
+  function collectBeadActivity(b: Bead) {
     if (b.created_at) {
       items.push({
         id: `${b.id}-created`,
@@ -167,6 +167,7 @@ export function buildActivity(
     }
   }
 
+  beads.forEach(collectBeadActivity);
   // newest first
   items.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
   return items;

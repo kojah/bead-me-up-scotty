@@ -27,7 +27,7 @@
     "check": "biome check .",
     "typecheck": "bun --bun tsc --noEmit",
     "test": "bun run test:unit && bun run test:e2e",
-    "test:unit": "bun scripts/test-blocking.mjs && bun scripts/test-dep-candidates.mjs && bun scripts/test-graph-containers.mjs && bun scripts/test-telemetry.mjs && bun scripts/test-updates.mjs",
+    "test:unit": "bun scripts/test-blocking.mjs && bun scripts/test-dep-candidates.mjs && bun scripts/test-graph-containers.mjs && bun scripts/test-graph-routing.ts && bun scripts/test-telemetry.mjs && bun scripts/test-updates.mjs",
     "test:e2e": "bun --bun playwright test",
     "test:e2e:ui": "bun --bun playwright test --ui"
   },

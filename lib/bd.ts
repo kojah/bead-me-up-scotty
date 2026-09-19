@@ -201,15 +201,7 @@ export function createBdStore(repoPath: string): BeadsStore {
     update(id, patch: UpdateInput, actor: string) {
       return serializeWrite(repoPath, async () => {
         const args = ["update", id];
-        if (patch.title !== undefined) args.push("--title", patch.title);
-        if (patch.description !== undefined) args.push("--description", patch.description);
-        if (patch.status !== undefined) args.push("-s", patch.status);
-        if (patch.priority !== undefined) args.push("--priority", String(patch.priority));
-        if (patch.issue_type !== undefined) args.push("-t", patch.issue_type);
-        if (patch.assignee !== undefined) args.push("--assignee", patch.assignee);
-        // `!== undefined` rather than a truthiness check: `""` is the detach
-        // signal, so `if (patch.parent)` would make detaching inexpressible.
-        if (patch.parent !== undefined) args.push("--parent", patch.parent);
+        appendUpdateFields(args, patch);
         // Labels are replace-all. `bd update --set-labels ""` is silently
         // dropped (verified against bd 1.1.0) — an empty value never clears —
         // so the "remove every label" case has to go through --remove-label
@@ -219,7 +211,7 @@ export function createBdStore(repoPath: string): BeadsStore {
             args.push("--set-labels", patch.labels.join(","));
           } else {
             const current = (await show(id)).labels ?? [];
-            if (current.length) args.push("--remove-label", current.join(","));
+            args.push(...removeLabelArgs(current));
           }
         }
         // `bd update <id>` with no field flags is a no-op error; skip the call
@@ -318,4 +310,20 @@ export function createBdStore(repoPath: string): BeadsStore {
       }
     },
   };
+}
+
+function appendUpdateFields(args: string[], patch: UpdateInput) {
+  if (patch.title !== undefined) args.push("--title", patch.title);
+  if (patch.description !== undefined) args.push("--description", patch.description);
+  if (patch.status !== undefined) args.push("-s", patch.status);
+  if (patch.priority !== undefined) args.push("--priority", String(patch.priority));
+  if (patch.issue_type !== undefined) args.push("-t", patch.issue_type);
+  if (patch.assignee !== undefined) args.push("--assignee", patch.assignee);
+  // `!== undefined` rather than a truthiness check: `""` is the detach
+  // signal, so `if (patch.parent)` would make detaching inexpressible.
+  if (patch.parent !== undefined) args.push("--parent", patch.parent);
+}
+
+function removeLabelArgs(labels: string[]): string[] {
+  return labels.length ? ["--remove-label", labels.join(",")] : [];
 }

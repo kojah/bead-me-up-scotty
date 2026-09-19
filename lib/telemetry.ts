@@ -86,72 +86,94 @@ export function createTelemetry(options: Options) {
   }
   async function capture(): Promise<void> {
     try {
-      if (!key.trim()) return;
-      const host = new URL(options.host);
-      if (host.protocol !== "https:" || host.username || host.password) return;
-      if (!read().enabled) return;
-      fs.mkdirSync(path.dirname(options.file), { recursive: true });
-      const id = installationId();
-      const timestamp = now().toISOString();
-      const day = timestamp.slice(0, 10);
-      const days = `${options.file}.days`;
-      fs.mkdirSync(days, { recursive: true });
-      const complete = path.join(days, day);
-      // Also honor legacy daily reservations, whose delivery status is unknown.
-      if (fs.existsSync(complete)) return;
-      const eventFile = `${complete}.event.json`;
-      reserve(eventFile, { uuid: randomUUID(), timestamp, version: options.version });
-      const event = JSON.parse(fs.readFileSync(eventFile, "utf8"));
-      if (
-        !/^[0-9a-f-]{36}$/.test(event.uuid) ||
-        typeof event.version !== "string" ||
-        typeof event.timestamp !== "string" ||
-        event.timestamp.slice(0, 10) !== day ||
-        !Number.isFinite(Date.parse(event.timestamp))
-      )
-        return;
-      // At most three attempts, ten minutes apart, triggered only by current-day UI use.
-      // Immutable attempt records survive crashes without a stale lock or endless retries.
-      let claimed = false;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        const attemptFile = `${complete}.attempt-${attempt}.json`;
-        if (reserve(attemptFile, timestamp)) {
-          claimed = true;
-          break;
-        }
-        const previous = Date.parse(JSON.parse(fs.readFileSync(attemptFile, "utf8")));
-        if (!Number.isFinite(previous) || Date.parse(timestamp) - previous < 10 * 60_000) return;
-      }
-      if (!claimed || !read().enabled || fs.existsSync(complete)) return;
-      const response = await (options.send ?? fetch)(new URL("/i/v0/e/", host).toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        redirect: "error",
-        signal: AbortSignal.timeout(3000),
-        body: JSON.stringify({
-          api_key: key,
-          event: "app_active",
-          distinct_id: id,
-          uuid: event.uuid,
-          timestamp: event.timestamp,
-          properties: {
-            app_version: event.version,
-            $process_person_profile: false,
-            $geoip_disable: true,
-          },
-        }),
-      });
-      if (!response.ok) return;
-      const acknowledgement = await response.json();
-      if (
-        acknowledgement === 1 ||
-        ((acknowledgement?.status === 1 || acknowledgement?.status === "Ok") &&
-          !acknowledgement.quota_limited?.length)
-      )
-        reserve(complete, true);
+      await captureEnabledDay();
     } catch {
       // Analytics must never interrupt use or log tokens / request details.
     }
   }
+  async function captureEnabledDay(): Promise<void> {
+    if (!key.trim()) return;
+    const host = new URL(options.host);
+    if (host.protocol !== "https:" || host.username || host.password) return;
+    if (!read().enabled) return;
+    fs.mkdirSync(path.dirname(options.file), { recursive: true });
+    const id = installationId();
+    const timestamp = now().toISOString();
+    const day = timestamp.slice(0, 10);
+    const days = `${options.file}.days`;
+    fs.mkdirSync(days, { recursive: true });
+    const complete = path.join(days, day);
+    // Also honor legacy daily reservations, whose delivery status is unknown.
+    if (fs.existsSync(complete)) return;
+    const eventFile = `${complete}.event.json`;
+    reserve(eventFile, { uuid: randomUUID(), timestamp, version: options.version });
+    const event = JSON.parse(fs.readFileSync(eventFile, "utf8"));
+    if (!validEvent(event, day)) return;
+    // At most three attempts, ten minutes apart, triggered only by current-day UI use.
+    // Immutable attempt records survive crashes without a stale lock or endless retries.
+    const claimed = claimAttempt(complete, timestamp);
+    if (!claimed || !read().enabled || fs.existsSync(complete)) return;
+    await deliverEvent(host, id, event, complete);
+  }
+
+  async function deliverEvent(
+    host: URL,
+    id: string,
+    event: { uuid: string; timestamp: string; version: string },
+    complete: string,
+  ) {
+    const response = await (options.send ?? fetch)(new URL("/i/v0/e/", host).toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      redirect: "error",
+      signal: AbortSignal.timeout(3000),
+      body: JSON.stringify({
+        api_key: key,
+        event: "app_active",
+        distinct_id: id,
+        uuid: event.uuid,
+        timestamp: event.timestamp,
+        properties: {
+          app_version: event.version,
+          $process_person_profile: false,
+          $geoip_disable: true,
+        },
+      }),
+    });
+    if (!response.ok) return;
+    const acknowledgement = await response.json();
+    if (
+      acknowledgement === 1 ||
+      ((acknowledgement?.status === 1 || acknowledgement?.status === "Ok") &&
+        !acknowledgement.quota_limited?.length)
+    )
+      reserve(complete, true);
+  }
+  function claimAttempt(complete: string, timestamp: string): boolean {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const attemptFile = `${complete}.attempt-${attempt}.json`;
+      if (reserve(attemptFile, timestamp)) return true;
+      const previous = Date.parse(JSON.parse(fs.readFileSync(attemptFile, "utf8")));
+      if (!Number.isFinite(previous) || Date.parse(timestamp) - previous < 10 * 60_000)
+        return false;
+    }
+    return false;
+  }
   return { settings, setEnabled, capture };
+}
+
+function validEvent(
+  event: { uuid: string; version: unknown; timestamp: unknown },
+  day: string,
+): boolean {
+  if (
+    !/^[0-9a-f-]{36}$/.test(event.uuid) ||
+    typeof event.version !== "string" ||
+    typeof event.timestamp !== "string" ||
+    event.timestamp.slice(0, 10) !== day ||
+    !Number.isFinite(Date.parse(event.timestamp))
+  )
+    return false;
+
+  return true;
 }
