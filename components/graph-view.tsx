@@ -6,7 +6,7 @@ import {
   Controls,
   Handle,
   Position,
-  type Node,
+  MarkerType,
   type Edge,
   type Connection,
   type NodeProps,
@@ -16,8 +16,10 @@ import "@xyflow/react/dist/style.css";
 import { Icon, typeIconName } from "@/components/icons";
 import { useApp } from "@/components/app-context";
 import { useAddDep } from "@/hooks/use-beads";
-import { catColor, typeColor, childrenOf } from "@/lib/beads-view";
-import { buildEpicGraphScope, graphDependencyLayers } from "@/lib/graph-epic";
+import { catColor, typeColor } from "@/lib/beads-view";
+import { buildEpicGraphScope } from "@/lib/graph-epic";
+import { containerLayout, hideCompletedBeads } from "@/lib/graph-containers";
+import { useGraphPrefs } from "@/hooks/use-graph-prefs";
 import { graphNeighborhood } from "@/lib/graph-neighborhood";
 import type { Bead } from "@/lib/schema";
 
@@ -85,17 +87,25 @@ function BeadNode({ data }: NodeProps) {
   );
 }
 
-const nodeTypes = { bead: BeadNode };
+function EpicNode({ data }: NodeProps) {
+  const { bead, onOpen, completed, total } = data as unknown as BeadNodeData & { completed: number; total: number };
+  return (
+    <div className="h-full w-full rounded-xl border-2 border-[var(--border-strong)] bg-[var(--surface-2)]" data-epic-container={bead.id}>
+      <Handle type="target" position={Position.Left} style={{ top: 45 }} />
+      <button type="button" onClick={() => onOpen(bead.id)}
+        className="nodrag flex w-full flex-col gap-1 border-b border-border px-4 py-3 text-left text-[var(--text)]"
+        aria-label={`Open epic ${bead.title}`}>
+        <span className="text-xs text-[var(--text-3)]">Epic · {bead.id} · {completed}/{total} completed</span>
+        <span className="line-clamp-2 text-sm font-semibold">{bead.title}</span>
+      </button>
+      <Handle type="source" position={Position.Right} style={{ top: 45 }} />
+    </div>
+  );
+}
+
+const nodeTypes = { bead: BeadNode, epic: EpicNode };
 
 const FLOW_BLOCKING = new Set(["blocks", "conditional-blocks", "waits-for"]);
-
-function nodeSpan(bead: Bead, outsideEpic = false): number {
-  const title = bead.title.replace(/\s*\([^)]*\)\s*/, "");
-  // At 170px wide, 16 characters per line is deliberately conservative. The
-  // estimate is uncapped so unusually long titles still reserve enough room.
-  const titleLines = Math.max(1, Math.ceil(title.length / 16));
-  return 82 + titleLines * 18 + (outsideEpic ? 24 : 0);
-}
 
 function styledEdges(beads: Bead[], horizontal: boolean): Edge[] {
   const present = new Set(beads.map((bead) => bead.id));
@@ -103,6 +113,7 @@ function styledEdges(beads: Bead[], horizontal: boolean): Edge[] {
   const edges: Edge[] = [];
   for (const bead of beads) {
     for (const dependency of bead.dependencies ?? []) {
+      if (dependency.type === "parent-child") continue;
       if (!present.has(dependency.depends_on_id)) continue;
       const id = `${bead.id}->${dependency.depends_on_id}:${dependency.type}`;
       if (edgeIds.has(id)) continue;
@@ -119,6 +130,7 @@ function styledEdges(beads: Bead[], horizontal: boolean): Edge[] {
         source: horizontal ? dependency.depends_on_id : bead.id,
         target: horizontal ? bead.id : dependency.depends_on_id,
         animated: blocking,
+        markerEnd: related ? undefined : { type: MarkerType.ArrowClosed, color: blocking ? "#ef4444" : "var(--text-3)" },
         style: {
           stroke: blocking ? "#ef4444" : related ? "var(--brand)" : "var(--text-3)",
           strokeWidth: blocking ? 2 : 1.6,
@@ -152,86 +164,9 @@ function liveGraphBeads(beads: Bead[], alwaysVisible = new Set<string>()): Bead[
       ),
   );
 }
-
-function layout(beads: Bead[], onOpen: (id: string) => void): { nodes: Node[]; edges: Edge[] } {
-  const epics = beads.filter((b) => b.issue_type === "epic");
-
-  const nodes: Node[] = [];
-  const COL = 250;
-
-  // React Flow keys by node id, so a bead placed twice corrupts the canvas. A
-  // bead can reach this loop twice two ways: as a child of two epics, and — the
-  // one that's easy to miss — as an epic that is itself another epic's child,
-  // which gets pushed once by its parent's iteration and again as its own
-  // column. One id set covers both.
-  const placedIds = new Set<string>();
-  const place = (b: Bead, x: number, y: number) => {
-    if (placedIds.has(b.id)) return;
-    placedIds.add(b.id);
-    nodes.push({ id: b.id, type: "bead", position: { x, y }, data: { bead: b, onOpen } });
-  };
-
-  epics.forEach((e, ci) => {
-    let y = 0;
-    place(e, ci * COL, y);
-    y += nodeSpan(e);
-    childrenOf(e.id, beads).forEach((child) => {
-      place(child, ci * COL, y);
-      y += nodeSpan(child);
-    });
-  });
-
-  // Whatever isn't under a visible epic wraps into a grid instead of one
-  // endless column, so fitView keeps the nodes at a readable scale.
-  const loose = beads.filter((b) => b.issue_type !== "epic" && !placedIds.has(b.id));
-  const looseCol = epics.length;
-  const LOOSE_ROWS = Math.max(6, Math.ceil(Math.sqrt(loose.length * 2)));
-  const looseY: number[] = [];
-  loose.forEach((bead, index) => {
-    const column = Math.floor(index / LOOSE_ROWS);
-    place(bead, (looseCol + column) * COL, looseY[column] ?? 0);
-    looseY[column] = (looseY[column] ?? 0) + nodeSpan(bead);
-  });
-
-  return { nodes, edges: styledEdges(beads, false) };
-}
-
-function epicLayout(
-  beads: Bead[],
-  onOpen: (id: string) => void,
-  outsideIds: Set<string>,
-): { nodes: Node[]; edges: Edge[] } {
-  const layers = graphDependencyLayers(beads);
-  const byLayer = new Map<number, Bead[]>();
-  for (const bead of beads) {
-    const layer = layers.get(bead.id) ?? 0;
-    const current = byLayer.get(layer);
-    if (current) current.push(bead);
-    else byLayer.set(layer, [bead]);
-  }
-
-  const nodes: Node[] = [];
-  const COL = 270;
-  for (const layer of [...byLayer.keys()].sort((a, b) => a - b)) {
-    let y = 0;
-    const layerBeads = byLayer.get(layer)!;
-    layerBeads.sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id));
-    for (const bead of layerBeads) {
-      const outsideEpic = outsideIds.has(bead.id);
-      nodes.push({
-        id: bead.id,
-        type: "bead",
-        position: { x: layer * COL, y },
-        data: { bead, onOpen, horizontal: true, outsideEpic },
-      });
-      y += nodeSpan(bead, outsideEpic);
-    }
-  }
-  return { nodes, edges: styledEdges(beads, true) };
-}
-
 export function GraphView() {
   const { beads, openDetail, readOnly } = useApp();
+  const { hideCompleted, setHideCompleted } = useGraphPrefs();
   const [epicId, setEpicId] = React.useState("");
   const [liveOnly, setLiveOnly] = React.useState(false);
   const [spotlight, setSpotlight] = React.useState(false);
@@ -257,23 +192,16 @@ export function GraphView() {
   );
   const effectiveEpicId = epics.some((epic) => epic.id === epicId) ? epicId : "";
 
-  // Preserve the original archive exclusion; closed and unlinked work remains
-  // visible by default. Epic scope adds only direct outside neighbors.
+  // Filter the tasks but preserve the epic ancestors needed for containment.
   const { nodes, edges, considered } = React.useMemo(() => {
     const nonArchived = beads.filter((bead) => !(bead.labels ?? []).includes("archived"));
-    if (effectiveEpicId) {
-      const scope = buildEpicGraphScope(nonArchived, effectiveEpicId);
-      const visible = liveOnly
-        ? liveGraphBeads(scope.beads, new Set([effectiveEpicId]))
-        : scope.beads;
-      return {
-        ...epicLayout(visible, activateNode, scope.outsideIds),
-        considered: scope.beads.length,
-      };
-    }
-    const visible = liveOnly ? liveGraphBeads(nonArchived) : nonArchived;
-    return { ...layout(visible, activateNode), considered: nonArchived.length };
-  }, [beads, activateNode, effectiveEpicId, liveOnly]);
+    const scope = effectiveEpicId ? buildEpicGraphScope(nonArchived, effectiveEpicId)
+      : { beads: nonArchived, outsideIds: new Set<string>() };
+    let visible = hideCompleted ? hideCompletedBeads(scope.beads) : scope.beads;
+    if (liveOnly) visible = liveGraphBeads(visible);
+    return { nodes: containerLayout(visible, nonArchived, activateNode, scope.outsideIds),
+      edges: styledEdges(visible, true), considered: scope.beads.length };
+  }, [beads, activateNode, effectiveEpicId, liveOnly, hideCompleted]);
   const hidden = Math.max(0, considered - nodes.length);
   const focus = React.useMemo(() => {
     if (!spotlight || !focusId || !nodes.some(n => n.id === focusId)) return null;
@@ -292,15 +220,11 @@ export function GraphView() {
     (c: Connection) => {
       if (readOnly) return;
       if (c.source && c.target && c.source !== c.target) {
-        // Scoped edges read prerequisite -> dependent, so the target receives
-        // a dependency on the source. Whole-graph semantics stay unchanged.
-        const [id, dependsOnId] = effectiveEpicId
-          ? [c.target, c.source]
-          : [c.source, c.target];
+        const [id, dependsOnId] = [c.target, c.source];
         addDep.mutate({ id, dependsOnId, type: "blocks" });
       }
     },
-    [addDep, effectiveEpicId, readOnly],
+    [addDep, readOnly],
   );
 
   return (
@@ -319,12 +243,12 @@ export function GraphView() {
                 ? "Select a bead to highlight active blocking chains; double-click for details"
                 : readOnly
                   ? "Select a bead to view its details"
-                  : "Drag from a dependent to its prerequisite to add a dependency"}
+                  : "Left → right: prerequisite → dependent · drag a prerequisite onto its dependent"}
             {" · "}{nodes.length} beads shown
             {hidden > 0 && (
               <>
                 {" · "}
-                <span title="Turn off Live dependencies only to include closed and unlinked beads.">
+                <span title="Adjust Hide completed and Live dependencies only to include more beads.">
                   {hidden} hidden by filter
                 </span>
               </>
@@ -348,6 +272,11 @@ export function GraphView() {
             </option>
           ))}
         </select>
+        <label className="flex cursor-pointer items-center gap-2 text-[12px] text-[var(--text-2)]">
+          <input type="checkbox" checked={hideCompleted} className="accent-[var(--brand)]"
+            onChange={e => { setHideCompleted(e.target.checked); setFocusId(null); }} />
+          Hide completed
+        </label>
         <label className="flex cursor-pointer items-center gap-2 text-[12px] text-[var(--text-2)]">
           <input type="checkbox" checked={spotlight} className="accent-[var(--brand)]"
             onChange={e => { setSpotlight(e.target.checked); setFocusId(null); }} />
@@ -386,7 +315,7 @@ export function GraphView() {
       <div className="relative min-h-0 flex-1">
         <SpotlightContext.Provider value={spotlightContext}>
         <ReactFlow
-          key={`${effectiveEpicId || "all"}:${liveOnly ? "live" : "complete"}`}
+          key={`${effectiveEpicId || "all"}:${liveOnly}:${hideCompleted}`}
           nodes={nodes}
           edges={shownEdges}
           zoomOnDoubleClick={!spotlight}
@@ -394,6 +323,7 @@ export function GraphView() {
           onNodeDoubleClick={(_, node) => { if (spotlight) openDetail(node.id); }}
           nodeTypes={nodeTypes}
           nodesConnectable={!readOnly}
+          defaultEdgeOptions={{ zIndex: 1 }}
           onConnect={onConnect}
           onInit={(inst) => {
             rf.current = inst;
@@ -418,9 +348,9 @@ export function GraphView() {
                   ? "There are no non-archived beads in this project."
                   : "The current filter hides all beads. Show all beads to inspect completed work or create new dependencies."}
               </p>
-              {liveOnly && considered > 0 && (
+              {considered > 0 && (
                 <button
-                  onClick={() => setLiveOnly(false)}
+                  onClick={() => { setLiveOnly(false); setHideCompleted(false); }}
                   className="mt-3 rounded-lg border border-border px-3 py-1.5 text-[12px] hover:bg-[var(--surface-2)]"
                 >
                   Show all beads
@@ -436,7 +366,7 @@ export function GraphView() {
           </span>
           <span className="flex items-center gap-[6px]">
             <span className="h-[2px] w-[18px] bg-[var(--text-3)]" />
-            parent-child
+            epic boundary
           </span>
           <span className="flex items-center gap-[6px]">
             <span className="h-0 w-[18px] border-t-2 border-dashed border-[var(--brand)]" />

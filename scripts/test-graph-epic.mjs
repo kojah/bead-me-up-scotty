@@ -61,6 +61,8 @@ try {
  const close=async()=>{await page.getByTitle('Close',{exact:true}).click();await page.getByRole('dialog').waitFor({state:'detached'});};
  const graph=async()=>{await page.goto(`${base}/p/demo`);await page.getByRole('button',{name:'Graph',exact:true}).click();await node('solo').waitFor();};
  await graph();
+ await page.getByRole('checkbox',{name:'Hide completed',exact:true}).uncheck();
+ await node('closed-child').waitFor();
  assert.equal(await scope().inputValue(),'','whole graph is the default');
  assert.deepEqual(await ids(),beads.filter(b=>b.id!=='archived').map(b=>b.id).sort());
  await scope().selectOption('epic');
@@ -72,13 +74,14 @@ try {
  const rectangles=await page.locator('.react-flow__node').evaluateAll(ns=>ns.map(n=>({id:n.dataset.id,...n.getBoundingClientRect().toJSON()})));
  for(let i=0;i<rectangles.length;i++)for(let j=i+1;j<rectangles.length;j++){
   const a=rectangles[i],b=rectangles[j];
+  if(beads.find(n=>n.id===a.id)?.issue_type==='epic'||beads.find(n=>n.id===b.id)?.issue_type==='epic')continue;
   assert.ok(a.right<=b.left+1||b.right<=a.left+1||a.bottom<=b.top+1||b.bottom<=a.top+1,`nodes must not overlap: ${a.id} / ${b.id}`);
  }
  const displayed=new Set(expected);
  const edgeIds=await page.locator('.react-flow__edge').evaluateAll(es=>es.map(e=>e.dataset.id).sort());
- const expectedEdges=beads.filter(b=>displayed.has(b.id)).flatMap(b=>b.dependencies.filter(d=>displayed.has(d.depends_on_id)).map(d=>`${b.id}->${d.depends_on_id}:${d.type}`)).sort();
+ const expectedEdges=beads.filter(b=>displayed.has(b.id)).flatMap(b=>b.dependencies.filter(d=>d.type!=='parent-child'&&displayed.has(d.depends_on_id)).map(d=>`${b.id}->${d.depends_on_id}:${d.type}`)).sort();
  assert.deepEqual(edgeIds,expectedEdges,'all in-scope and boundary dependency edges are retained with canonical IDs');
- assert.equal(await page.locator('.react-flow__edge[data-id="nested->child:parent-child"]').evaluate(n=>n.classList.contains('animated')),false,'hierarchy edges are not styled as active blockers');
+ assert.equal(await page.locator('.react-flow__edge[data-id*="parent-child"]').count(),0,'containment replaces hierarchy edges');
  const boxes=Object.fromEntries(rectangles.map(r=>[r.id,r]));
  assert.ok(boxes.outside.x<boxes.grandchild.x,'prerequisite appears left of dependent');
  await node('sub-6').click();await page.getByRole('heading',{name:'sub-6',exact:true}).waitFor();await close();
@@ -91,7 +94,7 @@ try {
  await scope().selectOption('closed-epic');await node('closed-child').waitFor();
  assert.deepEqual(await ids(),['closed-child','closed-epic']);
  const live=page.getByRole('checkbox',{name:'Live dependencies only',exact:true});
- await live.check();await node('closed-epic').waitFor();
+ await live.check();await node('closed-child').waitFor({state:'detached'});
  await live.uncheck();await node('closed-child').waitFor();
  await scope().selectOption('');await node('solo').waitFor();
  assert.equal((await ids()).length,beads.length-1,'scope exit restores the full graph');
@@ -110,7 +113,7 @@ try {
  assert.deepEqual(writes.at(-1),{id:'sub-4',depends_on_id:'outside',type:'blocks'},'epic mode draws prerequisite to dependent');
  await scope().selectOption('');await node('solo').waitFor();
  await connect('sub-5','solo');
- assert.deepEqual(writes.at(-1),{id:'sub-5',depends_on_id:'solo',type:'blocks'},'whole graph retains original dependent to prerequisite direction');
+ assert.deepEqual(writes.at(-1),{id:'solo',depends_on_id:'sub-5',type:'blocks'},'whole graph draws prerequisite to dependent');
  await scope().selectOption('epic');await node('closed-epic').waitFor({state:'detached'});
  beads.find(b=>b.id==='epic').labels=['archived'];
  await connect('outside','sub-0');
