@@ -364,7 +364,7 @@ function ReadableItem({ bead, ...tree }: TreeProps & { bead: Bead }) {
 }
 
 function EpicBranch({ bead, ...tree }: TreeProps & { bead: Bead }) {
-  const { context: _context, ...highlight } = usePathHighlight(bead.id);
+  const { context: _context, ...highlight } = usePathHighlight(bead.id, false);
   const { openDetail } = useApp();
   const open = tree.expanded.has(bead.id);
   const progress = tree.model.progress.get(bead.id) ?? { total: 0, completed: 0 };

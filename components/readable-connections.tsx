@@ -55,22 +55,25 @@ export function ReadableConnections({
   const marker = React.useId();
   const links = React.useMemo(() => readableLinks(beads, showRelated), [beads, showRelated]);
   const [routes, setRoutes] = React.useState<ReturnType<typeof routeReadableLinks>>([]);
-  const [hover, setHover] = React.useState<string | null>(null);
-  const [focus, setFocus] = React.useState<string | null>(null);
+  const [preview, setPreview] = React.useState<{ id: string; kind: "hover" | "focus" } | null>(
+    null,
+  );
   const [pinned, setPinned] = React.useState<string | null>(null);
   const [visible, setVisible] = React.useState<Set<string>>(() => new Set());
-  const activeId = [pinned, hover, focus].find((id) => id && visible.has(id)) ?? null;
+  const activeId = [pinned, preview?.id].find((id) => id && visible.has(id)) ?? null;
+  const updatePreview = (kind: "hover" | "focus", id: string | null) =>
+    setPreview((current) => (id ? { id, kind } : current?.kind === kind ? null : current));
   React.useEffect(() => {
     if (pinned && !visible.has(pinned)) setPinned(null);
-  }, [pinned, visible]);
+    if (preview && !visible.has(preview.id)) setPreview(null);
+  }, [pinned, preview, visible]);
   const active = React.useMemo(
     () => (activeId ? pathNeighborhood(activeId, routes.filter(isBlockingLink)) : null),
     [activeId, routes],
   );
   const clear = () => {
     setPinned(null);
-    setHover(null);
-    setFocus(null);
+    setPreview(null);
   };
   React.useLayoutEffect(() => {
     const element = root.current;
@@ -117,7 +120,8 @@ export function ReadableConnections({
       </p>
       <div className="mb-3 flex min-h-11 items-center gap-3 text-xs text-[var(--text-3)]">
         <span className="min-w-0 flex-1">
-          Hover or focus a card to trace its path; tap “Highlight path” to keep it selected.
+          Hover a task or use keyboard focus to preview its path. “Highlight path” pins a task or
+          epic.
         </span>
         <button type="button" className="control-button" disabled={!activeId} onClick={clear}>
           Clear path
@@ -128,15 +132,12 @@ export function ReadableConnections({
           value={{
             active,
             pinned: activeId === pinned ? pinned : null,
-            hover: (id) => {
-              setHover(id);
-              if (id) setFocus(null);
+            hover: (id) => updatePreview("hover", id),
+            focus: (id) => updatePreview("focus", id),
+            toggle: (id) => {
+              setPreview(null);
+              setPinned((current) => (current === id ? null : id));
             },
-            focus: (id) => {
-              setFocus(id);
-              if (id) setHover(null);
-            },
-            toggle: (id) => setPinned((current) => (current === id ? null : id)),
           }}
         >
           <div

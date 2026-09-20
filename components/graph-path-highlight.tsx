@@ -27,16 +27,20 @@ export const GraphPathContext = React.createContext<{
   toggle: (id: string) => void;
 } | null>(null);
 
-export function usePathHighlight(id: string) {
+export function usePathHighlight(id: string, preview = true) {
   const context = React.useContext(GraphPathContext);
   return {
     context,
     style: { opacity: context?.active && !context.active.has(id) ? 0.3 : 1 },
     onPointerEnter: (e: React.PointerEvent) => {
-      if (e.pointerType === "mouse") context?.hover(id);
+      if (preview && e.pointerType === "mouse") context?.hover(id);
     },
     onPointerLeave: () => context?.hover(null),
-    onFocusCapture: () => context?.focus(id),
+    onPointerDownCapture: () => context?.focus(null),
+    onFocusCapture: (e: React.FocusEvent) => {
+      if (preview && e.target instanceof HTMLElement && e.target.matches(":focus-visible"))
+        context?.focus(id);
+    },
     onBlurCapture: (e: React.FocusEvent) => {
       if (!e.currentTarget.contains(e.relatedTarget)) context?.focus(null);
     },

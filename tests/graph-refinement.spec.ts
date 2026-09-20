@@ -63,6 +63,7 @@ for (const width of [390, 1440])
       "false",
     );
     await page.mouse.move(0, 0);
+    await page.keyboard.press("Tab");
     await card("b").getByRole("button", { name: "Open task Configure", exact: true }).focus();
     await expect(card("a")).toHaveCSS("opacity", "0.3");
     const pin = card("a").getByRole("button", { name: "Highlight path for Prepare", exact: true });
