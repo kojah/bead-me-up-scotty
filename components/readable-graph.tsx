@@ -6,11 +6,14 @@ import { GraphTaskFocus } from "@/components/graph-task-focus";
 import { ReadableConnections } from "@/components/readable-connections";
 import { useGraphPrefs } from "@/hooks/use-graph-prefs";
 import { useMobile } from "@/hooks/use-mobile";
+import type { GraphDirection } from "@/lib/graph-direction";
+import { siblingLevels } from "@/lib/graph-levels";
 import { graphScope } from "@/lib/graph-model";
 import { readableGraph } from "@/lib/readable-graph";
 import type { Bead } from "@/lib/schema";
 
 type Props = {
+  direction: GraphDirection;
   epicId: string;
   setEpicId: (id: string) => void;
   expanded: Set<string>;
@@ -68,7 +71,14 @@ export function ReadableGraph(props: Props) {
       next.add(id);
       return next;
     });
-  const tree = { model, expanded: props.expanded, toggle, onFocus: focus, depth: 0 };
+  const tree = {
+    model,
+    expanded: props.expanded,
+    toggle,
+    onFocus: focus,
+    depth: 0,
+    direction: props.direction,
+  };
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-readable-graph>
       <header className="view-toolbar">
@@ -123,16 +133,27 @@ export function ReadableGraph(props: Props) {
         className="readable-graph-scroll bd-scroll min-h-0 flex-1 overflow-y-auto p-4 md:p-6"
       >
         {props.focusId ? (
-          <GraphTaskFocus id={props.focusId} onFocus={focus} onBack={back} />
+          <GraphTaskFocus
+            id={props.focusId}
+            onFocus={focus}
+            onBack={back}
+            direction={props.direction}
+          />
         ) : (
           <>
             <p className="mb-4 text-xs text-[var(--text-3)]">
               Arrows run from prerequisites to dependents. Epic borders mean membership, not a
               dependency. Expand epics to reveal child-task connections.
             </p>
-            <ReadableConnections beads={scope.visible}>
-              <ReadableItems items={model.children.get("") ?? []} {...tree} />
-              {model.outside.length > 0 && (
+            <ReadableConnections beads={scope.visible} direction={props.direction}>
+              <ReadableItems
+                items={[
+                  ...(model.children.get("") ?? []),
+                  ...(props.direction === "down" ? model.outside : []),
+                ]}
+                {...tree}
+              />
+              {props.direction === "right" && model.outside.length > 0 && (
                 <section aria-label="Outside epic" className="mt-6">
                   <h2 data-connection-obstacle className="mb-6 text-sm font-semibold">
                     Outside epic · linked context
@@ -167,6 +188,7 @@ export function ReadableGraph(props: Props) {
 }
 
 type TreeProps = {
+  direction: GraphDirection;
   depth: number;
   model: Model;
   expanded: Set<string>;
@@ -174,16 +196,45 @@ type TreeProps = {
   onFocus: (id: string) => void;
 };
 function ReadableItems({ items, ...tree }: TreeProps & { items: Bead[] }) {
+  if (tree.direction === "down")
+    return (
+      <div className="flex min-w-0 flex-col gap-8" data-dependency-levels>
+        {siblingLevels(items, tree.model.visible, tree.model.owners).map((members) => (
+          <div
+            key={members.map((b) => b.id).join("|")}
+            className="grid min-w-0 grid-cols-1 items-start gap-8 md:grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))]"
+            data-dependency-level
+          >
+            {members.map((bead) => (
+              <ReadableItem key={bead.id} bead={bead} {...tree} />
+            ))}
+          </div>
+        ))}
+      </div>
+    );
   return (
     <div className={grid}>
-      {items.map((bead) =>
-        bead.issue_type === "epic" ? (
-          <EpicBranch key={bead.id} bead={bead} {...tree} />
-        ) : (
-          <GraphTaskCard key={bead.id} bead={bead} onFocus={tree.onFocus} />
-        ),
-      )}
+      {items.map((bead) => (
+        <ReadableItem key={bead.id} bead={bead} {...tree} />
+      ))}
     </div>
+  );
+}
+
+function ReadableItem({ bead, ...tree }: TreeProps & { bead: Bead }) {
+  if (tree.model.outsideIds.has(bead.id))
+    return (
+      <section aria-label="Outside epic">
+        <p data-connection-obstacle className="mb-6 text-xs text-[var(--text-3)]">
+          Outside epic · linked context
+        </p>
+        <GraphTaskCard bead={bead} onFocus={tree.onFocus} />
+      </section>
+    );
+  return bead.issue_type === "epic" ? (
+    <EpicBranch bead={bead} {...tree} />
+  ) : (
+    <GraphTaskCard bead={bead} onFocus={tree.onFocus} />
   );
 }
 

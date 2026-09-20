@@ -1,5 +1,7 @@
 "use client";
 import * as React from "react";
+import type { GraphDirection } from "@/lib/graph-direction";
+import { useMobile } from "./use-mobile";
 
 const KEY = "bmus.graph.hideCompleted";
 const EVENT = "bmus.graph.changed";
@@ -61,4 +63,37 @@ export function useGraphPresentation() {
     window.dispatchEvent(new Event(EVENT));
   }, []);
   return { presentation, setPresentation };
+}
+
+type DirectionPreference = GraphDirection | "auto";
+const DIRECTION_KEY = "bmus.graph.direction";
+let directionFallback: DirectionPreference | undefined;
+function directionSnapshot(): DirectionPreference {
+  if (directionFallback) return directionFallback;
+  try {
+    const value = localStorage.getItem(DIRECTION_KEY);
+    return value === "down" || value === "right" ? value : "auto";
+  } catch {
+    return "auto";
+  }
+}
+export function useGraphDirection() {
+  const mobile = useMobile();
+  const preference = React.useSyncExternalStore(
+    subscribe,
+    directionSnapshot,
+    () => "auto" as const,
+  );
+  const direction: GraphDirection =
+    preference === "auto" ? (mobile ? "down" : "right") : preference;
+  const setPreference = (value: DirectionPreference) => {
+    try {
+      localStorage.setItem(DIRECTION_KEY, value);
+      directionFallback = undefined;
+    } catch {
+      directionFallback = value;
+    }
+    window.dispatchEvent(new Event(EVENT));
+  };
+  return { direction, preference, setPreference };
 }

@@ -76,6 +76,8 @@ export function readableGraph(visible: Bead[], all: Bead[], outsideIds: Readonly
     }
   }
   return {
+    visible,
+    outsideIds,
     children,
     owners,
     progress,

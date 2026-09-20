@@ -287,6 +287,14 @@ Expand collapsed epics to reveal those links. Completion filters also apply to
 the arrows. Membership and non-blocking relationships do not become dependency
 arrows; other relationship types remain available in task focus and Full graph.
 
+**Graph direction** applies to both presentations. **Auto** flows top-to-bottom
+on phones and left-to-right on wider screens; an explicit direction is saved
+locally. Top-down arrows leave bottom ports and enter top ports. Readable view
+places dependency levels in successive rows, stacking parallel tasks on phones
+instead of widening the page. Cross-epic child dependencies influence container
+placement without being redrawn as epic-level links. Cycles share a level rather
+than inventing an execution order. Task focus and epic expansion remain available.
+
 The presentation preference is saved locally. **Full graph** remains available
 for panning, pinch zoom, the epic selector, **Fit epic**, spotlight, and dependency
 creation. Card heights are measured after rendering so wrapped titles remain

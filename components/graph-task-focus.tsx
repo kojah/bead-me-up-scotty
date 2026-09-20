@@ -3,16 +3,19 @@ import * as React from "react";
 import { useApp } from "@/components/app-context";
 import { GraphTaskCard } from "@/components/graph-task-card";
 import { epicOwners } from "@/lib/graph-containers";
+import type { GraphDirection } from "@/lib/graph-direction";
 import { type TaskRelation, taskRelations } from "@/lib/readable-graph";
 
 export function GraphTaskFocus({
   id,
   onFocus,
   onBack,
+  direction,
 }: {
   id: string;
   onFocus: (id: string) => void;
   onBack: () => void;
+  direction: GraphDirection;
 }) {
   const { beads } = useApp();
   const relations = React.useMemo(() => taskRelations(beads, id), [beads, id]);
@@ -36,7 +39,9 @@ export function GraphTaskFocus({
             Immediate dependencies only, including completed tasks. Parent-child links are shown as
             epic membership.
           </p>
-          <div className="task-neighborhood-grid grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3">
+          <div
+            className={`task-neighborhood-grid grid min-w-0 grid-cols-1 items-start gap-4 ${direction === "right" ? "xl:grid-cols-3" : ""}`}
+          >
             <RelationGroup
               title="Prerequisites"
               relations={relations.prerequisites}

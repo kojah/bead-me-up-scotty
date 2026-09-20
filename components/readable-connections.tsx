@@ -1,13 +1,15 @@
 "use client";
 import * as React from "react";
+import type { GraphDirection } from "@/lib/graph-direction";
 import type { GraphBox } from "@/lib/graph-routing";
 import { readableLinks, routeReadableLinks } from "@/lib/readable-connections";
 import type { Bead } from "@/lib/schema";
 
-function measureNodes(root: HTMLElement) {
+function measureNodes(root: HTMLElement, direction: GraphDirection) {
   const origin = root.getBoundingClientRect();
   const boxes = new Map<string, GraphBox>();
   const obstacles: GraphBox[] = [];
+  const ports = new Map<string, GraphBox>();
   for (const node of root.querySelectorAll<HTMLElement>("[data-connection-obstacle]")) {
     const rect = node.getBoundingClientRect();
     if (!rect.width || !rect.height) continue;
@@ -20,15 +22,28 @@ function measureNodes(root: HTMLElement) {
     if (node.dataset.connectionNode) boxes.set(node.dataset.connectionNode, box);
     else obstacles.push(box);
   }
-  return { boxes, obstacles };
+  for (const [id, box] of boxes) ports.set(id, box);
+  if (direction === "down")
+    for (const epic of root.querySelectorAll<HTMLElement>("[data-readable-epic]")) {
+      const rect = epic.getBoundingClientRect();
+      ports.set(epic.dataset.readableEpic!, {
+        x: rect.x - origin.x,
+        y: rect.y - origin.y,
+        width: rect.width,
+        height: rect.height,
+      });
+    }
+  return { boxes, obstacles, ports };
 }
 
 export function ReadableConnections({
   beads,
   children,
+  direction,
 }: {
   beads: Bead[];
   children: React.ReactNode;
+  direction: GraphDirection;
 }) {
   const root = React.useRef<HTMLDivElement>(null);
   const content = React.useRef<HTMLDivElement>(null);
@@ -42,8 +57,8 @@ export function ReadableConnections({
     const measure = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const { boxes, obstacles } = measureNodes(element);
-        setRoutes(routeReadableLinks(links, boxes, obstacles));
+        const { boxes, obstacles, ports } = measureNodes(element, direction);
+        setRoutes(routeReadableLinks(links, boxes, obstacles, direction, ports));
       });
     };
     const observer = new ResizeObserver(measure);
@@ -68,14 +83,14 @@ export function ReadableConnections({
       observer.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, [links]);
+  }, [links, direction]);
   const titles = new Map(beads.map((b) => [b.id, b.title]));
   return (
     <>
       <p className="mb-3 text-xs text-[var(--text-3)]" data-connection-summary>
         {routes.length} of {links.length} dependency connections shown (current filter).
       </p>
-      <div ref={root} className="relative p-3" data-readable-connections>
+      <div ref={root} className="relative p-3" data-readable-connections data-direction={direction}>
         <div ref={content}>{children}</div>
         <svg
           aria-hidden="true"

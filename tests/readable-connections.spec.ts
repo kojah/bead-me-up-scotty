@@ -122,16 +122,31 @@ for (const width of [390, 1440]) {
         page.locator("[data-readable-connections]").evaluate((root) => {
           const origin = root.getBoundingClientRect();
           const nodes = [...root.querySelectorAll<HTMLElement>("[data-connection-node]")];
+          const down = (root as HTMLElement).dataset.direction === "down";
+          const targets = new Map(
+            nodes.map((node) => {
+              const port =
+                down && node.parentElement?.hasAttribute("data-readable-epic")
+                  ? node.parentElement
+                  : node;
+              const rect = port.getBoundingClientRect();
+              return [
+                node.dataset.connectionNode,
+                {
+                  x: rect.x + (down ? rect.width / 2 : 0),
+                  y: rect.y + (down ? 0 : rect.height / 2),
+                },
+              ];
+            }),
+          );
           return [...root.querySelectorAll<SVGPathElement>("[data-readable-edge]")].every(
             (path) => {
-              const target = nodes
-                .find((node) => node.dataset.connectionNode === path.dataset.target)
-                ?.getBoundingClientRect();
+              const target = targets.get(path.dataset.target);
               if (!target) return false;
               const end = path.getPointAtLength(path.getTotalLength());
               return (
                 Math.abs(end.x + origin.x - target.x) < 1 &&
-                Math.abs(end.y + origin.y - target.y - target.height / 2) < 1
+                Math.abs(end.y + origin.y - target.y) < 1
               );
             },
           );

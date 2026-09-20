@@ -1,4 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
+import type { GraphDirection } from "./graph-direction";
 
 export type Point = { x: number; y: number };
 export type GraphBox = Point & { width: number; height: number };
@@ -116,7 +117,20 @@ function reconstruct(
   return points.reverse();
 }
 
-export function routeAroundCards(source: Point, target: Point, cards: GraphBox[]): Point[] {
+export function routeAroundCards(
+  source: Point,
+  target: Point,
+  cards: GraphBox[],
+  direction: GraphDirection = "right",
+): Point[] {
+  if (direction === "down") {
+    const transpose = (p: Point): Point => ({ x: p.y, y: p.x });
+    return routeAroundCards(
+      transpose(source),
+      transpose(target),
+      cards.map((b) => ({ x: b.y, y: b.x, width: b.height, height: b.width })),
+    ).map(transpose);
+  }
   const start = { x: source.x + CLEARANCE, y: source.y };
   const end = { x: target.x - CLEARANCE, y: target.y };
   const obstacles = cards.map(padded);
@@ -133,7 +147,11 @@ function nodeBox(node: Node): GraphBox {
   return node.data.graphBox as GraphBox;
 }
 
-export function routeGraphEdges(edges: Edge[], nodes: Node[]): Edge[] {
+export function routeGraphEdges(
+  edges: Edge[],
+  nodes: Node[],
+  direction: GraphDirection = "right",
+): Edge[] {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   // Epic interiors are traversable, but their title bars are obstacles too.
   const obstacles = nodes.map((node) => ({
@@ -147,9 +165,14 @@ export function routeGraphEdges(edges: Edge[], nodes: Node[]): Edge[] {
     const a = nodeBox(source),
       b = nodeBox(target);
     const points = routeAroundCards(
-      { x: a.x + a.width, y: a.y + (source.type === "epic" ? 45 : a.height / 2) },
-      { x: b.x, y: b.y + (target.type === "epic" ? 45 : b.height / 2) },
+      direction === "down"
+        ? { x: a.x + a.width / 2, y: a.y + a.height }
+        : { x: a.x + a.width, y: a.y + (source.type === "epic" ? 45 : a.height / 2) },
+      direction === "down"
+        ? { x: b.x + b.width / 2, y: b.y }
+        : { x: b.x, y: b.y + (target.type === "epic" ? 45 : b.height / 2) },
       obstacles,
+      direction,
     );
     const path = points.map((p, i) => `${i ? "L" : "M"} ${p.x} ${p.y}`).join(" ");
     return { ...edge, type: "routed", data: { ...edge.data, path } };

@@ -1,3 +1,4 @@
+import type { GraphDirection } from "./graph-direction";
 import { type GraphBox, routeAroundCards } from "./graph-routing";
 import type { Bead } from "./schema";
 
@@ -31,16 +32,23 @@ export function routeReadableLinks(
   links: ReadableLink[],
   boxes: ReadonlyMap<string, GraphBox>,
   additionalObstacles: GraphBox[] = [],
+  direction: GraphDirection = "right",
+  ports: ReadonlyMap<string, GraphBox> = boxes,
 ) {
   const obstacles = [...boxes.values(), ...additionalObstacles];
   return links.flatMap((link) => {
-    const source = boxes.get(link.source),
-      target = boxes.get(link.target);
+    const source = ports.get(link.source),
+      target = ports.get(link.target);
     if (!source || !target) return [];
     const points = routeAroundCards(
-      { x: source.x + source.width, y: source.y + source.height / 2 },
-      { x: target.x, y: target.y + target.height / 2 },
+      direction === "down"
+        ? { x: source.x + source.width / 2, y: source.y + source.height }
+        : { x: source.x + source.width, y: source.y + source.height / 2 },
+      direction === "down"
+        ? { x: target.x + target.width / 2, y: target.y }
+        : { x: target.x, y: target.y + target.height / 2 },
       obstacles,
+      direction,
     );
     if (!points.length) return [];
     return [

@@ -18,11 +18,14 @@ import { Icon, typeIconName } from "@/components/icons";
 import { ResponsiveControls } from "@/components/responsive-controls";
 import { useAddDep } from "@/hooks/use-beads";
 import { useGraphPrefs } from "@/hooks/use-graph-prefs";
+import { useMobile } from "@/hooks/use-mobile";
 import { catColor, typeColor } from "@/lib/beads-view";
 import { containerLayout } from "@/lib/graph-containers";
+import type { GraphDirection } from "@/lib/graph-direction";
 import { graphEdges, graphScope } from "@/lib/graph-model";
 import { graphNeighborhood } from "@/lib/graph-neighborhood";
 import { routeGraphEdges } from "@/lib/graph-routing";
+import { topDownLayout } from "@/lib/graph-top-down";
 import type { Bead } from "@/lib/schema";
 
 type BeadNodeData = {
@@ -123,7 +126,7 @@ function BeadNode({ data }: NodeProps) {
 }
 
 function EpicNode({ data }: NodeProps) {
-  const { bead, onOpen, completed, total } = data as unknown as BeadNodeData & {
+  const { bead, onOpen, completed, total, horizontal } = data as unknown as BeadNodeData & {
     completed: number;
     total: number;
   };
@@ -133,7 +136,11 @@ function EpicNode({ data }: NodeProps) {
       className="h-full w-full rounded-xl border-2 border-[var(--border-strong)] bg-[var(--surface-2)]"
       data-epic-container={bead.id}
     >
-      <Handle type="target" position={Position.Left} style={{ top: 45 }} />
+      <Handle
+        type="target"
+        position={horizontal ? Position.Left : Position.Top}
+        style={horizontal ? { top: 45 } : undefined}
+      />
       <button
         type="button"
         onClick={() => onOpen(bead.id)}
@@ -147,7 +154,11 @@ function EpicNode({ data }: NodeProps) {
         </span>
         <span className="line-clamp-2 text-sm font-semibold">{bead.title}</span>
       </button>
-      <Handle type="source" position={Position.Right} style={{ top: 45 }} />
+      <Handle
+        type="source"
+        position={horizontal ? Position.Right : Position.Bottom}
+        style={horizontal ? { top: 45 } : undefined}
+      />
     </div>
   );
 }
@@ -169,11 +180,14 @@ const edgeTypes = { routed: RoutedEdge };
 export function GraphCanvas({
   epicId,
   setEpicId,
+  direction,
 }: {
   epicId: string;
   setEpicId: (id: string) => void;
+  direction: GraphDirection;
 }) {
   const { beads, openDetail, readOnly } = useApp();
+  const mobile = useMobile();
   const { hideCompleted, setHideCompleted } = useGraphPrefs();
   const [liveOnly, setLiveOnly] = React.useState(false);
   const [spotlight, setSpotlight] = React.useState(false);
@@ -213,13 +227,13 @@ export function GraphCanvas({
     () => graphScope(beads, effectiveEpicId, hideCompleted, liveOnly),
     [beads, effectiveEpicId, hideCompleted, liveOnly],
   );
-  const nodes = React.useMemo(
-    () => containerLayout(scope.visible, scope.all, activateNode, scope.outsideIds, heights),
-    [scope, activateNode, heights],
-  );
+  const nodes = React.useMemo(() => {
+    const base = containerLayout(scope.visible, scope.all, activateNode, scope.outsideIds, heights);
+    return direction === "down" ? topDownLayout(base, scope.visible, mobile ? 1 : 3) : base;
+  }, [scope, activateNode, heights, direction, mobile]);
   const edges = React.useMemo(
-    () => routeGraphEdges(graphEdges(scope.visible), nodes),
-    [scope, nodes],
+    () => routeGraphEdges(graphEdges(scope.visible), nodes, direction),
+    [scope, nodes, direction],
   );
   const considered = scope.considered;
   // Fit after measured layout settles, never on spotlight/selection changes.
@@ -229,7 +243,7 @@ export function GraphCanvas({
       void rf.current?.fitView({ padding: 0.2, minZoom: 0.02 });
     }, 100);
     return () => clearTimeout(timer);
-  }, [scope, heights]);
+  }, [scope, heights, direction, mobile]);
   const hidden = Math.max(0, considered - nodes.length);
   const focus = React.useMemo(() => {
     if (!spotlight || !focusId || !nodes.some((n) => n.id === focusId)) return null;
@@ -274,7 +288,10 @@ export function GraphCanvas({
         <div className="flex-1">
           <h1 className="m-0 text-base font-[650] tracking-[-.01em]">Dependency graph</h1>
           <span className="hidden text-[11.5px] text-[var(--text-3)] md:inline">
-            {graphInstructions(!!effectiveEpicId, spotlight, readOnly)}
+            {graphInstructions(!!effectiveEpicId, spotlight, readOnly).replaceAll(
+              "Left → right",
+              direction === "down" ? "Top → bottom" : "Left → right",
+            )}
             {" · "}
             {nodes.length} beads shown
             {hidden > 0 && (
@@ -386,7 +403,7 @@ export function GraphCanvas({
         <MeasurementContext.Provider value={measure}>
           <SpotlightContext.Provider value={spotlightContext}>
             <ReactFlow
-              key={`${effectiveEpicId || "all"}:${liveOnly}:${hideCompleted}`}
+              key={`${effectiveEpicId || "all"}:${liveOnly}:${hideCompleted}:${direction}:${mobile}`}
               nodes={nodes}
               edges={shownEdges}
               zoomOnDoubleClick={!spotlight}
