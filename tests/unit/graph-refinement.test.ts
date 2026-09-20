@@ -1,5 +1,4 @@
 import { expect, test } from "bun:test";
-import { pathNeighborhood } from "../../components/graph-path-highlight";
 import { alignedLevels } from "../../lib/graph-levels";
 import { roundedPath } from "../../lib/graph-rounded-path";
 import { makeBead } from "../bead-fixture";
@@ -27,14 +26,4 @@ test("rounding preserves endpoints and clips radius to short segments", () => {
   expect(path).toEndWith("L 4 40");
   expect(path).toContain("Q 0 20 2 20");
   expect(roundedPath([])).toBe("");
-});
-test("highlight traverses upstream/downstream without lighting unrelated sibling branches or looping on cycles", () => {
-  const links = [
-    { source: "a", target: "merge", types: ["blocks"] },
-    { source: "b", target: "merge", types: ["blocks"] },
-    { source: "merge", target: "next", types: ["blocks"] },
-    { source: "next", target: "merge", types: ["blocks"] },
-  ];
-  expect([...pathNeighborhood("a", links)].sort()).toStrictEqual(["a", "merge", "next"]);
-  expect([...pathNeighborhood("merge", links)].sort()).toStrictEqual(["a", "b", "merge", "next"]);
 });

@@ -2,7 +2,6 @@
 import * as React from "react";
 import { useApp } from "@/components/app-context";
 import { GraphLinkEditor } from "@/components/graph-link-editor";
-import { HighlightPathButton, usePathHighlight } from "@/components/graph-path-highlight";
 import { GraphTaskCard } from "@/components/graph-task-card";
 import { GraphTaskFocus } from "@/components/graph-task-focus";
 import { ReadableConnections } from "@/components/readable-connections";
@@ -364,7 +363,6 @@ function ReadableItem({ bead, ...tree }: TreeProps & { bead: Bead }) {
 }
 
 function EpicBranch({ bead, ...tree }: TreeProps & { bead: Bead }) {
-  const { context: _context, ...highlight } = usePathHighlight(bead.id, false);
   const { openDetail } = useApp();
   const open = tree.expanded.has(bead.id);
   const progress = tree.model.progress.get(bead.id) ?? { total: 0, completed: 0 };
@@ -379,7 +377,6 @@ function EpicBranch({ bead, ...tree }: TreeProps & { bead: Bead }) {
         className="relative rounded-t-xl hover:bg-[var(--surface-3)]"
         data-connection-obstacle
         data-connection-node={bead.id}
-        {...highlight}
       >
         <button
           type="button"
@@ -408,9 +405,6 @@ function EpicBranch({ bead, ...tree }: TreeProps & { bead: Bead }) {
           <span className="text-xs text-[var(--text-3)]">
             {progress.completed} / {progress.total} tasks complete
           </span>
-          <div className="pointer-events-auto relative">
-            <HighlightPathButton id={bead.id} title={bead.title} />
-          </div>
         </div>
       </div>
       <div id={contentId} hidden={!open} className="border-t border-border p-6">

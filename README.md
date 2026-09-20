@@ -300,10 +300,9 @@ than inventing an execution order. Task focus and epic expansion remain availabl
 Readable chains retain their lanes and merges align near their prerequisites.
 Horizontal dependency columns never wrap: scroll the graph horizontally when
 needed. Rounded routes prefer fewer bends, use separated attachment points and
-reserve channels where space permits, without crossing cards. Hover or keyboard
-focus previews upstream/downstream paths; **Highlight path** pins a selection
-for touch or mouse use. **Clear path** or Escape clears it. Hidden selections
-are released when their cards disappear. These interactions do not change beads.
+reserve channels where space permits, without crossing cards. Cards and arrows
+stay fully visible while browsing; there is no hover or pinned-path dimming.
+Use **Focus dependencies** for an explicit task-centered view.
 
 There is one graph renderer; old presentation preferences are ignored. **Graph
 options** contains zoom in/out, reset to reading size, **Fit graph**, **Expand

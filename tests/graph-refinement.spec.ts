@@ -56,25 +56,7 @@ for (const width of [390, 1440])
           .evaluateAll((nodes) => nodes.some((n) => n.getAttribute("d")?.includes("Q"))),
       )
       .toBe(true);
-    await card("a").hover();
-    await expect(card("b")).toHaveCSS("opacity", "0.3");
-    await expect(page.locator('[data-readable-edge][data-source="b"]')).toHaveAttribute(
-      "data-highlighted",
-      "false",
-    );
-    await page.mouse.move(0, 0);
-    await page.keyboard.press("Tab");
-    await card("b").getByRole("button", { name: "Open task Configure", exact: true }).focus();
-    await expect(card("a")).toHaveCSS("opacity", "0.3");
-    const pin = card("a").getByRole("button", { name: "Highlight path for Prepare", exact: true });
-    if (width < 768) await pin.tap();
-    else await pin.click();
-    await expect(pin).toHaveAttribute("aria-pressed", "true");
-    await card("b").hover();
-    await expect(card("b")).toHaveCSS("opacity", "0.3");
-    await page.getByRole("button", { name: "Clear path", exact: true }).click();
-    await expect(card("b")).toHaveCSS("opacity", "1");
-    await expect(pin).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByRole("button", { name: /^(Highlight path|Clear path)/ })).toHaveCount(0);
     const before = await card("merge").boundingBox(),
       after = await card("next").boundingBox();
     expect(Math.abs(before!.x + before!.width / 2 - after!.x - after!.width / 2)).toBeLessThan(1);
