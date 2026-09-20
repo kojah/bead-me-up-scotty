@@ -77,7 +77,7 @@ function directionSnapshot(): DirectionPreference {
     return "auto";
   }
 }
-export function useGraphDirection() {
+export function useGraphDirection(readable = false) {
   const mobile = useMobile();
   const preference = React.useSyncExternalStore(
     subscribe,
@@ -85,7 +85,7 @@ export function useGraphDirection() {
     () => "auto" as const,
   );
   const direction: GraphDirection =
-    preference === "auto" ? (mobile ? "down" : "right") : preference;
+    preference === "auto" ? (readable || mobile ? "down" : "right") : preference;
   const setPreference = (value: DirectionPreference) => {
     try {
       localStorage.setItem(DIRECTION_KEY, value);

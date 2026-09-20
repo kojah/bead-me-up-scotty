@@ -80,7 +80,7 @@ test("responsive direction, dependency levels, vertical ports, preference and ca
   await page.setViewportSize({ width: 1440, height: 940 });
   await expect(page.locator("[data-readable-connections]")).toHaveAttribute(
     "data-direction",
-    "right",
+    "down",
   );
   await direction.selectOption("down");
   await expect(page.locator("[data-readable-connections]")).toHaveAttribute(

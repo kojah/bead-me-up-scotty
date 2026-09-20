@@ -1,5 +1,6 @@
 "use client";
 import { useApp } from "@/components/app-context";
+import { HighlightPathButton, usePathHighlight } from "@/components/graph-path-highlight";
 import { catColor, statusLabel } from "@/lib/beads-view";
 import type { Bead } from "@/lib/schema";
 
@@ -15,6 +16,7 @@ export function GraphTaskCard({
   parent?: Bead;
 }) {
   const { openDetail, selectBead } = useApp();
+  const { context: _context, ...highlight } = usePathHighlight(bead.id);
   const prerequisites = new Set(
     bead.dependencies
       .filter((d) => ["blocks", "waits-for", "conditional-blocks"].includes(d.type))
@@ -25,6 +27,7 @@ export function GraphTaskCard({
       data-readable-task={bead.id}
       data-connection-node={bead.id}
       data-connection-obstacle
+      {...highlight}
       className={`min-w-0 rounded-xl border p-4 ${focused ? "border-[var(--brand)] bg-[var(--brand-weak)]" : "border-border bg-[var(--surface)]"}`}
     >
       <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-3)]">
@@ -67,6 +70,11 @@ export function GraphTaskCard({
             : ""}{" "}
           →
         </button>
+      )}
+      {!focused && (
+        <div>
+          <HighlightPathButton id={bead.id} title={bead.title} />
+        </div>
       )}
     </article>
   );

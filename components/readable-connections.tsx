@@ -4,6 +4,7 @@ import type { GraphDirection } from "@/lib/graph-direction";
 import type { GraphBox } from "@/lib/graph-routing";
 import { readableLinks, routeReadableLinks } from "@/lib/readable-connections";
 import type { Bead } from "@/lib/schema";
+import { GraphPathContext, pathNeighborhood } from "./graph-path-highlight";
 
 function measureNodes(root: HTMLElement, direction: GraphDirection) {
   const origin = root.getBoundingClientRect();
@@ -50,6 +51,23 @@ export function ReadableConnections({
   const marker = React.useId();
   const links = React.useMemo(() => readableLinks(beads), [beads]);
   const [routes, setRoutes] = React.useState<ReturnType<typeof routeReadableLinks>>([]);
+  const [hover, setHover] = React.useState<string | null>(null);
+  const [focus, setFocus] = React.useState<string | null>(null);
+  const [pinned, setPinned] = React.useState<string | null>(null);
+  const [visible, setVisible] = React.useState<Set<string>>(() => new Set());
+  const activeId = [pinned, hover, focus].find((id) => id && visible.has(id)) ?? null;
+  React.useEffect(() => {
+    if (pinned && !visible.has(pinned)) setPinned(null);
+  }, [pinned, visible]);
+  const active = React.useMemo(
+    () => (activeId ? pathNeighborhood(activeId, routes) : null),
+    [activeId, routes],
+  );
+  const clear = () => {
+    setPinned(null);
+    setHover(null);
+    setFocus(null);
+  };
   React.useLayoutEffect(() => {
     const element = root.current;
     if (!element) return;
@@ -58,6 +76,7 @@ export function ReadableConnections({
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const { boxes, obstacles, ports } = measureNodes(element, direction);
+        setVisible(new Set(boxes.keys()));
         setRoutes(routeReadableLinks(links, boxes, obstacles, direction, ports));
       });
     };
@@ -75,6 +94,7 @@ export function ReadableConnections({
         childList: true,
         subtree: true,
         attributes: true,
+        attributeFilter: ["hidden"],
         characterData: true,
       });
     observeNodes();
@@ -90,8 +110,39 @@ export function ReadableConnections({
       <p className="mb-3 text-xs text-[var(--text-3)]" data-connection-summary>
         {routes.length} of {links.length} dependency connections shown (current filter).
       </p>
+      <div className="mb-3 flex min-h-11 items-center gap-3 text-xs text-[var(--text-3)]">
+        <span className="min-w-0 flex-1">
+          Hover or focus a card to trace its path; tap “Highlight path” to keep it selected.
+        </span>
+        <button type="button" className="control-button" disabled={!activeId} onClick={clear}>
+          Clear path
+        </button>
+      </div>
       <div ref={root} className="relative p-3" data-readable-connections data-direction={direction}>
-        <div ref={content}>{children}</div>
+        <GraphPathContext.Provider
+          value={{
+            active,
+            pinned: activeId === pinned ? pinned : null,
+            hover: (id) => {
+              setHover(id);
+              if (id) setFocus(null);
+            },
+            focus: (id) => {
+              setFocus(id);
+              if (id) setHover(null);
+            },
+            toggle: (id) => setPinned((current) => (current === id ? null : id)),
+          }}
+        >
+          <div
+            ref={content}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") clear();
+            }}
+          >
+            {children}
+          </div>
+        </GraphPathContext.Provider>
         <svg
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible"
@@ -119,6 +170,10 @@ export function ReadableConnections({
               fill="none"
               stroke="var(--brand)"
               strokeWidth="1.5"
+              opacity={active && !(active.has(route.source) && active.has(route.target)) ? 0.12 : 1}
+              data-highlighted={
+                active ? String(active.has(route.source) && active.has(route.target)) : undefined
+              }
               strokeLinejoin="round"
               strokeDasharray={route.types.includes("blocks") ? undefined : "5 4"}
               markerEnd={`url(#${marker})`}

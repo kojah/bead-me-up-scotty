@@ -23,12 +23,12 @@ export function crossesBox(a: Point, b: Point, box: GraphBox): boolean {
   );
 }
 
-function padded(box: GraphBox): GraphBox {
+function padded(box: GraphBox, clearance = CLEARANCE): GraphBox {
   return {
-    x: box.x - CLEARANCE,
-    y: box.y - CLEARANCE,
-    width: box.width + CLEARANCE * 2,
-    height: box.height + CLEARANCE * 2,
+    x: box.x - clearance,
+    y: box.y - clearance,
+    width: box.width + clearance * 2,
+    height: box.height + clearance * 2,
   };
 }
 
@@ -81,7 +81,8 @@ function searchChannels(start: Point, end: Point, obstacles: GraphBox[]): Point[
     const a = pointOf(current.id);
     for (const id of neighbors(current.id)) {
       const b = pointOf(id);
-      const distance = current.distance + Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+      const distance =
+        current.distance + Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + turnCost(current.id, b);
       if (distance >= (distances.get(id) ?? Infinity)) continue;
       if (obstacles.some((box) => crossesBox(a, b, box))) continue;
       distances.set(id, distance);
@@ -92,6 +93,13 @@ function searchChannels(start: Point, end: Point, obstacles: GraphBox[]): Point[
         estimate: distance + Math.abs(b.x - end.x) + Math.abs(b.y - end.y),
       });
     }
+  }
+  function turnCost(id: number, next: Point) {
+    const prior = previous.get(id);
+    if (prior === undefined) return 0;
+    const a = pointOf(prior),
+      b = pointOf(id);
+    return (a.x === b.x) === (b.x === next.x) ? 0 : 24;
   }
   while (pending.length) {
     pending.sort((a, b) => b.estimate - a.estimate || b.distance - a.distance);
@@ -122,6 +130,7 @@ export function routeAroundCards(
   target: Point,
   cards: GraphBox[],
   direction: GraphDirection = "right",
+  clearance = CLEARANCE,
 ): Point[] {
   if (direction === "down") {
     const transpose = (p: Point): Point => ({ x: p.y, y: p.x });
@@ -129,17 +138,21 @@ export function routeAroundCards(
       transpose(source),
       transpose(target),
       cards.map((b) => ({ x: b.y, y: b.x, width: b.height, height: b.width })),
+      "right",
+      clearance,
     ).map(transpose);
   }
-  const start = { x: source.x + CLEARANCE, y: source.y };
-  const end = { x: target.x - CLEARANCE, y: target.y };
-  const obstacles = cards.map(padded);
+  const start = { x: source.x + clearance, y: source.y };
+  const end = { x: target.x - clearance, y: target.y };
+  const obstacles = cards.map((box) => padded(box, clearance));
   const middleX = (start.x + end.x) / 2;
   const direct = [start, { x: middleX, y: start.y }, { x: middleX, y: end.y }, end];
   const clear = direct
     .slice(1)
     .every((p, i) => !obstacles.some((box) => crossesBox(direct[i], p, box)));
   const points = clear ? direct : searchChannels(start, end, obstacles);
+  if (!points.length && clearance !== CLEARANCE)
+    return routeAroundCards(source, target, cards, "right", CLEARANCE);
   return points.length ? simplify([source, ...points, target]) : [];
 }
 

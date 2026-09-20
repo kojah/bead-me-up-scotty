@@ -1,13 +1,14 @@
 "use client";
 import * as React from "react";
 import { useApp } from "@/components/app-context";
+import { HighlightPathButton, usePathHighlight } from "@/components/graph-path-highlight";
 import { GraphTaskCard } from "@/components/graph-task-card";
 import { GraphTaskFocus } from "@/components/graph-task-focus";
 import { ReadableConnections } from "@/components/readable-connections";
 import { useGraphPrefs } from "@/hooks/use-graph-prefs";
 import { useMobile } from "@/hooks/use-mobile";
 import type { GraphDirection } from "@/lib/graph-direction";
-import { siblingLevels } from "@/lib/graph-levels";
+import { alignedLevels } from "@/lib/graph-levels";
 import { graphScope } from "@/lib/graph-model";
 import { readableGraph } from "@/lib/readable-graph";
 import type { Bead } from "@/lib/schema";
@@ -22,8 +23,6 @@ type Props = {
   setFocusId: (id: string | null) => void;
 };
 type Model = ReturnType<typeof readableGraph>;
-const grid =
-  "grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] items-start gap-8";
 
 export function ReadableGraph(props: Props) {
   const { beads, selectBead } = useApp();
@@ -147,24 +146,9 @@ export function ReadableGraph(props: Props) {
             </p>
             <ReadableConnections beads={scope.visible} direction={props.direction}>
               <ReadableItems
-                items={[
-                  ...(model.children.get("") ?? []),
-                  ...(props.direction === "down" ? model.outside : []),
-                ]}
+                items={[...(model.children.get("") ?? []), ...model.outside]}
                 {...tree}
               />
-              {props.direction === "right" && model.outside.length > 0 && (
-                <section aria-label="Outside epic" className="mt-6">
-                  <h2 data-connection-obstacle className="mb-6 text-sm font-semibold">
-                    Outside epic · linked context
-                  </h2>
-                  <div className={grid}>
-                    {model.outside.map((b) => (
-                      <GraphTaskCard key={b.id} bead={b} onFocus={focus} />
-                    ))}
-                  </div>
-                </section>
-              )}
             </ReadableConnections>
             {scope.visible.length === 0 && (
               <div className="rounded-xl border border-border bg-[var(--surface)] p-6 text-sm">
@@ -196,26 +180,64 @@ type TreeProps = {
   onFocus: (id: string) => void;
 };
 function ReadableItems({ items, ...tree }: TreeProps & { items: Bead[] }) {
-  if (tree.direction === "down")
-    return (
-      <div className="flex min-w-0 flex-col gap-8" data-dependency-levels>
-        {siblingLevels(items, tree.model.visible, tree.model.owners).map((members) => (
-          <div
-            key={members.map((b) => b.id).join("|")}
-            className="grid min-w-0 grid-cols-1 items-start gap-8 md:grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))]"
-            data-dependency-level
-          >
-            {members.map((bead) => (
-              <ReadableItem key={bead.id} bead={bead} {...tree} />
-            ))}
-          </div>
-        ))}
-      </div>
-    );
+  const mobile = useMobile();
+  const { columns, rows } = alignedLevels(items, tree.model.visible, tree.model.owners);
+  const element = React.useRef<HTMLDivElement>(null);
+  const [narrow, setNarrow] = React.useState(false);
+  React.useLayoutEffect(() => {
+    const node = element.current;
+    if (!node) return;
+    const observer = new ResizeObserver(() => setNarrow(node.clientWidth < (columns / 2) * 260));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [columns]);
+  const single = mobile || narrow;
+  const down = tree.direction === "down";
   return (
-    <div className={grid}>
-      {items.map((bead) => (
-        <ReadableItem key={bead.id} bead={bead} {...tree} />
+    <div
+      ref={element}
+      className={down ? "flex min-w-0 flex-col gap-12" : "flex w-max min-w-full items-start gap-12"}
+      data-dependency-levels
+    >
+      {rows.map((row) => (
+        <div
+          key={row.map((e) => e.bead.id).join("|")}
+          data-dependency-level
+          className={
+            down
+              ? "grid min-w-0 items-start gap-y-12"
+              : "flex w-max min-w-[320px] shrink-0 flex-col gap-12"
+          }
+          style={
+            down
+              ? {
+                  gridTemplateColumns: single
+                    ? "minmax(0,1fr)"
+                    : `repeat(${columns},minmax(0,1fr))`,
+                  columnGap: single ? 0 : 16,
+                }
+              : undefined
+          }
+        >
+          {row.map(({ bead, column }) => (
+            <div
+              key={bead.id}
+              className="min-w-0"
+              style={
+                down && !single
+                  ? {
+                      gridColumn:
+                        bead.issue_type === "epic" && tree.expanded.has(bead.id)
+                          ? "1 / -1"
+                          : `${column + 1} / span 2`,
+                    }
+                  : undefined
+              }
+            >
+              <ReadableItem bead={bead} {...tree} />
+            </div>
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -239,6 +261,7 @@ function ReadableItem({ bead, ...tree }: TreeProps & { bead: Bead }) {
 }
 
 function EpicBranch({ bead, ...tree }: TreeProps & { bead: Bead }) {
+  const { context: _context, ...highlight } = usePathHighlight(bead.id);
   const { openDetail } = useApp();
   const open = tree.expanded.has(bead.id);
   const progress = tree.model.progress.get(bead.id) ?? { total: 0, completed: 0 };
@@ -247,12 +270,13 @@ function EpicBranch({ bead, ...tree }: TreeProps & { bead: Bead }) {
   return (
     <section
       data-readable-epic={bead.id}
-      className={`min-w-0 rounded-xl border border-border bg-[var(--surface-2)] ${open && tree.depth === 0 ? "col-span-full" : ""}`}
+      className={`min-w-0 rounded-xl border border-border bg-[var(--surface-2)] ${tree.direction === "right" ? "w-max min-w-[320px]" : ""}`}
     >
       <div
         className="relative rounded-t-xl hover:bg-[var(--surface-3)]"
         data-connection-obstacle
         data-connection-node={bead.id}
+        {...highlight}
       >
         <button
           type="button"
@@ -281,6 +305,9 @@ function EpicBranch({ bead, ...tree }: TreeProps & { bead: Bead }) {
           <span className="text-xs text-[var(--text-3)]">
             {progress.completed} / {progress.total} tasks complete
           </span>
+          <div className="pointer-events-auto relative">
+            <HighlightPathButton id={bead.id} title={bead.title} />
+          </div>
         </div>
       </div>
       <div id={contentId} hidden={!open} className="border-t border-border p-6">

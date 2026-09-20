@@ -288,12 +288,21 @@ the arrows. Membership and non-blocking relationships do not become dependency
 arrows; other relationship types remain available in task focus and Full graph.
 
 **Graph direction** applies to both presentations. **Auto** flows top-to-bottom
-on phones and left-to-right on wider screens; an explicit direction is saved
-locally. Top-down arrows leave bottom ports and enter top ports. Readable view
+in Readable view on every screen; Full graph retains left-to-right on desktop
+and top-to-bottom on phones. An explicit direction is saved locally.
+Top-down arrows leave bottom ports and enter top ports. Readable view
 places dependency levels in successive rows, stacking parallel tasks on phones
 instead of widening the page. Cross-epic child dependencies influence container
 placement without being redrawn as epic-level links. Cycles share a level rather
 than inventing an execution order. Task focus and epic expansion remain available.
+
+Readable chains retain their lanes and merges align near their prerequisites.
+Horizontal dependency columns never wrap: scroll the graph horizontally when
+needed. Rounded routes prefer fewer bends, use separated attachment points and
+reserve channels where space permits, without crossing cards. Hover or keyboard
+focus previews upstream/downstream paths; **Highlight path** pins a selection
+for touch or mouse use. **Clear path** or Escape clears it. Hidden selections
+are released when their cards disappear. These interactions do not change beads.
 
 The presentation preference is saved locally. **Full graph** remains available
 for panning, pinch zoom, the epic selector, **Fit epic**, spotlight, and dependency

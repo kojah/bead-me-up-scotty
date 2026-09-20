@@ -158,8 +158,7 @@ for (const width of [390, 1440]) {
     const geometry = await page
       .locator(".task-neighborhood-grid > section")
       .evaluateAll((nodes) => nodes.map((n) => n.getBoundingClientRect().toJSON()));
-    if (width < 768) expect(geometry[0].bottom).toBeLessThanOrEqual(geometry[1].top);
-    else expect(geometry[0].right).toBeLessThanOrEqual(geometry[1].left);
+    expect(geometry[0].bottom).toBeLessThanOrEqual(geometry[1].top);
     expect(
       await page.locator(".readable-graph-scroll").evaluate((e) => e.scrollWidth <= e.clientWidth),
     ).toBe(true);

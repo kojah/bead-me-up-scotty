@@ -14,7 +14,7 @@ export function GraphView() {
 function GraphWorkspace() {
   const mobile = useMobile();
   const { presentation, setPresentation } = useGraphPresentation();
-  const { direction, preference, setPreference } = useGraphDirection();
+  const { direction, preference, setPreference } = useGraphDirection(presentation === "readable");
   const [epicId, setEpicId] = React.useState("");
   const [expanded, setExpanded] = React.useState<Set<string>>(() => new Set());
   const [focusId, setFocusId] = React.useState<string | null>(null);
@@ -54,7 +54,7 @@ function GraphWorkspace() {
         <select
           aria-label="Graph direction"
           className="control-button w-[104px] min-w-0 max-w-full md:ml-auto md:w-auto"
-          title="Auto uses top-to-bottom on phones and left-to-right on wider screens"
+          title="Auto uses top-to-bottom in Readable view; the desktop canvas keeps left-to-right"
           value={preference}
           onChange={(e) => setPreference(e.target.value as "auto" | "right" | "down")}
         >
