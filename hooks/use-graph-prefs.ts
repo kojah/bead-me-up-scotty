@@ -1,7 +1,6 @@
 "use client";
 import * as React from "react";
 import type { GraphDirection } from "@/lib/graph-direction";
-import { useMobile } from "./use-mobile";
 
 const KEY = "bmus.graph.hideCompleted";
 const EVENT = "bmus.graph.changed";
@@ -35,36 +34,6 @@ export function useGraphPrefs() {
   return { hideCompleted, setHideCompleted };
 }
 
-export type GraphPresentation = "readable" | "canvas";
-const PRESENTATION_KEY = "bmus.graph.presentation";
-let presentationFallback: GraphPresentation | undefined;
-function presentationSnapshot(): GraphPresentation {
-  if (presentationFallback) return presentationFallback;
-  try {
-    return localStorage.getItem(PRESENTATION_KEY) === "canvas" ? "canvas" : "readable";
-  } catch {
-    return "readable";
-  }
-}
-
-export function useGraphPresentation() {
-  const presentation = React.useSyncExternalStore(
-    subscribe,
-    presentationSnapshot,
-    () => "readable" as const,
-  );
-  const setPresentation = React.useCallback((value: GraphPresentation) => {
-    try {
-      localStorage.setItem(PRESENTATION_KEY, value);
-      presentationFallback = undefined;
-    } catch {
-      presentationFallback = value;
-    }
-    window.dispatchEvent(new Event(EVENT));
-  }, []);
-  return { presentation, setPresentation };
-}
-
 type DirectionPreference = GraphDirection | "auto";
 const DIRECTION_KEY = "bmus.graph.direction";
 let directionFallback: DirectionPreference | undefined;
@@ -77,15 +46,13 @@ function directionSnapshot(): DirectionPreference {
     return "auto";
   }
 }
-export function useGraphDirection(readable = false) {
-  const mobile = useMobile();
+export function useGraphDirection() {
   const preference = React.useSyncExternalStore(
     subscribe,
     directionSnapshot,
     () => "auto" as const,
   );
-  const direction: GraphDirection =
-    preference === "auto" ? (readable || mobile ? "down" : "right") : preference;
+  const direction: GraphDirection = preference === "auto" ? "down" : preference;
   const setPreference = (value: DirectionPreference) => {
     try {
       localStorage.setItem(DIRECTION_KEY, value);

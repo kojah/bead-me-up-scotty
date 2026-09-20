@@ -9,11 +9,11 @@ test("readable graph recovers from empty filters and removed focus with storage 
     const get = Storage.prototype.getItem,
       set = Storage.prototype.setItem;
     Storage.prototype.getItem = function (key) {
-      if (key === "bmus.graph.presentation") throw new Error("blocked storage");
+      if (key === "bmus.graph.hideCompleted") throw new Error("blocked storage");
       return get.call(this, key);
     };
     Storage.prototype.setItem = function (key, value) {
-      if (key === "bmus.graph.presentation") throw new Error("blocked storage");
+      if (key === "bmus.graph.hideCompleted") throw new Error("blocked storage");
       return set.call(this, key, value);
     };
   });
@@ -42,15 +42,5 @@ test("readable graph recovers from empty filters and removed focus with storage 
   await expect(page.getByText("This task is no longer available.", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Back to epic view" }).click();
   await expect(page.getByText("No beads to show.", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Full graph", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Full graph", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await page.getByRole("button", { name: "Readable view", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Readable view", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
   expect(errors).toStrictEqual([]);
 });

@@ -2,7 +2,7 @@ import { makeBead } from "./bead-fixture";
 import { expect, test } from "./fixtures";
 
 const dep = (depends_on_id: string, type = "blocks") => ({ depends_on_id, type });
-test("responsive direction, dependency levels, vertical ports, preference and canvas", async ({
+test("responsive direction, dependency levels, vertical ports, preference persistence", async ({
   browser,
   baseURL,
 }, testInfo) => {
@@ -103,32 +103,11 @@ test("responsive direction, dependency levels, vertical ports, preference and ca
   await page.getByRole("button", { name: "Back to epic view" }).click();
   await page.reload();
   await expect(direction).toHaveValue("down");
-  await page.getByRole("button", { name: "Full graph", exact: true }).click();
-  await expect(
-    page.locator('.react-flow__node[data-id="a"] .react-flow__handle-bottom'),
-  ).toHaveCount(1);
-  await expect(
-    page.locator('.react-flow__node[data-id="epic"] .react-flow__handle-bottom'),
-  ).toHaveCount(1);
-  await expect(page.locator('.react-flow__node[data-id="b"] .react-flow__handle-top')).toHaveCount(
-    1,
-  );
-  await expect
-    .poll(() =>
-      page
-        .locator(".react-flow__edge-path")
-        .evaluateAll((paths) => paths.every((p) => Boolean(p.getAttribute("d")))),
-    )
-    .toBe(true);
   await direction.selectOption("right");
-  await expect(
-    page.locator('.react-flow__node[data-id="a"] .react-flow__handle-right'),
-  ).toHaveCount(1);
-  await direction.selectOption("auto");
-  await page.setViewportSize({ width: 390, height: 940 });
-  await expect(
-    page.locator('.react-flow__node[data-id="a"] .react-flow__handle-bottom'),
-  ).toHaveCount(1);
+  await expect(page.locator("[data-readable-connections]")).toHaveAttribute(
+    "data-direction",
+    "right",
+  );
   expect(errors).toStrictEqual([]);
   expect(writes).toStrictEqual([]);
 });
@@ -162,9 +141,6 @@ test("direction controls still work with browser storage unavailable", async ({
     "data-direction",
     "right",
   );
-  await page.getByRole("button", { name: "Full graph", exact: true }).click();
-  await expect(direction).toHaveValue("right");
-  await page.getByRole("button", { name: "Readable view", exact: true }).click();
   await expect(page.locator("[data-readable-connections]")).toHaveAttribute(
     "data-direction",
     "right",

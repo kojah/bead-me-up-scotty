@@ -45,13 +45,15 @@ test("dependency paths avoid card interiors, including fan-in inside epics", asy
     return route.continue();
   });
   await page.goto("/p/demo?view=graph");
-  await page.getByRole("button", { name: "Full graph", exact: true }).click();
-  await expect(page.locator(".react-flow__node-bead")).toHaveCount(4);
-  await expect(page.locator(".react-flow__edge-path")).toHaveCount(5);
+  await page
+    .getByRole("button", { name: "Expand epic Routing regression", exact: true })
+    .click({ position: { x: 8, y: 8 } });
+  await expect(page.locator("[data-readable-task]")).toHaveCount(4);
+  await expect(page.locator("[data-readable-edge]")).toHaveCount(5);
   await expect
     .poll(async () =>
-      page.locator(".react-flow__edge-path").evaluateAll((paths) => {
-        const boxes = [...document.querySelectorAll(".react-flow__node-bead")].map((n) =>
+      page.locator("[data-readable-edge]").evaluateAll((paths) => {
+        const boxes = [...document.querySelectorAll("[data-readable-task]")].map((n) =>
           n.getBoundingClientRect(),
         );
         return paths.flatMap((element) => {

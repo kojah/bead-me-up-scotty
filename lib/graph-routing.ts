@@ -1,4 +1,3 @@
-import type { Edge, Node } from "@xyflow/react";
 import type { GraphDirection } from "./graph-direction";
 
 export type Point = { x: number; y: number };
@@ -154,40 +153,4 @@ export function routeAroundCards(
   if (!points.length && clearance !== CLEARANCE)
     return routeAroundCards(source, target, cards, "right", CLEARANCE);
   return points.length ? simplify([source, ...points, target]) : [];
-}
-
-function nodeBox(node: Node): GraphBox {
-  return node.data.graphBox as GraphBox;
-}
-
-export function routeGraphEdges(
-  edges: Edge[],
-  nodes: Node[],
-  direction: GraphDirection = "right",
-): Edge[] {
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  // Epic interiors are traversable, but their title bars are obstacles too.
-  const obstacles = nodes.map((node) => ({
-    ...nodeBox(node),
-    height: node.type === "epic" ? 90 : nodeBox(node).height,
-  }));
-  return edges.map((edge) => {
-    const source = byId.get(edge.source),
-      target = byId.get(edge.target);
-    if (!source || !target) return edge;
-    const a = nodeBox(source),
-      b = nodeBox(target);
-    const points = routeAroundCards(
-      direction === "down"
-        ? { x: a.x + a.width / 2, y: a.y + a.height }
-        : { x: a.x + a.width, y: a.y + (source.type === "epic" ? 45 : a.height / 2) },
-      direction === "down"
-        ? { x: b.x + b.width / 2, y: b.y }
-        : { x: b.x, y: b.y + (target.type === "epic" ? 45 : b.height / 2) },
-      obstacles,
-      direction,
-    );
-    const path = points.map((p, i) => `${i ? "L" : "M"} ${p.x} ${p.y}`).join(" ");
-    return { ...edge, type: "routed", data: { ...edge.data, path } };
-  });
 }

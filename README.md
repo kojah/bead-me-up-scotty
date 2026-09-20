@@ -68,9 +68,9 @@ for AI agents.
 - **Epics & progress** — epics with live `closed ÷ children` progress bars and
   expandable child lists; add a child straight into an epic.
 - **Dependencies & graph** — view/add/remove typed dependencies in the detail
-  drawer. The default **Readable view** keeps cards at reading size, groups tasks
-  inside collapsible epics, and offers immediate task-dependency focus. Switch to
-  **Full graph** for the complete React Flow edge map (drag node→node to link).
+  drawer. The **Graph** keeps cards at reading size, groups tasks
+  inside collapsible epics, and offers immediate task-dependency focus. Open
+  **Graph options** for zoom/fit, other relationships, and dependency creation.
 - **Comments** — author-stamped comment threads with a composer on every bead.
 - **Bead links** — open a bead directly with `/p/<project>?bead=<id>`. The address
   bar follows the open drawer; its **Copy link** button copies a shareable link,
@@ -269,28 +269,29 @@ The global command is a symlink to the clone, so keep it on disk and re-run
 
 On phones, project links open the List view unless a view is explicitly linked
 or Focus is your chosen default. Navigation opens from the menu beside the
-project switcher; filters and graph options open in a bottom sheet. Bead details
+project switcher; filters open in a bottom sheet and graph options expand inline. Bead details
 and creation use full-screen surfaces.
 
 Lists and boards scroll with touch. Drag-to-reorder is desktop-only; use bead
-details to change status on a phone. **Readable view** uses vertical scrolling on
+details to change status on a phone. **Graph** uses vertical scrolling on
 mobile and opens one sibling epic at a time. **Focus dependencies** shows immediate
 prerequisites, the selected task, and dependents; completed prerequisites remain
 visible as context, missing targets are labeled, and non-blocking relationships
 stay separate. **Back to epic view** restores the expanded branch and scroll position.
 
 Click an epic title to open its details; the rest of its header expands/collapses
-the container. Readable-view arrows connect prerequisites to dependents, routing
+the container. Graph arrows connect prerequisites to dependents, routing
 around cards and titles. Epic-level links attach to the epic header boundary;
 child-task links attach only to the actual visible child, never to its ancestor.
 Expand collapsed epics to reveal those links. Completion filters also apply to
 the arrows. Membership and non-blocking relationships do not become dependency
-arrows; other relationship types remain available in task focus and Full graph.
+arrows. Enable **Show other relationships** to see non-blocking links as dashed
+gray lines without arrowheads; these do not affect ordering or path highlighting.
+They also remain available in task focus.
 
-**Graph direction** applies to both presentations. **Auto** flows top-to-bottom
-in Readable view on every screen; Full graph retains left-to-right on desktop
-and top-to-bottom on phones. An explicit direction is saved locally.
-Top-down arrows leave bottom ports and enter top ports. Readable view
+**Graph direction** defaults to **Auto**, flowing top-to-bottom on every screen.
+An explicit direction is saved locally.
+Top-down arrows leave bottom ports and enter top ports. The graph
 places dependency levels in successive rows, stacking parallel tasks on phones
 instead of widening the page. Cross-epic child dependencies influence container
 placement without being redrawn as epic-level links. Cycles share a level rather
@@ -304,16 +305,19 @@ focus previews upstream/downstream paths; **Highlight path** pins a selection
 for touch or mouse use. **Clear path** or Escape clears it. Hidden selections
 are released when their cards disappear. These interactions do not change beads.
 
-The presentation preference is saved locally. **Full graph** remains available
-for panning, pinch zoom, the epic selector, **Fit epic**, spotlight, and dependency
-creation. Card heights are measured after rendering so wrapped titles remain
-inside their epic containers. Readable cards are ordered by dependency layer
-where possible; adjacency does not invent a dependency between unrelated tasks.
+There is one graph renderer; old presentation preferences are ignored. **Graph
+options** contains zoom in/out, reset to reading size, **Fit graph**, **Expand
+all**, and **Live dependencies only**. Scroll or swipe to navigate. Task focus
+always returns to reading size. **Add dependency** explicitly selects a
+prerequisite and a dependent (works on phones and with a keyboard), replacing
+drag-only linking. It is absent in read-only mode. Existing relationships can
+still be edited in bead details. Cards are measured after rendering so wrapped
+titles stay inside their epic containers. Adjacency does not invent a dependency.
 
 ### Technologies
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · shadcn/ui ·
-TanStack Query (polling + optimistic DnD) · dnd-kit (board) · @xyflow/react
+TanStack Query (polling + optimistic DnD) · dnd-kit (board) · measured HTML/SVG
 (dependency graph) · Zod (validates `bd` output *and* forms).
 
 ## Project layout

@@ -77,10 +77,7 @@ for (const width of [390, 1440]) {
       return route.continue();
     });
     await page.goto(`${baseURL}/p/demo?view=graph`);
-    await expect(page.getByRole("button", { name: "Readable view", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(page.locator("[data-readable-graph]")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Expand epic Study rollout", exact: true }),
     ).toBeVisible();
@@ -186,15 +183,11 @@ for (const width of [390, 1440]) {
         .getByRole("button", { name: "Expand epic Data preparation", exact: true })
         .click({ position: { x: 8, y: 8 } });
     await expect(page.locator('[data-readable-task="prepared"]')).toBeVisible();
-    await page.getByRole("button", { name: "Full graph", exact: true }).click();
-    await expect(page.locator('.react-flow__node[data-id="work"]')).toBeAttached();
     await expect(page.getByLabel("Graph scope", { exact: true })).toHaveValue("rollout");
     await page.reload();
-    await expect(page.getByRole("button", { name: "Full graph", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    await page.getByRole("button", { name: "Readable view", exact: true }).click();
+    await expect(
+      page.getByRole("checkbox", { name: "Hide completed", exact: true }),
+    ).not.toBeChecked();
     await page
       .getByRole("button", { name: "Expand epic Study rollout", exact: true })
       .click({ position: { x: 8, y: 8 } });

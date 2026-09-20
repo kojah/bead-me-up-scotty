@@ -1,11 +1,13 @@
 "use client";
 import * as React from "react";
 import { useApp } from "@/components/app-context";
+import { GraphLinkEditor } from "@/components/graph-link-editor";
 import { HighlightPathButton, usePathHighlight } from "@/components/graph-path-highlight";
 import { GraphTaskCard } from "@/components/graph-task-card";
 import { GraphTaskFocus } from "@/components/graph-task-focus";
 import { ReadableConnections } from "@/components/readable-connections";
 import { useGraphPrefs } from "@/hooks/use-graph-prefs";
+import { useGraphViewport } from "@/hooks/use-graph-viewport";
 import { useMobile } from "@/hooks/use-mobile";
 import type { GraphDirection } from "@/lib/graph-direction";
 import { alignedLevels } from "@/lib/graph-levels";
@@ -14,6 +16,7 @@ import { readableGraph } from "@/lib/readable-graph";
 import type { Bead } from "@/lib/schema";
 
 type Props = {
+  directionControl: React.ReactNode;
   direction: GraphDirection;
   epicId: string;
   setEpicId: (id: string) => void;
@@ -27,6 +30,10 @@ type Model = ReturnType<typeof readableGraph>;
 export function ReadableGraph(props: Props) {
   const { beads, selectBead } = useApp();
   const { hideCompleted, setHideCompleted } = useGraphPrefs();
+  const [liveOnly, setLiveOnly] = React.useState(false);
+  const [showRelated, setShowRelated] = React.useState(false);
+  const viewport = useGraphViewport();
+  const scale = props.focusId ? 1 : viewport.zoom;
   const mobile = useMobile();
   const epics = React.useMemo(
     () =>
@@ -37,24 +44,28 @@ export function ReadableGraph(props: Props) {
   );
   const epicId = epics.some((b) => b.id === props.epicId) ? props.epicId : "";
   const scope = React.useMemo(
-    () => graphScope(beads, epicId, hideCompleted, false),
-    [beads, epicId, hideCompleted],
+    () => graphScope(beads, epicId, hideCompleted, liveOnly),
+    [beads, epicId, hideCompleted, liveOnly],
   );
   const model = React.useMemo(
     () => readableGraph(scope.visible, scope.all, scope.outsideIds),
     [scope],
   );
-  const scroller = React.useRef<HTMLDivElement>(null);
-  const overviewScroll = React.useRef(0);
+  const { scroller } = viewport;
+  const overviewScroll = React.useRef({ top: 0, left: 0 });
   const focus = (id: string) => {
-    if (!props.focusId) overviewScroll.current = scroller.current?.scrollTop ?? 0;
+    if (!props.focusId)
+      overviewScroll.current = {
+        top: scroller.current?.scrollTop ?? 0,
+        left: scroller.current?.scrollLeft ?? 0,
+      };
     props.setFocusId(id);
     selectBead(id);
-    scroller.current?.scrollTo({ top: 0 });
+    scroller.current?.scrollTo({ top: 0, left: 0 });
   };
   const back = () => {
     props.setFocusId(null);
-    requestAnimationFrame(() => scroller.current?.scrollTo({ top: overviewScroll.current }));
+    requestAnimationFrame(() => scroller.current?.scrollTo(overviewScroll.current));
   };
   const toggle = (id: string) =>
     props.setExpanded((current) => {
@@ -95,7 +106,7 @@ export function ReadableGraph(props: Props) {
           onChange={(event) => {
             props.setEpicId(event.target.value);
             props.setFocusId(null);
-            scroller.current?.scrollTo({ top: 0 });
+            scroller.current?.scrollTo({ top: 0, left: 0 });
           }}
           className="h-11 min-w-0 max-w-full rounded-lg border border-border bg-[var(--surface-2)] px-3 text-sm md:max-w-[300px]"
         >
@@ -106,6 +117,7 @@ export function ReadableGraph(props: Props) {
             </option>
           ))}
         </select>
+        {props.directionControl}
         {!props.focusId && (
           <>
             <label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs">
@@ -127,45 +139,136 @@ export function ReadableGraph(props: Props) {
           </>
         )}
       </header>
+      {!props.focusId && (
+        <details className="shrink-0 border-b border-border px-4 py-1">
+          <summary className="min-h-11 cursor-pointer content-center text-sm">
+            Graph options
+          </summary>
+          <div className="max-h-[40dvh] overflow-y-auto pb-3">
+            <div className="flex flex-wrap items-center gap-3 pb-3">
+              <label className="flex min-h-11 items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={liveOnly}
+                  onChange={(e) => setLiveOnly(e.target.checked)}
+                />
+                Live dependencies only
+              </label>
+              <label className="flex min-h-11 items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={showRelated}
+                  onChange={(e) => setShowRelated(e.target.checked)}
+                />
+                Show other relationships
+              </label>
+              <button
+                type="button"
+                className="control-button"
+                onClick={() => props.setExpanded(new Set(epics.map((b) => b.id)))}
+              >
+                Expand all
+              </button>
+              <button
+                type="button"
+                className="control-button"
+                aria-label="Zoom out"
+                disabled={viewport.zoom <= 0.005}
+                onClick={() => viewport.setZoom((z) => Math.max(0.005, z / 1.25))}
+              >
+                −
+              </button>
+              <button
+                type="button"
+                className="control-button"
+                aria-label="Reset zoom"
+                onClick={() => viewport.setZoom(1)}
+              >
+                {Math.round(viewport.zoom * 100)}%
+              </button>
+              <button
+                type="button"
+                className="control-button"
+                aria-label="Zoom in"
+                disabled={viewport.zoom >= 2}
+                onClick={() => viewport.setZoom((z) => Math.min(2, z * 1.25))}
+              >
+                +
+              </button>
+              <button type="button" className="control-button" onClick={viewport.fit}>
+                Fit graph
+              </button>
+            </div>
+            <GraphLinkEditor />
+          </div>
+        </details>
+      )}
       <div
         ref={scroller}
-        className="readable-graph-scroll bd-scroll min-h-0 flex-1 overflow-y-auto p-4 md:p-6"
+        className="readable-graph-scroll bd-scroll min-h-0 flex-1 overflow-auto"
+        style={{ padding: 0 }}
       >
-        {props.focusId ? (
-          <GraphTaskFocus
-            id={props.focusId}
-            onFocus={focus}
-            onBack={back}
-            direction={props.direction}
-          />
-        ) : (
-          <>
-            <p className="mb-4 text-xs text-[var(--text-3)]">
-              Arrows run from prerequisites to dependents. Epic borders mean membership, not a
-              dependency. Expand epics to reveal child-task connections.
-            </p>
-            <ReadableConnections beads={scope.visible} direction={props.direction}>
-              <ReadableItems
-                items={[...(model.children.get("") ?? []), ...model.outside]}
-                {...tree}
+        <div
+          style={{
+            width: viewport.size.width * scale,
+            height: viewport.size.height * scale,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            ref={viewport.content}
+            className="box-border p-4 md:p-6"
+            style={{
+              width: viewport.width,
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+            }}
+          >
+            {props.focusId ? (
+              <GraphTaskFocus
+                id={props.focusId}
+                onFocus={focus}
+                onBack={back}
+                direction={props.direction}
               />
-            </ReadableConnections>
-            {scope.visible.length === 0 && (
-              <div className="rounded-xl border border-border bg-[var(--surface)] p-6 text-sm">
-                <p>No beads to show{hideCompleted ? " with completed work hidden" : ""}.</p>
-                {hideCompleted && (
-                  <button
-                    type="button"
-                    className="control-button mt-3"
-                    onClick={() => setHideCompleted(false)}
-                  >
-                    Show completed beads
-                  </button>
+            ) : (
+              <>
+                <p className="mb-4 text-xs text-[var(--text-3)]">
+                  Arrows run from prerequisites to dependents. Epic borders mean membership, not a
+                  dependency. Expand epics to reveal child-task connections.
+                </p>
+                <ReadableConnections
+                  beads={scope.visible}
+                  direction={props.direction}
+                  zoom={viewport.zoom}
+                  showRelated={showRelated}
+                >
+                  <ReadableItems
+                    items={[...(model.children.get("") ?? []), ...model.outside]}
+                    {...tree}
+                  />
+                </ReadableConnections>
+                {scope.visible.length === 0 && (
+                  <div className="rounded-xl border border-border bg-[var(--surface)] p-6 text-sm">
+                    <p>No beads to show{hideCompleted ? " with completed work hidden" : ""}.</p>
+                    {(hideCompleted || liveOnly) && (
+                      <button
+                        type="button"
+                        className="control-button mt-3"
+                        onClick={() => {
+                          setHideCompleted(false);
+                          setLiveOnly(false);
+                        }}
+                      >
+                        {liveOnly ? "Show all beads" : "Show completed beads"}
+                      </button>
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </div>
   );

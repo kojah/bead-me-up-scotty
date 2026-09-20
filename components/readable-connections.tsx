@@ -2,11 +2,11 @@
 import * as React from "react";
 import type { GraphDirection } from "@/lib/graph-direction";
 import type { GraphBox } from "@/lib/graph-routing";
-import { readableLinks, routeReadableLinks } from "@/lib/readable-connections";
+import { isBlockingLink, readableLinks, routeReadableLinks } from "@/lib/readable-connections";
 import type { Bead } from "@/lib/schema";
 import { GraphPathContext, pathNeighborhood } from "./graph-path-highlight";
 
-function measureNodes(root: HTMLElement, direction: GraphDirection) {
+function measureNodes(root: HTMLElement, direction: GraphDirection, zoom: number) {
   const origin = root.getBoundingClientRect();
   const boxes = new Map<string, GraphBox>();
   const obstacles: GraphBox[] = [];
@@ -15,10 +15,10 @@ function measureNodes(root: HTMLElement, direction: GraphDirection) {
     const rect = node.getBoundingClientRect();
     if (!rect.width || !rect.height) continue;
     const box = {
-      x: rect.x - origin.x,
-      y: rect.y - origin.y,
-      width: rect.width,
-      height: rect.height,
+      x: (rect.x - origin.x) / zoom,
+      y: (rect.y - origin.y) / zoom,
+      width: rect.width / zoom,
+      height: rect.height / zoom,
     };
     if (node.dataset.connectionNode) boxes.set(node.dataset.connectionNode, box);
     else obstacles.push(box);
@@ -28,10 +28,10 @@ function measureNodes(root: HTMLElement, direction: GraphDirection) {
     for (const epic of root.querySelectorAll<HTMLElement>("[data-readable-epic]")) {
       const rect = epic.getBoundingClientRect();
       ports.set(epic.dataset.readableEpic!, {
-        x: rect.x - origin.x,
-        y: rect.y - origin.y,
-        width: rect.width,
-        height: rect.height,
+        x: (rect.x - origin.x) / zoom,
+        y: (rect.y - origin.y) / zoom,
+        width: rect.width / zoom,
+        height: rect.height / zoom,
       });
     }
   return { boxes, obstacles, ports };
@@ -41,15 +41,19 @@ export function ReadableConnections({
   beads,
   children,
   direction,
+  zoom = 1,
+  showRelated = false,
 }: {
   beads: Bead[];
   children: React.ReactNode;
   direction: GraphDirection;
+  zoom?: number;
+  showRelated?: boolean;
 }) {
   const root = React.useRef<HTMLDivElement>(null);
   const content = React.useRef<HTMLDivElement>(null);
   const marker = React.useId();
-  const links = React.useMemo(() => readableLinks(beads), [beads]);
+  const links = React.useMemo(() => readableLinks(beads, showRelated), [beads, showRelated]);
   const [routes, setRoutes] = React.useState<ReturnType<typeof routeReadableLinks>>([]);
   const [hover, setHover] = React.useState<string | null>(null);
   const [focus, setFocus] = React.useState<string | null>(null);
@@ -60,7 +64,7 @@ export function ReadableConnections({
     if (pinned && !visible.has(pinned)) setPinned(null);
   }, [pinned, visible]);
   const active = React.useMemo(
-    () => (activeId ? pathNeighborhood(activeId, routes) : null),
+    () => (activeId ? pathNeighborhood(activeId, routes.filter(isBlockingLink)) : null),
     [activeId, routes],
   );
   const clear = () => {
@@ -75,7 +79,7 @@ export function ReadableConnections({
     const measure = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const { boxes, obstacles, ports } = measureNodes(element, direction);
+        const { boxes, obstacles, ports } = measureNodes(element, direction, zoom);
         setVisible(new Set(boxes.keys()));
         setRoutes(routeReadableLinks(links, boxes, obstacles, direction, ports));
       });
@@ -103,12 +107,13 @@ export function ReadableConnections({
       observer.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, [links, direction]);
+  }, [links, direction, zoom]);
   const titles = new Map(beads.map((b) => [b.id, b.title]));
   return (
     <>
       <p className="mb-3 text-xs text-[var(--text-3)]" data-connection-summary>
         {routes.length} of {links.length} dependency connections shown (current filter).
+        {showRelated && " Dashed gray links are other relationships, not execution order."}
       </p>
       <div className="mb-3 flex min-h-11 items-center gap-3 text-xs text-[var(--text-3)]">
         <span className="min-w-0 flex-1">
@@ -166,9 +171,10 @@ export function ReadableConnections({
               data-readable-edge
               data-source={route.source}
               data-target={route.target}
+              data-relationship={isBlockingLink(route) ? "blocking" : "other"}
               d={route.path}
               fill="none"
-              stroke="var(--brand)"
+              stroke={isBlockingLink(route) ? "var(--brand)" : "var(--text-3)"}
               strokeWidth="1.5"
               opacity={active && !(active.has(route.source) && active.has(route.target)) ? 0.12 : 1}
               data-highlighted={
@@ -176,7 +182,7 @@ export function ReadableConnections({
               }
               strokeLinejoin="round"
               strokeDasharray={route.types.includes("blocks") ? undefined : "5 4"}
-              markerEnd={`url(#${marker})`}
+              markerEnd={isBlockingLink(route) ? `url(#${marker})` : undefined}
             >
               <title>
                 {titles.get(route.source)} → {titles.get(route.target)} ({route.types.join(", ")})

@@ -175,44 +175,33 @@ for (const width of [360, 390, 430]) {
     await page.getByTitle("Close", { exact: true }).click();
     await detail.waitFor({ state: "hidden" });
     await navigate(page, "Graph");
-    await page.getByRole("button", { name: "Full graph", exact: true }).click();
-    await page.locator('[data-epic-container="epic"]').waitFor();
     await page.getByLabel("Graph scope").selectOption("epic");
-    await page.getByRole("button", { name: "Fit epic", exact: true }).click();
-    expect(
-      required(await page.locator(".react-flow").boundingBox()).height >= 350,
-      "graph has usable canvas height",
-    ).toBeTruthy();
-    await page.getByRole("button", { name: "Graph options", exact: true }).click();
+    await page.getByText("Graph options", { exact: true }).click();
+    await page.getByRole("button", { name: "Expand all", exact: true }).click();
+    await page.getByText("Graph options", { exact: true }).click();
     await page.getByRole("checkbox", { name: "Hide completed", exact: true }).uncheck();
-    await page.getByRole("button", { name: "Done", exact: true }).click();
-    await page.locator('.react-flow__node[data-id="done"]').waitFor();
-    await page.waitForTimeout(400);
+    await page.locator('[data-readable-task="done"]').waitFor({ state: "attached" });
     const boxes = await page
-      .locator(".react-flow__node")
+      .locator("[data-readable-task], [data-readable-epic]")
       .evaluateAll((ns) =>
-        Object.fromEntries(ns.map((n) => [n.dataset.id, n.getBoundingClientRect().toJSON()])),
+        Object.fromEntries(
+          ns.map((n) => [
+            (n as HTMLElement).dataset.readableTask ?? (n as HTMLElement).dataset.readableEpic,
+            n.getBoundingClientRect().toJSON(),
+          ]),
+        ),
       );
-    expect(
-      boxes.first.bottom < boxes.second.top,
-      "measured long cards do not overlap",
-    ).toBeTruthy();
-    expect(
-      boxes.second.bottom <= boxes.nested.bottom,
-      "measured cards stay inside epic",
-    ).toBeTruthy();
+    expect(boxes.first.bottom).toBeLessThan(boxes.second.top);
+    expect(boxes.second.bottom).toBeLessThanOrEqual(boxes.nested.bottom);
     await noOverflow(page);
-    const transform = await page.locator(".react-flow__viewport").getAttribute("style");
-    const pane = required(await page.locator(".react-flow__pane").boundingBox());
+    const graphScroll = page.locator(".readable-graph-scroll");
+    const pane = required(await graphScroll.boundingBox());
     await swipe(
       page,
-      { x: pane.x + pane.width / 2, y: pane.y + 15 },
-      { x: pane.x + pane.width / 2 + 60, y: pane.y + 45 },
+      { x: pane.x + pane.width / 2, y: pane.y + pane.height - 30 },
+      { x: pane.x + pane.width / 2, y: pane.y + 30 },
     );
-    expect(
-      await page.locator(".react-flow__viewport").getAttribute("style"),
-      "canvas pans by touch",
-    ).not.toBe(transform);
+    expect(await graphScroll.evaluate((e) => e.scrollTop)).toBeGreaterThan(0);
     if (width === 390) await page.screenshot({ path: testInfo.outputPath("mobile-graph.png") });
     for (const view of [
       "Board",

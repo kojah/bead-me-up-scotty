@@ -7,14 +7,15 @@ export type ReadableLink = { source: string; target: string; types: string[] };
 const blocking = new Set(["blocks", "waits-for", "conditional-blocks"]);
 
 /** Prerequisite → dependent. Membership and related links are not ordering arrows. */
-export function readableLinks(beads: Bead[]): ReadableLink[] {
+export function readableLinks(beads: Bead[], includeRelated = false): ReadableLink[] {
   const present = new Set(beads.filter((b) => !b.labels.includes("archived")).map((b) => b.id));
   const links = new Map<string, ReadableLink>();
   for (const bead of beads) {
     if (!present.has(bead.id)) continue;
     for (const dep of bead.dependencies) {
       if (
-        !blocking.has(dep.type) ||
+        dep.type === "parent-child" ||
+        (!includeRelated && !blocking.has(dep.type)) ||
         dep.depends_on_id === bead.id ||
         !present.has(dep.depends_on_id)
       )
@@ -26,6 +27,10 @@ export function readableLinks(beads: Bead[]): ReadableLink[] {
     }
   }
   return [...links.values()];
+}
+
+export function isBlockingLink(link: ReadableLink) {
+  return link.types.some((type) => blocking.has(type));
 }
 
 /** Never substitute an ancestor for a hidden endpoint: that changes the meaning. */
