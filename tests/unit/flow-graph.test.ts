@@ -26,7 +26,8 @@ test("nested epic groups contain compact nodes and precede their children", () =
       Number(parent.style!.height),
     );
   }
-  expect(nodes[2].style!.height).toBe(72);
+  expect(nodes[2].height).toBe(72);
+  expect(nodes[2].width).toBe(220);
 });
 
 test("cross-epic dependency arrows retain prerequisite to dependent direction", () => {

@@ -125,6 +125,8 @@ export function buildFlowGraph(
         parentId,
         extent: parentId ? "parent" : undefined,
         position: { x: tile.x, y: tile.y },
+        width: tile.width,
+        height: tile.height,
         style: { width: tile.width, height: tile.height },
         draggable: false,
         data: {
