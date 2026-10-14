@@ -1,4 +1,5 @@
 "use client";
+import { Maximize2, Minimize2 } from "lucide-react";
 import * as React from "react";
 import { useApp } from "@/components/app-context";
 import { GraphLinkEditor } from "@/components/graph-link-editor";
@@ -13,6 +14,7 @@ import { alignedLevels } from "@/lib/graph-levels";
 import { graphScope } from "@/lib/graph-model";
 import { readableGraph } from "@/lib/readable-graph";
 import type { Bead } from "@/lib/schema";
+import { cn } from "@/lib/utils";
 
 type Props = {
   directionControl: React.ReactNode;
@@ -26,11 +28,76 @@ type Props = {
 };
 type Model = ReturnType<typeof readableGraph>;
 
+function useGraphFullscreen() {
+  const [fullscreen, setFullscreen] = React.useState(false);
+  const graph = React.useRef<HTMLDivElement>(null);
+  const fullscreenButton = React.useRef<HTMLButtonElement>(null);
+  React.useEffect(() => {
+    if (!fullscreen) return;
+    const overflow = document.body.style.overflow;
+    const siblings: { element: HTMLElement; inert: boolean }[] = [];
+    for (
+      let node: HTMLElement | null = graph.current;
+      node?.parentElement;
+      node = node.parentElement
+    ) {
+      for (const sibling of node.parentElement.children) {
+        if (sibling !== node && sibling instanceof HTMLElement) {
+          siblings.push({ element: sibling, inert: sibling.inert });
+          sibling.inert = true;
+        }
+      }
+    }
+    document.body.style.overflow = "hidden";
+    const exit = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !event.defaultPrevented) {
+        event.preventDefault();
+        setFullscreen(false);
+      }
+    };
+    document.addEventListener("keydown", exit);
+    return () => {
+      document.removeEventListener("keydown", exit);
+      document.body.style.overflow = overflow;
+      for (const { element, inert } of siblings) element.inert = inert;
+      fullscreenButton.current?.focus({ preventScroll: true });
+    };
+  }, [fullscreen]);
+  return { fullscreen, setFullscreen, graph, fullscreenButton };
+}
+
+function GraphFullscreenButton({
+  fullscreen,
+  setFullscreen,
+  fullscreenButton,
+}: ReturnType<typeof useGraphFullscreen>) {
+  return (
+    <button
+      ref={fullscreenButton}
+      type="button"
+      className="control-button"
+      aria-pressed={fullscreen}
+      aria-label={fullscreen ? "Exit fullscreen graph" : "Fullscreen graph"}
+      title={fullscreen ? "Exit fullscreen (Esc)" : "Fullscreen graph"}
+      onClick={() => setFullscreen((current) => !current)}
+    >
+      {fullscreen ? (
+        <Minimize2 size={16} aria-hidden="true" />
+      ) : (
+        <Maximize2 size={16} aria-hidden="true" />
+      )}
+      {fullscreen ? "Exit fullscreen" : "Fullscreen"}
+    </button>
+  );
+}
+
 export function ReadableGraph(props: Props) {
   const { beads, selectBead } = useApp();
   const { hideCompleted, setHideCompleted } = useGraphPrefs();
   const [liveOnly, setLiveOnly] = React.useState(false);
   const [showRelated, setShowRelated] = React.useState(false);
+  const fullscreenState = useGraphFullscreen();
+  const { fullscreen, graph } = fullscreenState;
   const viewport = useGraphViewport();
   const scale = props.focusId ? 1 : viewport.zoom;
   const mobile = useMobile();
@@ -89,7 +156,15 @@ export function ReadableGraph(props: Props) {
     direction: props.direction,
   };
   return (
-    <div className="flex min-h-0 flex-1 flex-col" data-readable-graph>
+    <div
+      ref={graph}
+      className={cn(
+        "flex min-h-0 flex-1 flex-col",
+        fullscreen && "fixed inset-0 z-40 bg-[var(--surface)]",
+      )}
+      data-readable-graph
+      data-fullscreen={fullscreen}
+    >
       <header className="view-toolbar">
         <div className="min-w-0 flex-1">
           <h1 className="text-base font-semibold">Dependency graph</h1>
@@ -117,6 +192,7 @@ export function ReadableGraph(props: Props) {
           ))}
         </select>
         {props.directionControl}
+        <GraphFullscreenButton {...fullscreenState} />
         {!props.focusId && (
           <>
             <label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs">
